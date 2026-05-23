@@ -23,9 +23,10 @@ class RideWorkflowTest extends TestCase
         $driver = Driver::factory()->create([
             'user_id' => $driverUser->id,
             'is_available' => true,
-            'status' => DriverStatus::Online,
+            'status' => DriverStatus::Online->value,
             'latitude' => 0.4162,
             'longitude' => 9.4673,
+            'last_seen_at' => now(),
         ]);
 
         Vehicle::factory()->create(['driver_id' => $driver->id]);

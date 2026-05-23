@@ -35,7 +35,7 @@ class DriverLocationService
         return Driver::query()
             ->with(['user', 'vehicle'])
             ->where('is_available', true)
-            ->where('status', \App\Enums\DriverStatus::Online)
+            ->where('status', \App\Enums\DriverStatus::Online->value)
             ->whereNotNull('latitude')
             ->whereNotNull('longitude')
             ->get()
