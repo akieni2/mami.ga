@@ -15,8 +15,10 @@ class DriverResource extends JsonResource
             'license_number' => $this->license_number,
             'is_available' => $this->is_available,
             'status' => $this->status?->value ?? $this->status,
+            'presence' => $this->presenceStatus(),
             'latitude' => $this->latitude !== null ? (float) $this->latitude : null,
             'longitude' => $this->longitude !== null ? (float) $this->longitude : null,
+            'last_seen_at' => $this->last_seen_at?->toIso8601String(),
             'rating' => $this->rating !== null ? (float) $this->rating : null,
             'distance_km' => $this->when(isset($this->distance_km), fn () => round((float) $this->distance_km, 3)),
             'user' => $this->whenLoaded('user', fn () => [

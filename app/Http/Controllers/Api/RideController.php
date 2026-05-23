@@ -7,6 +7,7 @@ use App\Http\Requests\Rides\RequestRideRequest;
 use App\Http\Resources\RideResource;
 use App\Models\Ride;
 use App\Services\RideDispatchService;
+use App\Services\RideTrackingService;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,6 +17,7 @@ class RideController extends Controller
 {
     public function __construct(
         private readonly RideDispatchService $rideDispatchService,
+        private readonly RideTrackingService $rideTrackingService,
     ) {}
 
     public function request(RequestRideRequest $request): JsonResponse
@@ -56,6 +58,26 @@ class RideController extends Controller
         return ApiResponse::success(
             (new RideResource($ride))->resolve(),
             'Ride accepted successfully',
+        );
+    }
+
+    public function arrived(Request $request, Ride $ride): JsonResponse
+    {
+        $driver = $request->user()->driver;
+
+        if ($driver === null) {
+            return ApiResponse::error('User is not a driver.', 403);
+        }
+
+        try {
+            $ride = $this->rideDispatchService->arrived($ride, $driver);
+        } catch (RuntimeException $exception) {
+            return ApiResponse::error($exception->getMessage(), 422);
+        }
+
+        return ApiResponse::success(
+            (new RideResource($ride))->resolve(),
+            'Driver arrived at pickup',
         );
     }
 
@@ -101,13 +123,7 @@ class RideController extends Controller
 
     public function show(Request $request, Ride $ride): JsonResponse
     {
-        $user = $request->user();
-        $driver = $user->driver;
-
-        $canView = $ride->client_id === $user->id
-            || ($driver !== null && $ride->driver_id === $driver->id);
-
-        if (! $canView) {
+        if (! $this->canAccessRide($request, $ride)) {
             return ApiResponse::error('Unauthorized to view this ride.', 403);
         }
 
@@ -116,6 +132,18 @@ class RideController extends Controller
         return ApiResponse::success(
             (new RideResource($ride))->resolve(),
             'Ride retrieved',
+        );
+    }
+
+    public function tracking(Request $request, Ride $ride): JsonResponse
+    {
+        if (! $this->canAccessRide($request, $ride)) {
+            return ApiResponse::error('Unauthorized to track this ride.', 403);
+        }
+
+        return ApiResponse::success(
+            $this->rideTrackingService->snapshot($ride),
+            'Ride tracking snapshot retrieved',
         );
     }
 
@@ -137,5 +165,14 @@ class RideController extends Controller
         $rides->through(fn (Ride $ride) => (new RideResource($ride))->resolve());
 
         return ApiResponse::paginated($rides, 'Ride history retrieved');
+    }
+
+    private function canAccessRide(Request $request, Ride $ride): bool
+    {
+        $user = $request->user();
+        $driver = $user->driver;
+
+        return $ride->client_id === $user->id
+            || ($driver !== null && $ride->driver_id === $driver->id);
     }
 }

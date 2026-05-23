@@ -13,12 +13,15 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/me', [AuthController::class, 'me']);
 
     Route::get('/drivers/nearby', [DriverController::class, 'nearby']);
+    Route::get('/drivers/{driver}/live-location', [DriverController::class, 'liveLocation']);
     Route::post('/drivers/location/update', [DriverController::class, 'updateLocation']);
     Route::post('/drivers/availability', [DriverController::class, 'updateAvailability']);
 
     Route::post('/rides/request', [RideController::class, 'request']);
     Route::get('/rides/history', [RideController::class, 'history']);
+    Route::get('/rides/{ride}/tracking', [RideController::class, 'tracking']);
     Route::post('/rides/{ride}/accept', [RideController::class, 'accept']);
+    Route::post('/rides/{ride}/arrived', [RideController::class, 'arrived']);
     Route::post('/rides/{ride}/start', [RideController::class, 'start']);
     Route::post('/rides/{ride}/complete', [RideController::class, 'complete']);
     Route::get('/rides/{ride}', [RideController::class, 'show']);
