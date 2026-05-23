@@ -6,15 +6,16 @@ Plateforme intelligente de mobilité urbaine pour l’Afrique — réservation t
 
 - Laravel 13 (API)
 - Sanctum (authentification token)
+- Laravel Broadcasting (structure temps réel, compatible Firebase)
 - MySQL
-- Flutter, Firebase, Google Maps, Asterisk SIP, Mobile Money (phases futures)
+- Flutter, Google Maps, Asterisk SIP, Mobile Money (phases futures)
 
 ## État du projet
 
 | Phase | Statut | Contenu |
 |-------|--------|---------|
-| **1 — MVP Backend** | En cours | API REST taxi |
-| 2 — Temps réel | À venir | Firebase, notifications |
+| **1 — MVP Backend** | Terminé | API REST, auth, dispatch |
+| **2 — Temps réel** | En cours | GPS live, tracking, événements |
 | 3 — Mobile | À venir | Flutter client + chauffeur |
 | 4 — VoIP | À venir | Asterisk SIP |
 | 5 — Paiements | À venir | Mobile Money |
@@ -31,6 +32,52 @@ php artisan serve
 
 API : `http://127.0.0.1:8000/api`
 
+## Architecture temps réel (Phase 2)
+
+Le backend utilise **Laravel Broadcasting** avec des événements structurés pour une intégration Firebase future, sans WebSocket custom au MVP.
+
+### Canaux (préfixe `mami` par défaut)
+
+| Canal | Usage |
+|-------|--------|
+| `mami.rides.{rideId}` | Suivi course (client + chauffeur assigné) |
+| `mami.drivers.{driverId}` | Position live chauffeur |
+
+### Événements broadcast
+
+- `RideRequested`, `RideAccepted`, `DriverArrived`, `RideStarted`, `RideCompleted`
+- `DriverLocationUpdated` (heartbeat GPS)
+
+Chaque payload inclut un enveloppe Firebase-friendly :
+
+```json
+{
+  "event": "RideAccepted",
+  "payload": { "ride_id": 1, "status": "accepted" },
+  "occurred_at": "2026-05-24T12:00:00+00:00"
+}
+```
+
+### Présence chauffeur
+
+| État | Logique |
+|------|---------|
+| `online` | GPS récent + disponible |
+| `busy` | Course active (pending → started) |
+| `offline` | Pas de heartbeat (`last_seen_at` > seuil) |
+
+Configurer : `MAMI_DRIVER_OFFLINE_THRESHOLD_SECONDS` (défaut 300s).
+
+Commande planifiée : `php artisan drivers:mark-offline` (chaque minute).
+
+### Audit `ride_events`
+
+Tous les changements de cycle de vie sont persistés (`event_type`, `payload`, timestamps).
+
+### ETA / distance
+
+`DistanceRefreshService` recalcule distance Haversine + ETA simple (`distance / vitesse moyenne`).
+
 ## Comptes démo (seed)
 
 | Rôle | Email | Mot de passe |
@@ -40,9 +87,11 @@ API : `http://127.0.0.1:8000/api`
 
 ## Endpoints principaux
 
-- `POST /api/register`, `/api/login`, `/api/logout`, `GET /api/me`
-- `GET /api/drivers/nearby`, `POST /api/drivers/location/update`, `POST /api/drivers/availability`
-- `POST /api/rides/request`, `/api/rides/{id}/accept`, `/start`, `/complete`, `GET /api/rides/{id}`, `GET /api/rides/history`
+**Auth** : `POST /api/register`, `/api/login`, `/api/logout`, `GET /api/me`
+
+**Drivers** : `GET /api/drivers/nearby`, `POST /api/drivers/location/update`, `POST /api/drivers/availability`, `GET /api/drivers/{id}/live-location`
+
+**Rides** : `POST /api/rides/request`, `/api/rides/{id}/accept`, `/arrived`, `/start`, `/complete`, `GET /api/rides/{id}`, `GET /api/rides/{id}/tracking`, `GET /api/rides/history`
 
 Authentification : `Authorization: Bearer {token}`
 
