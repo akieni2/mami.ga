@@ -1,24 +1,23 @@
 # MAMI.GA
 
-<<<<<<< HEAD
-MAMI.GA est une plateforme intelligente de réservation de taxis avec géolocalisation temps réel, suivi GPS et paiements mobile money.
+Plateforme intelligente de mobilité urbaine pour l’Afrique — réservation taxi, GPS, dispatch et suivi temps réel.
 
 ## Technologies
 
-- Laravel
-- Flutter
-- Firebase
-- Google Maps
-- Asterisk SIP
+- Laravel 13 (API)
+- Sanctum (authentification token)
+- MySQL
+- Flutter, Firebase, Google Maps, Asterisk SIP, Mobile Money (phases futures)
 
-## Fonctionnalités prévues
+## État du projet
 
-- Réservation taxi
-- Tracking GPS
-- Temps réel
-- Appels chauffeur/client
-- Mobile Money
-- Dashboard administration
+| Phase | Statut | Contenu |
+|-------|--------|---------|
+| **1 — MVP Backend** | En cours | API REST taxi |
+| 2 — Temps réel | À venir | Firebase, notifications |
+| 3 — Mobile | À venir | Flutter client + chauffeur |
+| 4 — VoIP | À venir | Asterisk SIP |
+| 5 — Paiements | À venir | Mobile Money |
 
 ## Installation
 
@@ -26,48 +25,33 @@ MAMI.GA est une plateforme intelligente de réservation de taxis avec géolocali
 composer install
 cp .env.example .env
 php artisan key:generate
-php artisan migrate
-=======
-Plateforme intelligente de mobilité urbaine pour l’Afrique — réservation taxi, GPS, dispatch, suivi temps réel.
-
-## État du projet
-
-| Phase | Statut | Contenu |
-|-------|--------|---------|
-| **1 — MVP Backend** | En cours | API Laravel (ce dépôt) |
-| 2 — Temps réel | À venir | Firebase, notifications |
-| 3 — Mobile | À venir | Flutter client + chauffeur |
-| 4 — VoIP | À venir | Asterisk SIP |
-| 5 — Paiements | À venir | Mobile Money |
-
-## Démarrage rapide
-
-Le backend Phase 1 se trouve dans [`backend/`](backend/README.md).
-
-```bash
-cd backend
-composer install
-cp .env.example .env
-php artisan key:generate
 php artisan migrate --seed
 php artisan serve
 ```
 
-> **Note :** PHP et Composer doivent être installés sur la machine (ex. Laragon sous Windows).
+API : `http://127.0.0.1:8000/api`
 
-## Documentation
+## Comptes démo (seed)
 
-- [Backend API — Phase 1](backend/README.md)
-- Document fondateur : spécifications MVP dans la conversation projet / instructions Phase 1
+| Rôle | Email | Mot de passe |
+|------|-------|--------------|
+| Client | `client@mami.ga` | `password` |
+| Chauffeur | `jean.driver@mami.ga` | `password` |
 
-## Stack Phase 1
+## Endpoints principaux
 
-- Laravel 12 + Sanctum
-- MySQL
-- API REST JSON
-- Dispatch GPS simple (Haversine)
+- `POST /api/register`, `/api/login`, `/api/logout`, `GET /api/me`
+- `GET /api/drivers/nearby`, `POST /api/drivers/location/update`, `POST /api/drivers/availability`
+- `POST /api/rides/request`, `/api/rides/{id}/accept`, `/start`, `/complete`, `GET /api/rides/{id}`, `GET /api/rides/history`
+
+Authentification : `Authorization: Bearer {token}`
+
+## Tests
+
+```bash
+php artisan test
+```
 
 ## Licence
 
 MIT
->>>>>>> ea509b190013e593185153179b65d57eb1684190

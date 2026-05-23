@@ -3,5 +3,12 @@
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('welcome');
+    return response()->json([
+        'success' => true,
+        'message' => 'MAMI.GA API',
+        'data' => [
+            'version' => 'mvp-phase-1',
+            'api' => '/api',
+        ],
+    ]);
 });
