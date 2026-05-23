@@ -3,7 +3,13 @@
 namespace App\Services;
 
 use App\Enums\DriverStatus;
+use App\Enums\RideEventType;
 use App\Enums\RideStatus;
+use App\Events\DriverArrived;
+use App\Events\RideAccepted;
+use App\Events\RideCompleted;
+use App\Events\RideRequested;
+use App\Events\RideStarted;
 use App\Models\Driver;
 use App\Models\Ride;
 use App\Models\User;
@@ -15,6 +21,8 @@ class RideDispatchService
 {
     public function __construct(
         private readonly DriverLocationService $driverLocationService,
+        private readonly RideEventRecorder $rideEventRecorder,
+        private readonly DriverPresenceService $presenceService,
     ) {}
 
     public function requestRide(
@@ -62,7 +70,16 @@ class RideDispatchService
                 'status' => DriverStatus::OnRide,
             ]);
 
-            return $ride->load(['client', 'driver.user', 'driver.vehicle']);
+            $ride = $ride->load(['client', 'driver.user', 'driver.vehicle']);
+
+            $this->rideEventRecorder->record($ride, RideEventType::RideRequested, [
+                'pickup_latitude' => $pickupLatitude,
+                'pickup_longitude' => $pickupLongitude,
+            ]);
+
+            RideRequested::dispatch($ride);
+
+            return $ride;
         });
     }
 
@@ -75,8 +92,29 @@ class RideDispatchService
         }
 
         $ride->update(['status' => RideStatus::Accepted]);
+        $ride = $ride->fresh(['client', 'driver.user', 'driver.vehicle']);
 
-        return $ride->fresh(['client', 'driver.user', 'driver.vehicle']);
+        $this->rideEventRecorder->record($ride, RideEventType::RideAccepted);
+        RideAccepted::dispatch($ride);
+
+        return $ride;
+    }
+
+    public function arrived(Ride $ride, Driver $driver): Ride
+    {
+        $this->assertDriverOwnsRide($ride, $driver);
+
+        if ($ride->status !== RideStatus::Accepted) {
+            throw new RuntimeException('Ride cannot be marked as arrived in its current status.');
+        }
+
+        $ride->update(['status' => RideStatus::Arrived]);
+        $ride = $ride->fresh(['client', 'driver.user', 'driver.vehicle']);
+
+        $this->rideEventRecorder->record($ride, RideEventType::DriverArrived);
+        DriverArrived::dispatch($ride);
+
+        return $ride;
     }
 
     public function start(Ride $ride, Driver $driver): Ride
@@ -92,7 +130,12 @@ class RideDispatchService
             'started_at' => now(),
         ]);
 
-        return $ride->fresh(['client', 'driver.user', 'driver.vehicle']);
+        $ride = $ride->fresh(['client', 'driver.user', 'driver.vehicle']);
+
+        $this->rideEventRecorder->record($ride, RideEventType::RideStarted);
+        RideStarted::dispatch($ride);
+
+        return $ride;
     }
 
     public function complete(Ride $ride, Driver $driver): Ride
@@ -111,10 +154,17 @@ class RideDispatchService
 
             $driver->update([
                 'is_available' => true,
-                'status' => DriverStatus::Online,
+                'last_seen_at' => now(),
             ]);
 
-            return $ride->fresh(['client', 'driver.user', 'driver.vehicle']);
+            $this->presenceService->applyResolvedStatus($driver->fresh());
+
+            $ride = $ride->fresh(['client', 'driver.user', 'driver.vehicle']);
+
+            $this->rideEventRecorder->record($ride, RideEventType::RideCompleted);
+            RideCompleted::dispatch($ride);
+
+            return $ride;
         });
     }
 

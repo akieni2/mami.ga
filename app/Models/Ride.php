@@ -6,6 +6,7 @@ use App\Enums\RideStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Ride extends Model
 {
@@ -47,5 +48,15 @@ class Ride extends Model
     public function driver(): BelongsTo
     {
         return $this->belongsTo(Driver::class);
+    }
+
+    public function events(): HasMany
+    {
+        return $this->hasMany(RideEvent::class);
+    }
+
+    public function isTrackable(): bool
+    {
+        return ! in_array($this->status, [RideStatus::Completed, RideStatus::Cancelled], true);
     }
 }

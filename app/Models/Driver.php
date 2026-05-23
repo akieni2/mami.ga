@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Enums\DriverStatus;
+use App\Enums\RideStatus;
+use App\Services\DriverPresenceService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -21,6 +23,7 @@ class Driver extends Model
         'status',
         'latitude',
         'longitude',
+        'last_seen_at',
         'rating',
     ];
 
@@ -31,6 +34,7 @@ class Driver extends Model
             'status' => DriverStatus::class,
             'latitude' => 'float',
             'longitude' => 'float',
+            'last_seen_at' => 'datetime',
             'rating' => 'float',
         ];
     }
@@ -53,6 +57,24 @@ class Driver extends Model
     public function locations(): HasMany
     {
         return $this->hasMany(DriverLocation::class);
+    }
+
+    public function activeRide(): ?Ride
+    {
+        return $this->rides()
+            ->whereIn('status', [
+                RideStatus::Pending,
+                RideStatus::Accepted,
+                RideStatus::Arrived,
+                RideStatus::Started,
+            ])
+            ->latest('id')
+            ->first();
+    }
+
+    public function presenceStatus(): string
+    {
+        return app(DriverPresenceService::class)->resolvePresence($this);
     }
 
     public function hasGpsPosition(): bool

@@ -2,17 +2,26 @@
 
 namespace App\Services;
 
+use App\Enums\RideEventType;
+use App\Events\DriverLocationUpdated;
 use App\Models\Driver;
 use App\Models\DriverLocation;
 use Illuminate\Support\Carbon;
 
 class DriverLocationService
 {
+    public function __construct(
+        private readonly DriverPresenceService $presenceService,
+        private readonly DistanceRefreshService $distanceRefreshService,
+        private readonly RideEventRecorder $rideEventRecorder,
+    ) {}
+
     public function update(Driver $driver, float $latitude, float $longitude): Driver
     {
         $driver->update([
             'latitude' => $latitude,
             'longitude' => $longitude,
+            'last_seen_at' => Carbon::now(),
         ]);
 
         DriverLocation::query()->create([
@@ -22,7 +31,28 @@ class DriverLocationService
             'recorded_at' => Carbon::now(),
         ]);
 
-        return $driver->fresh(['user', 'vehicle']);
+        $driver = $this->presenceService->applyResolvedStatus($driver->fresh());
+
+        $activeRide = $driver->activeRide();
+        $distanceKm = null;
+        $etaMinutes = null;
+
+        if ($activeRide !== null) {
+            $metrics = $this->distanceRefreshService->refreshForRide($driver, $activeRide);
+            $distanceKm = $metrics['distance_km'];
+            $etaMinutes = $metrics['eta_minutes'];
+
+            $this->rideEventRecorder->record($activeRide, RideEventType::DriverLocationUpdated, [
+                'latitude' => $latitude,
+                'longitude' => $longitude,
+                'distance_km' => $distanceKm,
+                'eta_minutes' => $etaMinutes,
+            ]);
+        }
+
+        DriverLocationUpdated::dispatch($driver, $activeRide, $distanceKm, $etaMinutes);
+
+        return $driver->load(['user', 'vehicle']);
     }
 
     /**

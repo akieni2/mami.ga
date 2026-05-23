@@ -21,6 +21,7 @@ class DriverFactory extends Factory
             'status' => DriverStatus::Online,
             'latitude' => fake()->latitude(-1.5, 0.5),
             'longitude' => fake()->longitude(8.5, 12.5),
+            'last_seen_at' => now(),
             'rating' => fake()->randomFloat(2, 4, 5),
         ];
     }
