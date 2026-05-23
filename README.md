@@ -15,7 +15,8 @@ Plateforme intelligente de mobilité urbaine pour l’Afrique — réservation t
 | Phase | Statut | Contenu |
 |-------|--------|---------|
 | **1 — MVP Backend** | Terminé | API REST, auth, dispatch |
-| **2 — Temps réel** | En cours | GPS live, tracking, événements |
+| **2 — Temps réel** | Terminé | GPS live, tracking, événements |
+| **Admin Web** | Terminé | Dashboard Blade (monitoring) |
 | 3 — Mobile | À venir | Flutter client + chauffeur |
 | 4 — VoIP | À venir | Asterisk SIP |
 | 5 — Paiements | À venir | Mobile Money |
@@ -30,7 +31,26 @@ php artisan migrate --seed
 php artisan serve
 ```
 
-API : `http://127.0.0.1:8000/api`
+API : `http://127.0.0.1:8000/api`  
+Admin : `http://127.0.0.1:8000/dashboard` (après `npm run build`)
+
+### Dashboard admin (Blade)
+
+```bash
+npm install
+npm run build
+php artisan migrate --seed
+```
+
+| Page | URL |
+|------|-----|
+| Accueil | `/` → redirige vers login ou dashboard |
+| Connexion | `/login` |
+| Tableau de bord | `/dashboard` |
+| Chauffeurs | `/drivers` |
+| Courses | `/rides` |
+
+Compte admin (seed) : `admin@mami.ga` / `password`
 
 ## Architecture temps réel (Phase 2)
 

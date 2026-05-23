@@ -17,6 +17,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->api(prepend: [
             ForceJsonResponse::class,
         ]);
+
+        $middleware->alias([
+            'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
+        ]);
+
+        $middleware->redirectGuestsTo(fn () => route('login'));
+        $middleware->redirectUsersTo(fn () => route('admin.dashboard'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
