@@ -97,23 +97,16 @@ Authentification : `Authorization: Bearer {token}`
 
 ## Tests
 
-```bash
-php artisan test
-```
-
-PHPUnit choisit automatiquement la base de tests :
-
-- **SQLite en mémoire** si l’extension `pdo_sqlite` est installée (développement local).
-- **MySQL** sinon (souvent le cas sur un VPS Ubuntu).
-
-Sur le serveur, créez une base dédiée aux tests (une seule fois) :
+Les tests utilisent **MySQL uniquement** (même stack que la production), via une base dédiée.
 
 ```bash
+# Créer la base de tests (une fois)
 mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS mami_ga_testing CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+
 php artisan test
 ```
 
-Optionnel dans `.env` :
+Dans `.env` :
 
 ```env
 DB_TEST_DATABASE=mami_ga_testing
@@ -121,18 +114,7 @@ DB_TEST_USERNAME=votre_user
 DB_TEST_PASSWORD=votre_mot_de_passe
 ```
 
-Alternative : installer SQLite pour PHP :
-
-```bash
-sudo apt install php8.3-sqlite3
-sudo systemctl restart php8.3-fpm
-```
-
-Forcer MySQL pour les tests :
-
-```bash
-php artisan test --configuration=phpunit.mysql.xml
-```
+Si `DB_TEST_*` est omis, les tests réutilisent `DB_HOST` / `DB_USERNAME` / `DB_PASSWORD` de `.env` avec la base `mami_ga_testing`.
 
 ## Licence
 
