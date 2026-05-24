@@ -1,6 +1,7 @@
 @php
     $hint = $hint ?? null;
     $color = $color ?? 'slate';
+    $id = $id ?? null;
     $colors = [
         'slate' => 'border-slate-200 bg-white',
         'emerald' => 'border-emerald-200 bg-emerald-50',
@@ -17,7 +18,7 @@
 
 <div class="rounded-xl border p-5 shadow-sm {{ $colors[$color] ?? $colors['slate'] }}">
     <p class="text-sm font-medium text-slate-600">{{ $label }}</p>
-    <p class="mt-2 text-3xl font-bold {{ $valueColors[$color] ?? $valueColors['slate'] }}">{{ $value }}</p>
+    <p @if($id) id="{{ $id }}" @endif class="mt-2 text-3xl font-bold {{ $valueColors[$color] ?? $valueColors['slate'] }}">{{ $value }}</p>
     @if ($hint)
         <p class="mt-1 text-xs text-slate-500">{{ $hint }}</p>
     @endif

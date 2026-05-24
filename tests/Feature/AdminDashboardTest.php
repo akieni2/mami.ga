@@ -44,4 +44,30 @@ class AdminDashboardTest extends TestCase
         $this->actingAs($admin)->get('/drivers')->assertOk()->assertSee('Chauffeurs');
         $this->actingAs($admin)->get('/rides')->assertOk()->assertSee('Courses');
     }
+
+    public function test_admin_can_view_live_map_page(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $this->actingAs($admin)
+            ->get('/map')
+            ->assertOk()
+            ->assertSee('Carte live');
+    }
+
+    public function test_breeze_login_flow_for_admin(): void
+    {
+        $admin = User::factory()->create([
+            'email' => 'breeze-admin@mami.ga',
+            'password' => 'password',
+            'is_admin' => true,
+        ]);
+
+        $this->post('/login', [
+            'email' => 'breeze-admin@mami.ga',
+            'password' => 'password',
+        ])->assertRedirect(route('admin.dashboard'));
+
+        $this->assertAuthenticatedAs($admin);
+    }
 }

@@ -2,7 +2,8 @@
 
 @section('title', 'Chauffeurs')
 @section('page_title', 'Chauffeurs')
-@section('page_subtitle', 'Liste des chauffeurs enregistrés sur la plateforme')
+@section('page_subtitle', 'Statuts en ligne / hors ligne / occupé — actualisation toutes les 10 s')
+@section('admin_page', 'drivers')
 
 @section('content')
     <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -14,19 +15,27 @@
                         <th class="px-5 py-3">Nom</th>
                         <th class="px-5 py-3">Téléphone</th>
                         <th class="px-5 py-3">Permis</th>
+                        <th class="px-5 py-3">GPS (lat, lng)</th>
                         <th class="px-5 py-3">Véhicule</th>
                         <th class="px-5 py-3">Présence</th>
                         <th class="px-5 py-3">Note</th>
                         <th class="px-5 py-3">Dernière activité</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100">
+                <tbody id="drivers-table-body" class="divide-y divide-slate-100">
                     @forelse ($drivers as $driver)
                         <tr>
                             <td class="px-5 py-3 font-medium">{{ $driver->id }}</td>
                             <td class="px-5 py-3">{{ $driver->user?->name ?? '—' }}</td>
                             <td class="px-5 py-3">{{ $driver->user?->phone ?? '—' }}</td>
                             <td class="px-5 py-3">{{ $driver->license_number }}</td>
+                            <td class="px-5 py-3 font-mono text-xs">
+                                @if ($driver->hasGpsPosition())
+                                    {{ number_format((float) $driver->latitude, 5) }}, {{ number_format((float) $driver->longitude, 5) }}
+                                @else
+                                    —
+                                @endif
+                            </td>
                             <td class="px-5 py-3">
                                 @if ($driver->vehicle)
                                     {{ $driver->vehicle->brand }} {{ $driver->vehicle->model }}
@@ -45,7 +54,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="px-5 py-10 text-center text-slate-500">Aucun chauffeur enregistré.</td>
+                            <td colspan="9" class="px-5 py-10 text-center text-slate-500">Aucun chauffeur enregistré.</td>
                         </tr>
                     @endforelse
                 </tbody>

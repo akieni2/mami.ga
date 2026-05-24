@@ -34,23 +34,52 @@ php artisan serve
 API : `http://127.0.0.1:8000/api`  
 Admin : `http://127.0.0.1:8000/dashboard` (après `npm run build`)
 
-### Dashboard admin (Blade)
+### Dashboard admin (Blade + Breeze)
+
+Authentification **session Laravel** (structure [Laravel Breeze](https://laravel.com/docs/starter-kits) Blade) : login / logout, middleware `auth` + `admin`.
 
 ```bash
+composer install
 npm install
 npm run build
 php artisan migrate --seed
+php artisan serve
 ```
 
-| Page | URL |
-|------|-----|
-| Accueil | `/` → redirige vers login ou dashboard |
-| Connexion | `/login` |
-| Tableau de bord | `/dashboard` |
-| Chauffeurs | `/drivers` |
-| Courses | `/rides` |
+| Page | URL | Description |
+|------|-----|-------------|
+| Accueil | `/` | Redirection login ou dashboard |
+| Connexion | `/login` | Formulaire Breeze Blade |
+| Tableau de bord | `/dashboard` | Statistiques + courses récentes |
+| Chauffeurs | `/drivers` | Liste, GPS, présence online/offline/busy |
+| Courses | `/rides` | Statuts, chauffeur, coordonnées pickup/destination |
+| Carte live | `/map` | Leaflet + OpenStreetMap |
 
-Compte admin (seed) : `admin@mami.ga` / `password`
+**Compte admin (seed)** : `admin@mami.ga` / `password`
+
+#### Actualisation live (polling 10 s)
+
+Sans WebSocket : le script `resources/js/admin.js` interroge :
+
+- `GET /admin/live/dashboard` — stats + courses récentes
+- `GET /admin/live/drivers` — liste chauffeurs
+- `GET /admin/live/map` — positions pour la carte
+
+#### Carte (Leaflet)
+
+- Tuiles : OpenStreetMap (aucune clé API)
+- Marqueurs colorés : vert (en ligne), orange (occupé), gris (hors ligne)
+
+#### Breeze (optionnel)
+
+Le package `laravel/breeze` est en devDependency. Pour réinstaller les stubs officiels :
+
+```bash
+composer require laravel/breeze --dev
+php artisan breeze:install blade --no-interaction
+```
+
+Le projet utilise déjà les contrôleurs `App\Http\Controllers\Auth\AuthenticatedSessionController` et `routes/auth.php` compatibles Breeze.
 
 ## Architecture temps réel (Phase 2)
 

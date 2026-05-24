@@ -2,7 +2,8 @@
 
 @section('title', 'Courses')
 @section('page_title', 'Courses')
-@section('page_subtitle', 'Historique et suivi des courses taxi')
+@section('page_subtitle', 'Liste des courses avec coordonnées pickup et destination')
+@section('admin_page', 'rides')
 
 @section('content')
     <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -14,9 +15,10 @@
                         <th class="px-5 py-3">Client</th>
                         <th class="px-5 py-3">Chauffeur</th>
                         <th class="px-5 py-3">Statut</th>
+                        <th class="px-5 py-3">Pickup (lat, lng)</th>
+                        <th class="px-5 py-3">Destination (lat, lng)</th>
                         <th class="px-5 py-3">Prix est.</th>
                         <th class="px-5 py-3">Créée</th>
-                        <th class="px-5 py-3">Terminée</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -28,15 +30,22 @@
                             <td class="px-5 py-3">
                                 @include('admin.partials.status-badge', ['status' => $ride->status->value])
                             </td>
+                            <td class="px-5 py-3 font-mono text-xs">
+                                {{ number_format((float) $ride->pickup_latitude, 5) }},
+                                {{ number_format((float) $ride->pickup_longitude, 5) }}
+                            </td>
+                            <td class="px-5 py-3 font-mono text-xs">
+                                {{ number_format((float) $ride->destination_latitude, 5) }},
+                                {{ number_format((float) $ride->destination_longitude, 5) }}
+                            </td>
                             <td class="px-5 py-3">
                                 {{ $ride->estimated_price ? number_format($ride->estimated_price, 0, ',', ' ') . ' FCFA' : '—' }}
                             </td>
                             <td class="px-5 py-3 text-slate-500">{{ $ride->created_at?->format('d/m/Y H:i') }}</td>
-                            <td class="px-5 py-3 text-slate-500">{{ $ride->completed_at?->format('d/m/Y H:i') ?? '—' }}</td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-5 py-10 text-center text-slate-500">Aucune course enregistrée.</td>
+                            <td colspan="8" class="px-5 py-10 text-center text-slate-500">Aucune course enregistrée.</td>
                         </tr>
                     @endforelse
                 </tbody>

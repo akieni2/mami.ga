@@ -2,14 +2,15 @@
 
 @section('title', 'Tableau de bord')
 @section('page_title', 'Tableau de bord')
-@section('page_subtitle', 'Vue d\'ensemble de la plateforme MAMI.GA')
+@section('page_subtitle', 'Vue d\'ensemble — actualisation automatique toutes les 10 s')
+@section('admin_page', 'dashboard')
 
 @section('content')
     <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        @include('admin.partials.stat-card', ['label' => 'Total chauffeurs', 'value' => $stats['total_drivers'], 'color' => 'slate'])
-        @include('admin.partials.stat-card', ['label' => 'Chauffeurs en ligne', 'value' => $stats['online_drivers'], 'hint' => 'Disponibles avec GPS récent', 'color' => 'emerald'])
-        @include('admin.partials.stat-card', ['label' => 'Courses actives', 'value' => $stats['active_rides'], 'hint' => 'En cours sur la plateforme', 'color' => 'sky'])
-        @include('admin.partials.stat-card', ['label' => 'Courses terminées', 'value' => $stats['completed_rides'], 'color' => 'amber'])
+        @include('admin.partials.stat-card', ['label' => 'Total chauffeurs', 'value' => $stats['total_drivers'], 'color' => 'slate', 'id' => 'stat-total-drivers'])
+        @include('admin.partials.stat-card', ['label' => 'Chauffeurs en ligne', 'value' => $stats['online_drivers'], 'hint' => 'Disponibles avec GPS récent', 'color' => 'emerald', 'id' => 'stat-online-drivers'])
+        @include('admin.partials.stat-card', ['label' => 'Courses actives', 'value' => $stats['active_rides'], 'hint' => 'En cours sur la plateforme', 'color' => 'sky', 'id' => 'stat-active-rides'])
+        @include('admin.partials.stat-card', ['label' => 'Courses terminées', 'value' => $stats['completed_rides'], 'color' => 'amber', 'id' => 'stat-completed-rides'])
     </div>
 
     <div class="mt-4 grid gap-4 lg:grid-cols-3">
@@ -18,15 +19,15 @@
             <dl class="mt-4 space-y-3 text-sm">
                 <div class="flex justify-between">
                     <dt class="text-slate-500">En ligne</dt>
-                    <dd class="font-semibold text-emerald-600">{{ $stats['online_drivers'] }}</dd>
+                    <dd id="stat-online-drivers-side" class="font-semibold text-emerald-600">{{ $stats['online_drivers'] }}</dd>
                 </div>
                 <div class="flex justify-between">
                     <dt class="text-slate-500">En course (occupés)</dt>
-                    <dd class="font-semibold text-amber-600">{{ $stats['busy_drivers'] }}</dd>
+                    <dd id="stat-busy-drivers" class="font-semibold text-amber-600">{{ $stats['busy_drivers'] }}</dd>
                 </div>
                 <div class="flex justify-between">
                     <dt class="text-slate-500">Total inscrits</dt>
-                    <dd class="font-semibold text-slate-900">{{ $stats['total_drivers'] }}</dd>
+                    <dd id="stat-total-drivers-side" class="font-semibold text-slate-900">{{ $stats['total_drivers'] }}</dd>
                 </div>
             </dl>
         </div>
@@ -46,7 +47,7 @@
                             <th class="px-5 py-3">Prix est.</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-100">
+                    <tbody id="recent-rides-body" class="divide-y divide-slate-100">
                         @forelse ($recentRides as $ride)
                             <tr>
                                 <td class="px-5 py-3 font-medium">{{ $ride->id }}</td>
