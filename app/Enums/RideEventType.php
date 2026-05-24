@@ -9,5 +9,6 @@ enum RideEventType: string
     case DriverArrived = 'driver_arrived';
     case RideStarted = 'ride_started';
     case RideCompleted = 'ride_completed';
+    case RideRejected = 'ride_rejected';
     case DriverLocationUpdated = 'driver_location_updated';
 }

@@ -18,8 +18,10 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/drivers/availability', [DriverController::class, 'updateAvailability']);
 
     Route::post('/rides/request', [RideController::class, 'request']);
+    Route::get('/rides/current', [RideController::class, 'current']);
     Route::get('/rides/history', [RideController::class, 'history']);
     Route::get('/rides/{ride}/tracking', [RideController::class, 'tracking']);
+    Route::post('/rides/{ride}/reject', [RideController::class, 'reject']);
     Route::post('/rides/{ride}/accept', [RideController::class, 'accept']);
     Route::post('/rides/{ride}/arrived', [RideController::class, 'arrived']);
     Route::post('/rides/{ride}/start', [RideController::class, 'start']);

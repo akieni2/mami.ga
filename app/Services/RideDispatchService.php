@@ -138,6 +138,37 @@ class RideDispatchService
         return $ride;
     }
 
+    public function reject(Ride $ride, Driver $driver): Ride
+    {
+        $this->assertDriverOwnsRide($ride, $driver);
+
+        if ($ride->status !== RideStatus::Pending) {
+            throw new RuntimeException('Ride cannot be rejected in its current status.');
+        }
+
+        return DB::transaction(function () use ($ride, $driver) {
+            $ride->update([
+                'status' => RideStatus::Cancelled,
+                'driver_id' => null,
+            ]);
+
+            $driver->update([
+                'is_available' => true,
+                'last_seen_at' => now(),
+            ]);
+
+            $this->presenceService->applyResolvedStatus($driver->fresh());
+
+            $ride = $ride->fresh(['client']);
+
+            $this->rideEventRecorder->record($ride, RideEventType::RideRejected, [
+                'driver_id' => $driver->id,
+            ]);
+
+            return $ride;
+        });
+    }
+
     public function complete(Ride $ride, Driver $driver): Ride
     {
         $this->assertDriverOwnsRide($ride, $driver);

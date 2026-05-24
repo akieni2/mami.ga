@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Rides\RequestRideRequest;
 use App\Http\Resources\RideResource;
 use App\Models\Ride;
+use App\Enums\RideStatus;
 use App\Services\RideDispatchService;
 use App\Services\RideTrackingService;
 use App\Support\ApiResponse;
+use App\Support\GeoDistance;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use RuntimeException;
@@ -19,6 +21,43 @@ class RideController extends Controller
         private readonly RideDispatchService $rideDispatchService,
         private readonly RideTrackingService $rideTrackingService,
     ) {}
+
+    public function current(Request $request): JsonResponse
+    {
+        $driver = $request->user()->driver;
+
+        if ($driver === null) {
+            return ApiResponse::error('User is not a driver.', 403);
+        }
+
+        $ride = $driver->rides()
+            ->with(['client'])
+            ->whereIn('status', [
+                RideStatus::Pending,
+                RideStatus::Accepted,
+                RideStatus::Arrived,
+                RideStatus::Started,
+            ])
+            ->latest('id')
+            ->first();
+
+        if ($ride === null) {
+            return ApiResponse::success(null, 'No active ride');
+        }
+
+        $payload = (new RideResource($ride))->resolve();
+
+        if ($driver->hasGpsPosition()) {
+            $payload['distance_to_pickup_km'] = round(GeoDistance::kilometers(
+                (float) $driver->latitude,
+                (float) $driver->longitude,
+                (float) $ride->pickup_latitude,
+                (float) $ride->pickup_longitude,
+            ), 3);
+        }
+
+        return ApiResponse::success($payload, 'Active ride retrieved');
+    }
 
     public function request(RequestRideRequest $request): JsonResponse
     {
@@ -38,6 +77,26 @@ class RideController extends Controller
             (new RideResource($ride))->resolve(),
             'Ride created successfully',
             201,
+        );
+    }
+
+    public function reject(Request $request, Ride $ride): JsonResponse
+    {
+        $driver = $request->user()->driver;
+
+        if ($driver === null) {
+            return ApiResponse::error('User is not a driver.', 403);
+        }
+
+        try {
+            $ride = $this->rideDispatchService->reject($ride, $driver);
+        } catch (RuntimeException $exception) {
+            return ApiResponse::error($exception->getMessage(), 422);
+        }
+
+        return ApiResponse::success(
+            (new RideResource($ride))->resolve(),
+            'Ride rejected successfully',
         );
     }
 
