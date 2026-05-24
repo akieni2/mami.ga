@@ -17,7 +17,8 @@ Plateforme intelligente de mobilité urbaine pour l’Afrique — réservation t
 | **1 — MVP Backend** | Terminé | API REST, auth, dispatch |
 | **2 — Temps réel** | Terminé | GPS live, tracking, événements |
 | **Admin Web** | Terminé | Dashboard Blade (monitoring) |
-| 3 — Mobile | À venir | Flutter client + chauffeur |
+| **3 — Mobile chauffeur** | Terminé | Flutter `mobile/mami_driver` |
+| 3b — Mobile client | À venir | Flutter passager |
 | 4 — VoIP | À venir | Asterisk SIP |
 | 5 — Paiements | À venir | Mobile Money |
 
@@ -140,7 +141,30 @@ Tous les changements de cycle de vie sont persistés (`event_type`, `payload`, t
 
 **Drivers** : `GET /api/drivers/nearby`, `POST /api/drivers/location/update`, `POST /api/drivers/availability`, `GET /api/drivers/{id}/live-location`
 
-**Rides** : `POST /api/rides/request`, `/api/rides/{id}/accept`, `/arrived`, `/start`, `/complete`, `GET /api/rides/{id}`, `GET /api/rides/{id}/tracking`, `GET /api/rides/history`
+**Rides** : `POST /api/rides/request`, `GET /api/rides/current`, `GET /api/rides/history`, `/api/rides/{id}/accept`, `/reject`, `/arrived`, `/start`, `/complete`, `GET /api/rides/{id}`, `GET /api/rides/{id}/tracking`
+
+## Application chauffeur Flutter (Phase 3)
+
+Projet : [`mobile/mami_driver`](mobile/mami_driver)
+
+```bash
+cd mobile/mami_driver
+flutter create . --org ga.mami --project-name mami_driver
+flutter pub get
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000/api
+```
+
+| Écran | Description |
+|-------|-------------|
+| Login | Sanctum + session persistante |
+| Accueil | Statut online/offline/busy, course entrante |
+| Course active | Arrivé → démarrer → terminer + carte OSM |
+| Historique | `GET /api/rides/history?as_driver=1` |
+| Profil | Infos chauffeur, thème clair/sombre |
+
+**Chauffeur démo** : `jean.driver@mami.ga` / `password`
+
+Détails : [mobile/mami_driver/README.md](mobile/mami_driver/README.md)
 
 Authentification : `Authorization: Bearer {token}`
 
