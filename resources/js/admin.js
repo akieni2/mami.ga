@@ -100,7 +100,7 @@ function updateDriversTable(drivers) {
             <td class="px-5 py-3">${d.name}</td>
             <td class="px-5 py-3">${d.phone ?? '—'}</td>
             <td class="px-5 py-3">${d.license_number ?? '—'}</td>
-            <td class="px-5 py-3 text-xs font-mono">${d.latitude?.toFixed(5) ?? '—'}, ${d.longitude?.toFixed(5) ?? '—'}</td>
+            <td class="px-5 py-3 text-xs font-mono">${d.latitude != null ? Number(d.latitude).toFixed(5) : '—'}, ${d.longitude != null ? Number(d.longitude).toFixed(5) : '—'}</td>
             <td class="px-5 py-3">${d.vehicle ?? '—'}</td>
             <td class="px-5 py-3">${statusBadge(d.presence)}</td>
             <td class="px-5 py-3">${d.rating ?? '—'}</td>
