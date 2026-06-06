@@ -15,17 +15,24 @@ class AppTheme {
         brightness: Brightness.light,
       ),
       scaffoldBackgroundColor: const Color(0xFFF1F5F9),
-      appBarTheme: const AppBarTheme(centerTitle: true, elevation: 0),
-      cardTheme: CardTheme(
+      appBarTheme: const AppBarTheme(
+        centerTitle: true,
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+      cardTheme: CardThemeData(
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: surfaceDark,
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       ),
     );
@@ -41,18 +48,25 @@ class AppTheme {
         surface: surfaceDark,
       ),
       scaffoldBackgroundColor: surfaceDark,
-      appBarTheme: const AppBarTheme(centerTitle: true, elevation: 0),
+      appBarTheme: const AppBarTheme(
+        centerTitle: true,
+        elevation: 0,
+      ),
       cardTheme: CardThemeData(
         color: cardDark,
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: primary,
           foregroundColor: surfaceDark,
           padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       ),
     );
