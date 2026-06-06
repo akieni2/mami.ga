@@ -28,7 +28,87 @@ MAMI.GA est une plateforme de mobilité urbaine type taxi, orientée villes afri
 
 ---
 
-## 2. Structure du dépôt
+## 2. Infrastructure et schéma de déploiement
+
+### 2.1 Schéma de travail (pipeline)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Windows Laptop (développement)                                 │
+│  Cursor · ChatGPT · Android Studio · Git · Flutter · PHP/Laravel│
+└────────────────────────────┬────────────────────────────────────┘
+                             │  git push
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  GitHub — compte akieni2                                        │
+│  https://github.com/akieni2/mami.ga  (branche main)             │
+└────────────────────────────┬────────────────────────────────────┘
+                             │  git pull (manuel ou script sur VPS)
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  Serveur Ubuntu (production)                                    │
+│  IP publique : 63.142.241.105                                   │
+│  Chemin projet : /var/www/mami.ga/                              │
+│  Propriétaire : root + www-data                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+> **Important** : GitHub **stocke** le code ; il ne déploie pas automatiquement sur le VPS tant qu’aucune GitHub Action / webhook n’est configurée. Le déploiement actuel = `git pull` sur le serveur dans `/var/www/mami.ga`.
+
+### 2.2 Serveur principal (production)
+
+| Paramètre | Valeur |
+|-----------|--------|
+| OS | Ubuntu |
+| IP publique | **63.142.241.105** |
+| Racine projet | `/var/www/mami.ga/` |
+| Utilisateur web | `www-data` |
+| Dépôt Git | présent (`.git` à la racine) |
+| Domaine cible | `mami.ga` (si DNS → `63.142.241.105`) |
+
+### 2.3 URLs de production
+
+| Service | URL (IP directe) | URL (domaine, si DNS configuré) |
+|---------|------------------|----------------------------------|
+| API REST | `http://63.142.241.105/api` | `https://mami.ga/api` |
+| Admin web | `http://63.142.241.105/login` | `https://mami.ga/login` |
+| Dashboard | `http://63.142.241.105/dashboard` | `https://mami.ga/dashboard` |
+| Health check | `http://63.142.241.105/up` | `https://mami.ga/up` |
+
+**App Flutter (build prod)** :
+
+```bash
+flutter build apk --dart-define=API_BASE_URL=https://mami.ga/api
+# ou en IP directe :
+flutter build apk --dart-define=API_BASE_URL=http://63.142.241.105/api
+```
+
+### 2.4 Mise à jour après `git push` (sur le VPS)
+
+```bash
+ssh user@63.142.241.105
+cd /var/www/mami.ga
+git pull origin main
+composer install --no-dev --optimize-autoloader
+npm ci && npm run build
+php artisan migrate --force
+php artisan config:cache
+php artisan route:cache
+sudo chown -R www-data:www-data storage bootstrap/cache
+```
+
+### 2.5 Structure serveur (vérifiée)
+
+Le répertoire `/var/www/mami.ga/` contient la stack complète :
+
+- Laravel : `app/`, `config/`, `routes/`, `public/`, `vendor/`, `.env`
+- Mobile : `mobile/` (sources Flutter)
+- Front admin : `resources/`, `node_modules/` (après `npm install`)
+- Permissions : `storage/` en `775` (écriture `www-data`)
+
+---
+
+## 3. Structure du dépôt
 
 ```
 mami.ga/                          # Racine = application Laravel (pas de sous-dossier backend/)
@@ -64,7 +144,7 @@ mami.ga/                          # Racine = application Laravel (pas de sous-do
 
 ---
 
-## 3. Chronologie des phases (ce qui a été fait)
+## 4. Chronologie des phases (ce qui a été fait)
 
 ### Phase 1 — MVP Backend API
 
@@ -135,9 +215,9 @@ mami.ga/                          # Racine = application Laravel (pas de sous-do
 
 ---
 
-## 4. Installation environnement de développement
+## 5. Installation environnement de développement
 
-### 4.1 Prérequis
+### 5.1 Prérequis
 
 | Outil | Version recommandée |
 |-------|---------------------|
@@ -147,7 +227,7 @@ mami.ga/                          # Racine = application Laravel (pas de sous-do
 | Node.js | 20+ (pour Vite / admin) |
 | Flutter | 3.24+ (app chauffeur) |
 
-### 4.2 Backend Laravel (racine du repo)
+### 5.2 Backend Laravel (racine du repo)
 
 ```bash
 git clone https://github.com/akieni2/mami.ga.git
@@ -168,7 +248,7 @@ php artisan serve
 
 API disponible : `http://127.0.0.1:8000/api`
 
-### 4.3 Frontend admin (assets compilés)
+### 5.3 Frontend admin (assets compilés)
 
 ```bash
 npm install
@@ -179,7 +259,7 @@ npm run dev      # développement avec HMR
 
 Admin : `http://127.0.0.1:8000/login` → redirection `/dashboard` si admin.
 
-### 4.4 App Flutter chauffeur
+### 5.4 App Flutter chauffeur
 
 ```bash
 cd mobile/mami_driver
@@ -202,9 +282,9 @@ flutter run --dart-define=API_BASE_URL=http://192.168.x.x:8000/api
 
 ---
 
-## 5. Configuration (.env)
+## 6. Configuration (.env)
 
-### 5.1 Variables principales
+### 6.1 Variables principales
 
 ```env
 APP_NAME=MAMI.GA
@@ -224,7 +304,7 @@ QUEUE_CONNECTION=database
 SANCTUM_STATEFUL_DOMAINS=localhost,127.0.0.1
 ```
 
-### 5.2 Paramètres métier MAMI (`config/mami.php`)
+### 6.2 Paramètres métier MAMI (`config/mami.php`)
 
 | Variable `.env` | Défaut | Rôle |
 |-----------------|--------|------|
@@ -235,7 +315,7 @@ SANCTUM_STATEFUL_DOMAINS=localhost,127.0.0.1
 | `MAMI_DRIVER_OFFLINE_THRESHOLD_SECONDS` | 300 | Absence heartbeat → offline |
 | `MAMI_ETA_AVERAGE_SPEED_KMH` | 25 | ETA simplifié |
 
-### 5.3 Tests PHPUnit (MySQL obligatoire)
+### 6.3 Tests PHPUnit (MySQL obligatoire)
 
 Les tests **n’utilisent pas SQLite**. Le fichier `tests/bootstrap.php` force une base dédiée :
 
@@ -253,9 +333,9 @@ php artisan test
 
 ---
 
-## 6. Base de données
+## 7. Base de données
 
-### 6.1 Schéma logique
+### 7.1 Schéma logique
 
 ```
 users
@@ -270,7 +350,7 @@ personal_access_tokens (Sanctum)
 sessions (admin web)
 ```
 
-### 6.2 Migrations (ordre indicatif)
+### 7.2 Migrations (ordre indicatif)
 
 | Fichier | Contenu |
 |---------|---------|
@@ -285,7 +365,7 @@ sessions (admin web)
 | `2026_05_24_000002_create_ride_events_table` | audit événements |
 | `0001_01_01_000003_create_personal_access_tokens_table` | Sanctum |
 
-### 6.3 Comptes seed (mot de passe : `password`)
+### 7.3 Comptes seed (mot de passe : `password`)
 
 | Rôle | Email | Notes |
 |------|-------|-------|
@@ -299,13 +379,13 @@ sessions (admin web)
 
 ---
 
-## 7. API REST — référence complète
+## 8. API REST — référence complète
 
 **Base URL** : `/api`  
 **Headers** : `Accept: application/json`, `Content-Type: application/json`  
 **Auth** (routes protégées) : `Authorization: Bearer {token}`
 
-### 7.1 Format de réponse
+### 8.1 Format de réponse
 
 Succès :
 
@@ -343,7 +423,7 @@ Pagination (`GET /api/rides/history`) :
 }
 ```
 
-### 7.2 Authentification
+### 8.2 Authentification
 
 | Méthode | Route | Body / notes |
 |---------|-------|----------------|
@@ -352,7 +432,7 @@ Pagination (`GET /api/rides/history`) :
 | POST | `/logout` | token courant révoqué |
 | GET | `/me` | `{ user }` avec `is_driver`, `driver` |
 
-### 7.3 Chauffeurs
+### 8.3 Chauffeurs
 
 | Méthode | Route | Body / notes |
 |---------|-------|----------------|
@@ -361,7 +441,7 @@ Pagination (`GET /api/rides/history`) :
 | POST | `/drivers/availability` | `is_available` (bool) — online/offline manuel |
 | GET | `/drivers/{id}/live-location` | Client assigné ou le chauffeur lui-même |
 
-### 7.4 Courses
+### 8.4 Courses
 
 | Méthode | Route | Acteur | Description |
 |---------|-------|--------|-------------|
@@ -376,7 +456,7 @@ Pagination (`GET /api/rides/history`) :
 | POST | `/rides/{id}/start` | Chauffeur | → `started` |
 | POST | `/rides/{id}/complete` | Chauffeur | → `completed` |
 
-### 7.5 Cycle de vie d’une course
+### 8.5 Cycle de vie d’une course
 
 ```
 [Client] POST /rides/request
@@ -397,7 +477,7 @@ Pagination (`GET /api/rides/history`) :
 
 ---
 
-## 8. Couche services (logique métier)
+## 9. Couche services (logique métier)
 
 | Service | Responsabilité |
 |---------|----------------|
@@ -414,9 +494,9 @@ Pagination (`GET /api/rides/history`) :
 
 ---
 
-## 9. Dashboard admin (web)
+## 10. Dashboard admin (web)
 
-### 9.1 Routes (`routes/web.php`)
+### 10.1 Routes (`routes/web.php`)
 
 | URL | Contrôleur | Middleware |
 |-----|------------|------------|
@@ -428,7 +508,7 @@ Pagination (`GET /api/rides/history`) :
 | `/map` | `Admin\LiveMapController` | auth, admin |
 | `/admin/live/*` | `Admin\LiveDataController` | auth, admin |
 
-### 9.2 Polling JavaScript
+### 10.2 Polling JavaScript
 
 Fichier : `resources/js/admin.js` — intervalle **10 secondes** :
 - `GET /admin/live/dashboard`
@@ -437,7 +517,7 @@ Fichier : `resources/js/admin.js` — intervalle **10 secondes** :
 
 Entrée Vite : `vite.config.js` → `resources/js/admin.js` en plus de `app.js`.
 
-### 9.3 Sécurité admin
+### 10.3 Sécurité admin
 
 - `LoginRequest` : refuse les utilisateurs sans `is_admin`
 - `EnsureUserIsAdmin` : middleware `admin`
@@ -445,9 +525,9 @@ Entrée Vite : `vite.config.js` → `resources/js/admin.js` en plus de `app.js`.
 
 ---
 
-## 10. Application Flutter chauffeur
+## 11. Application Flutter chauffeur
 
-### 10.1 Stack
+### 11.1 Stack
 
 | Package | Usage |
 |---------|--------|
@@ -458,7 +538,7 @@ Entrée Vite : `vite.config.js` → `resources/js/admin.js` en plus de `app.js`.
 | `go_router` | Navigation + guard auth |
 | `flutter_map` + `latlong2` | Carte OSM |
 
-### 10.2 Configuration build
+### 11.2 Configuration build
 
 Fichier : `lib/core/config/app_config.dart`
 
@@ -468,7 +548,7 @@ gpsInterval   // 10 secondes
 ridePollInterval // 8 secondes
 ```
 
-### 10.3 Architecture `lib/`
+### 11.3 Architecture `lib/`
 
 ```
 core/
@@ -489,7 +569,7 @@ features/
   shell/      bottom navigation
 ```
 
-### 10.4 Flux chauffeur typique
+### 11.4 Flux chauffeur typique
 
 1. Login → token stocké → `GET /me`
 2. Accueil → bascule **En ligne** → `POST /drivers/availability` + démarrage tracker GPS
@@ -499,7 +579,7 @@ features/
 
 ---
 
-## 11. Tests automatisés
+## 12. Tests automatisés
 
 | Fichier | Couverture |
 |---------|------------|
@@ -517,21 +597,31 @@ Commande : `php artisan test` (nécessite MySQL + base `mami_ga_testing`).
 
 ---
 
-## 12. Déploiement production (VPS Ubuntu — checklist)
+## 13. Déploiement production (VPS Ubuntu — checklist)
+
+**Serveur** : `63.142.241.105` — `/var/www/mami.ga/`
 
 ```bash
-# Sur le serveur
-git pull origin main
-composer install --no-dev --optimize-autoloader
-cp .env.example .env   # puis éditer pour prod
+# Première installation sur le VPS
+cd /var/www/mami.ga
+git clone https://github.com/akieni2/mami.ga.git .   # si vide
+cp .env.example .env   # puis éditer pour prod (DB, APP_URL=https://mami.ga)
 php artisan key:generate
-php artisan migrate --force
+composer install --no-dev --optimize-autoloader
+npm ci && npm run build
+php artisan migrate --seed --force
 php artisan config:cache
 php artisan route:cache
+
+# Mises à jour suivantes
+git pull origin main
+composer install --no-dev --optimize-autoloader
 npm ci && npm run build
+php artisan migrate --force
+php artisan config:cache
 
 # Scheduler (cron Laravel)
-* * * * * cd /chemin/mami.ga && php artisan schedule:run >> /dev/null 2>&1
+* * * * * cd /var/www/mami.ga && php artisan schedule:run >> /dev/null 2>&1
 ```
 
 **Serveur web** : Nginx/Apache, document root → `public/`, PHP-FPM 8.3+.
@@ -546,7 +636,7 @@ npm ci && npm run build
 
 ---
 
-## 13. Dépôt Git & conventions
+## 14. Dépôt Git & conventions
 
 - **Remote** : `https://github.com/akieni2/mami.ga.git`
 - **Branche principale** : `main`
@@ -563,7 +653,7 @@ Commits atomiques par domaine (API, admin, Flutter, tests, docs séparés).
 
 ---
 
-## 14. Points d’attention / dette technique
+## 15. Points d’attention / dette technique
 
 1. **Double migration `last_seen_at`** : deux fichiers migrations similaires — vérifier sur une base neuve ; supprimer le doublon si conflit.
 2. **`AdminSeeder` appelé deux fois** dans `DatabaseSeeder` — cosmétique.
@@ -576,7 +666,7 @@ Commits atomiques par domaine (API, admin, Flutter, tests, docs séparés).
 
 ---
 
-## 15. Roadmap (non implémenté)
+## 16. Roadmap (non implémenté)
 
 | Phase | Contenu |
 |-------|---------|
@@ -588,7 +678,7 @@ Commits atomiques par domaine (API, admin, Flutter, tests, docs séparés).
 
 ---
 
-## 16. Contacts & ressources utiles
+## 17. Contacts & ressources utiles
 
 - README opérationnel : `/README.md`
 - README Flutter : `/mobile/mami_driver/README.md`

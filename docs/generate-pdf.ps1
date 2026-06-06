@@ -59,9 +59,9 @@ if (-not $browser) {
 if (Test-Path $pdfPath) { Remove-Item $pdfPath -Force }
 
 $uri = ([System.Uri]::new($htmlPath)).AbsoluteUri
-& $browser --headless=new --disable-gpu --no-pdf-header-footer --print-to-pdf="$pdfPath" $uri 2>$null
+& $browser --headless=new --disable-gpu --no-pdf-header-footer --virtual-time-budget=15000 --print-to-pdf="$pdfPath" $uri 2>$null
 
-Start-Sleep -Seconds 3
+Start-Sleep -Seconds 5
 
 if (-not (Test-Path $pdfPath)) {
     Write-Error "Échec génération PDF. Ouvrez $htmlPath → Ctrl+P → Enregistrer en PDF."
