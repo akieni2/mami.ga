@@ -52,19 +52,26 @@ function statusBadge(status) {
 
 function updateDashboard(data) {
     const map = {
-        'stat-total-drivers': data.stats?.total_drivers,
-        'stat-total-drivers-side': data.stats?.total_drivers,
-        'stat-online-drivers': data.stats?.online_drivers,
-        'stat-online-drivers-side': data.stats?.online_drivers,
+        'stat-rides-today': data.stats?.rides_today,
         'stat-active-rides': data.stats?.active_rides,
-        'stat-completed-rides': data.stats?.completed_rides,
+        'stat-online-drivers': data.stats?.online_drivers,
+        'stat-offline-drivers': data.stats?.offline_drivers,
+        'stat-online-drivers-side': data.stats?.online_drivers,
+        'stat-offline-drivers-side': data.stats?.offline_drivers,
         'stat-busy-drivers': data.stats?.busy_drivers,
+        'stat-total-drivers-side': data.stats?.total_drivers,
+        'stat-completed-rides': data.stats?.completed_rides,
     };
 
     Object.entries(map).forEach(([id, value]) => {
         const el = document.getElementById(id);
         if (el && value !== undefined) el.textContent = value;
     });
+
+    const revenueEl = document.getElementById('stat-revenue-today');
+    if (revenueEl && data.stats?.estimated_revenue_today !== undefined) {
+        revenueEl.textContent = formatPrice(data.stats.estimated_revenue_today);
+    }
 
     const tbody = document.getElementById('recent-rides-body');
     if (!tbody || !data.recent_rides) return;
@@ -76,7 +83,7 @@ function updateDashboard(data) {
 
     tbody.innerHTML = data.recent_rides.map((ride) => `
         <tr>
-            <td class="px-5 py-3 font-medium">${ride.id}</td>
+            <td class="px-5 py-3 font-medium"><a href="/admin/rides/${ride.id}" class="text-sky-600 hover:underline">${ride.id}</a></td>
             <td class="px-5 py-3">${ride.client ?? '—'}</td>
             <td class="px-5 py-3">${ride.driver ?? '—'}</td>
             <td class="px-5 py-3">${statusBadge(ride.status)}</td>
@@ -99,10 +106,10 @@ function updateDriversTable(drivers) {
             <td class="px-5 py-3 font-medium">${d.id}</td>
             <td class="px-5 py-3">${d.name}</td>
             <td class="px-5 py-3">${d.phone ?? '—'}</td>
-            <td class="px-5 py-3">${d.license_number ?? '—'}</td>
+            <td class="px-5 py-3">${statusBadge(d.status ?? 'offline')}</td>
+            <td class="px-5 py-3">${statusBadge(d.presence)}</td>
             <td class="px-5 py-3 text-xs font-mono">${d.latitude != null ? Number(d.latitude).toFixed(5) : '—'}, ${d.longitude != null ? Number(d.longitude).toFixed(5) : '—'}</td>
             <td class="px-5 py-3">${d.vehicle ?? '—'}</td>
-            <td class="px-5 py-3">${statusBadge(d.presence)}</td>
             <td class="px-5 py-3">${d.rating ?? '—'}</td>
             <td class="px-5 py-3 text-slate-500">${d.last_seen_human ?? '—'}</td>
         </tr>
@@ -112,10 +119,6 @@ function updateDriversTable(drivers) {
 function enrichDriversForTable(drivers) {
     return drivers.map((d) => ({
         ...d,
-        name: d.name,
-        license_number: d.license_number,
-        phone: d.phone,
-        rating: d.rating,
         last_seen_human: d.last_seen_at ? new Date(d.last_seen_at).toLocaleString('fr-FR') : 'Jamais',
     }));
 }
@@ -132,7 +135,11 @@ async function poll() {
         if (page === 'dashboard') {
             updateDashboard(data);
         } else if (page === 'drivers') {
-            updateDriversTable(enrichDriversForTable(data.drivers ?? []));
+            const drivers = enrichDriversForTable(data.drivers ?? []);
+            updateDriversTable(drivers);
+            if (typeof window.mamiUpdateDriversMiniMap === 'function') {
+                window.mamiUpdateDriversMiniMap(drivers);
+            }
         } else if (page === 'map' && typeof window.mamiUpdateMapMarkers === 'function') {
             window.mamiUpdateMapMarkers(data.drivers ?? []);
         }

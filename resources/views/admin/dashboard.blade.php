@@ -2,15 +2,17 @@
 
 @section('title', 'Tableau de bord')
 @section('page_title', 'Tableau de bord')
-@section('page_subtitle', 'Vue d\'ensemble — actualisation automatique toutes les 10 s')
+@section('page_subtitle', 'Vue d\'ensemble opérationnelle — actualisation automatique toutes les 10 s')
 @section('admin_page', 'dashboard')
 
 @section('content')
-    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        @include('admin.partials.stat-card', ['label' => 'Total chauffeurs', 'value' => $stats['total_drivers'], 'color' => 'slate', 'id' => 'stat-total-drivers'])
-        @include('admin.partials.stat-card', ['label' => 'Chauffeurs en ligne', 'value' => $stats['online_drivers'], 'hint' => 'Disponibles avec GPS récent', 'color' => 'emerald', 'id' => 'stat-online-drivers'])
-        @include('admin.partials.stat-card', ['label' => 'Courses actives', 'value' => $stats['active_rides'], 'hint' => 'En cours sur la plateforme', 'color' => 'sky', 'id' => 'stat-active-rides'])
-        @include('admin.partials.stat-card', ['label' => 'Courses terminées', 'value' => $stats['completed_rides'], 'color' => 'amber', 'id' => 'stat-completed-rides'])
+    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+        @include('admin.partials.stat-card', ['label' => 'Courses aujourd\'hui', 'value' => $stats['rides_today'], 'color' => 'sky', 'id' => 'stat-rides-today'])
+        @include('admin.partials.stat-card', ['label' => 'Courses en cours', 'value' => $stats['active_rides'], 'hint' => 'Pending → started', 'color' => 'amber', 'id' => 'stat-active-rides'])
+        @include('admin.partials.stat-card', ['label' => 'Chauffeurs en ligne', 'value' => $stats['online_drivers'], 'color' => 'emerald', 'id' => 'stat-online-drivers'])
+        @include('admin.partials.stat-card', ['label' => 'Chauffeurs hors ligne', 'value' => $stats['offline_drivers'], 'color' => 'slate', 'id' => 'stat-offline-drivers'])
+        @include('admin.partials.stat-card', ['label' => 'CA estimé (jour)', 'value' => number_format($stats['estimated_revenue_today'], 0, ',', ' ') . ' FCFA', 'color' => 'indigo', 'id' => 'stat-revenue-today', 'raw' => true])
+        @include('admin.partials.stat-card', ['label' => 'Courses terminées', 'value' => $stats['completed_rides'], 'color' => 'emerald', 'id' => 'stat-completed-rides'])
     </div>
 
     <div class="mt-4 grid gap-4 lg:grid-cols-3">
@@ -22,8 +24,12 @@
                     <dd id="stat-online-drivers-side" class="font-semibold text-emerald-600">{{ $stats['online_drivers'] }}</dd>
                 </div>
                 <div class="flex justify-between">
-                    <dt class="text-slate-500">En course (occupés)</dt>
+                    <dt class="text-slate-500">En course</dt>
                     <dd id="stat-busy-drivers" class="font-semibold text-amber-600">{{ $stats['busy_drivers'] }}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-slate-500">Hors ligne</dt>
+                    <dd id="stat-offline-drivers-side" class="font-semibold text-slate-600">{{ $stats['offline_drivers'] }}</dd>
                 </div>
                 <div class="flex justify-between">
                     <dt class="text-slate-500">Total inscrits</dt>
@@ -50,7 +56,9 @@
                     <tbody id="recent-rides-body" class="divide-y divide-slate-100">
                         @forelse ($recentRides as $ride)
                             <tr>
-                                <td class="px-5 py-3 font-medium">{{ $ride->id }}</td>
+                                <td class="px-5 py-3 font-medium">
+                                    <a href="{{ route('admin.rides.show', $ride) }}" class="text-sky-600 hover:underline">{{ $ride->id }}</a>
+                                </td>
                                 <td class="px-5 py-3">{{ $ride->client?->name ?? '—' }}</td>
                                 <td class="px-5 py-3">{{ $ride->driver?->user?->name ?? '—' }}</td>
                                 <td class="px-5 py-3">

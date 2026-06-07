@@ -18,7 +18,15 @@ class AdminLiveDataTest extends TestCase
             ->getJson('/admin/live/dashboard')
             ->assertOk()
             ->assertJsonStructure([
-                'stats' => ['total_drivers', 'online_drivers', 'active_rides', 'completed_rides'],
+                'stats' => [
+                    'total_drivers',
+                    'online_drivers',
+                    'offline_drivers',
+                    'active_rides',
+                    'rides_today',
+                    'completed_rides',
+                    'estimated_revenue_today',
+                ],
                 'recent_rides',
                 'refreshed_at',
             ]);

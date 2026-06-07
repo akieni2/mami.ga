@@ -1,39 +1,45 @@
 @extends('layouts.admin')
 
-@section('title', 'Courses')
-@section('page_title', 'Courses')
-@section('page_subtitle', 'Liste complète avec filtres par statut')
-@section('admin_page', 'rides')
+@section('title', $user->name)
+@section('page_title', $user->name)
+@section('page_subtitle', 'Historique des courses client')
+@section('admin_page', 'clients')
 
 @section('content')
-    <div class="mb-4 flex flex-wrap gap-2">
-        @foreach ([
-            null => 'Toutes',
-            'pending' => 'Pending',
-            'accepted' => 'Accepted',
-            'arrived' => 'Arrived',
-            'started' => 'Started',
-            'completed' => 'Completed',
-            'cancelled' => 'Cancelled',
-        ] as $filterValue => $filterLabel)
-            <a href="{{ route('admin.rides.index', $filterValue ? ['status' => $filterValue] : []) }}"
-               class="{{ ($status ?? null) === $filterValue || ($filterValue === null && empty($status)) ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 hover:bg-slate-50' }} rounded-full border border-slate-200 px-3 py-1 text-xs font-medium transition">
-                {{ $filterLabel }}
-            </a>
-        @endforeach
+    <div class="mb-4">
+        <a href="{{ route('admin.clients.index') }}" class="text-sm text-sky-600 hover:underline">&larr; Retour aux clients</a>
+    </div>
+
+    <div class="mb-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <dl class="grid gap-4 sm:grid-cols-3 text-sm">
+            <div>
+                <dt class="text-slate-500">Email</dt>
+                <dd class="mt-1 font-medium">{{ $user->email }}</dd>
+            </div>
+            <div>
+                <dt class="text-slate-500">Téléphone</dt>
+                <dd class="mt-1 font-medium">{{ $user->phone ?? '—' }}</dd>
+            </div>
+            <div>
+                <dt class="text-slate-500">Total courses</dt>
+                <dd class="mt-1 text-2xl font-bold text-slate-900">{{ $ridesCount }}</dd>
+            </div>
+        </dl>
     </div>
 
     <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div class="border-b border-slate-100 px-5 py-4">
+            <h2 class="text-sm font-semibold text-slate-800">Historique</h2>
+        </div>
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-slate-100 text-sm">
                 <thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
                     <tr>
                         <th class="px-5 py-3">ID</th>
-                        <th class="px-5 py-3">Client</th>
                         <th class="px-5 py-3">Chauffeur</th>
                         <th class="px-5 py-3">Statut</th>
                         <th class="px-5 py-3">Prix est.</th>
-                        <th class="px-5 py-3">Créée</th>
+                        <th class="px-5 py-3">Date</th>
                         <th class="px-5 py-3"></th>
                     </tr>
                 </thead>
@@ -41,7 +47,6 @@
                     @forelse ($rides as $ride)
                         <tr>
                             <td class="px-5 py-3 font-medium">{{ $ride->id }}</td>
-                            <td class="px-5 py-3">{{ $ride->client?->name ?? '—' }}</td>
                             <td class="px-5 py-3">{{ $ride->driver?->user?->name ?? '—' }}</td>
                             <td class="px-5 py-3">
                                 @include('admin.partials.status-badge', ['status' => $ride->status->value])
@@ -56,7 +61,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-5 py-10 text-center text-slate-500">Aucune course enregistrée.</td>
+                            <td colspan="6" class="px-5 py-10 text-center text-slate-500">Aucune course pour ce client.</td>
                         </tr>
                     @endforelse
                 </tbody>

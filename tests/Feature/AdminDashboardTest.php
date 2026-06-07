@@ -12,7 +12,7 @@ class AdminDashboardTest extends TestCase
 
     public function test_guest_is_redirected_to_login(): void
     {
-        $this->get('/dashboard')->assertRedirect('/login');
+        $this->get('/admin/dashboard')->assertRedirect('/login');
     }
 
     public function test_admin_can_view_dashboard(): void
@@ -23,9 +23,10 @@ class AdminDashboardTest extends TestCase
         ]);
 
         $this->actingAs($admin)
-            ->get('/dashboard')
+            ->get('/admin/dashboard')
             ->assertOk()
-            ->assertSee('Tableau de bord');
+            ->assertSee('Tableau de bord')
+            ->assertSee('Courses aujourd');
     }
 
     public function test_non_admin_cannot_access_dashboard(): void
@@ -33,26 +34,29 @@ class AdminDashboardTest extends TestCase
         $user = User::factory()->create(['is_admin' => false]);
 
         $this->actingAs($user)
-            ->get('/dashboard')
+            ->get('/admin/dashboard')
             ->assertForbidden();
     }
 
-    public function test_admin_can_view_drivers_and_rides_pages(): void
+    public function test_admin_can_view_all_exploitation_pages(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
 
-        $this->actingAs($admin)->get('/drivers')->assertOk()->assertSee('Chauffeurs');
-        $this->actingAs($admin)->get('/rides')->assertOk()->assertSee('Courses');
+        $this->actingAs($admin)->get('/admin/drivers')->assertOk()->assertSee('Chauffeurs');
+        $this->actingAs($admin)->get('/admin/rides')->assertOk()->assertSee('Courses');
+        $this->actingAs($admin)->get('/admin/clients')->assertOk()->assertSee('Clients');
+        $this->actingAs($admin)->get('/admin/map')->assertOk()->assertSee('Carte opérationnelle');
+        $this->actingAs($admin)->get('/admin/reports')->assertOk()->assertSee('Rapports');
     }
 
-    public function test_admin_can_view_live_map_page(): void
+    public function test_legacy_urls_redirect_to_admin_prefix(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
 
-        $this->actingAs($admin)
-            ->get('/map')
-            ->assertOk()
-            ->assertSee('Carte live');
+        $this->actingAs($admin)->get('/dashboard')->assertRedirect('/admin/dashboard');
+        $this->actingAs($admin)->get('/drivers')->assertRedirect('/admin/drivers');
+        $this->actingAs($admin)->get('/rides')->assertRedirect('/admin/rides');
+        $this->actingAs($admin)->get('/map')->assertRedirect('/admin/map');
     }
 
     public function test_breeze_login_flow_for_admin(): void

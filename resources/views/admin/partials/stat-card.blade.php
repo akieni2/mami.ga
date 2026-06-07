@@ -7,12 +7,14 @@
         'emerald' => 'border-emerald-200 bg-emerald-50',
         'sky' => 'border-sky-200 bg-sky-50',
         'amber' => 'border-amber-200 bg-amber-50',
+        'indigo' => 'border-indigo-200 bg-indigo-50',
     ];
     $valueColors = [
         'slate' => 'text-slate-900',
         'emerald' => 'text-emerald-700',
         'sky' => 'text-sky-700',
         'amber' => 'text-amber-700',
+        'indigo' => 'text-indigo-700',
     ];
 @endphp
 

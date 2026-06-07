@@ -3,7 +3,7 @@
     <div class="flex items-center justify-between border-b border-slate-700 px-6 py-5">
         <a href="{{ route('admin.dashboard') }}" class="block">
             <span class="text-lg font-bold tracking-tight text-white">MAMI.GA</span>
-            <span class="mt-1 block text-xs text-slate-400">Administration</span>
+            <span class="mt-1 block text-xs text-slate-400">Exploitation</span>
         </a>
         <button type="button" id="sidebar-close" class="rounded p-1 text-slate-400 hover:text-white lg:hidden" aria-label="Fermer">
             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -15,9 +15,11 @@
     <nav class="flex-1 space-y-1 px-3 py-4">
         @foreach ([
             ['route' => 'admin.dashboard', 'label' => 'Tableau de bord', 'match' => 'admin.dashboard'],
-            ['route' => 'admin.drivers.index', 'label' => 'Chauffeurs', 'match' => 'admin.drivers.*'],
             ['route' => 'admin.rides.index', 'label' => 'Courses', 'match' => 'admin.rides.*'],
-            ['route' => 'admin.map.index', 'label' => 'Carte live', 'match' => 'admin.map.*'],
+            ['route' => 'admin.drivers.index', 'label' => 'Chauffeurs', 'match' => 'admin.drivers.*'],
+            ['route' => 'admin.clients.index', 'label' => 'Clients', 'match' => 'admin.clients.*'],
+            ['route' => 'admin.map.index', 'label' => 'Carte opérationnelle', 'match' => 'admin.map.*'],
+            ['route' => 'admin.reports.index', 'label' => 'Rapports', 'match' => 'admin.reports.*'],
         ] as $item)
             <a href="{{ route($item['route']) }}"
                class="{{ request()->routeIs($item['match']) ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }} block rounded-lg px-3 py-2 text-sm font-medium transition">

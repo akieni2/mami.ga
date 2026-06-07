@@ -23,22 +23,45 @@ class AdminDashboardService
             RideStatus::Started,
         ];
 
+        $today = Carbon::today();
+
+        $onlineDrivers = Driver::query()
+            ->where('status', DriverStatus::Online)
+            ->where('is_available', true)
+            ->where('last_seen_at', '>=', $offlineCutoff)
+            ->count();
+
+        $busyDrivers = Driver::query()
+            ->where('status', DriverStatus::OnRide)
+            ->count();
+
+        $totalDrivers = Driver::query()->count();
+
         return [
-            'total_drivers' => Driver::query()->count(),
-            'online_drivers' => Driver::query()
-                ->where('status', DriverStatus::Online)
-                ->where('is_available', true)
-                ->where('last_seen_at', '>=', $offlineCutoff)
-                ->count(),
-            'busy_drivers' => Driver::query()
-                ->where('status', DriverStatus::OnRide)
-                ->count(),
+            'total_drivers' => $totalDrivers,
+            'online_drivers' => $onlineDrivers,
+            'offline_drivers' => max(0, $totalDrivers - $onlineDrivers - $busyDrivers),
+            'busy_drivers' => $busyDrivers,
             'active_rides' => Ride::query()
                 ->whereIn('status', $activeRideStatuses)
+                ->count(),
+            'rides_today' => Ride::query()
+                ->whereDate('created_at', $today)
                 ->count(),
             'completed_rides' => Ride::query()
                 ->where('status', RideStatus::Completed)
                 ->count(),
+            'completed_rides_today' => Ride::query()
+                ->where('status', RideStatus::Completed)
+                ->whereDate('completed_at', $today)
+                ->count(),
+            'estimated_revenue_today' => (float) Ride::query()
+                ->where('status', RideStatus::Completed)
+                ->whereDate('completed_at', $today)
+                ->sum('estimated_price'),
+            'estimated_revenue_total' => (float) Ride::query()
+                ->where('status', RideStatus::Completed)
+                ->sum('estimated_price'),
         ];
     }
 }
