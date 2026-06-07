@@ -31,6 +31,15 @@ class RidesRepository {
         .toList();
   }
 
+  Future<Map<String, dynamic>> fetchTracking(int rideId) async {
+    final response = await _dio.get('/rides/$rideId/tracking');
+
+    return extractData<Map<String, dynamic>>(
+      response.data,
+      (data) => data as Map<String, dynamic>,
+    );
+  }
+
   Future<RideModel> accept(int rideId) => _action(rideId, 'accept');
 
   Future<RideModel> reject(int rideId) => _action(rideId, 'reject');

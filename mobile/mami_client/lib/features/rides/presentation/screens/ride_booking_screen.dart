@@ -4,13 +4,16 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../../../core/map/mami_map.dart';
+import '../../../../core/map/route_utils.dart';
 import '../../../../core/utils/price_utils.dart';
 import '../../../../core/widgets/primary_button.dart';
-import '../../../../core/widgets/ride_map.dart';
 import '../../../location/presentation/providers/user_location_provider.dart';
 import '../../data/rides_repository.dart';
 import '../providers/active_ride_provider.dart';
 import '../providers/booking_provider.dart';
+
+enum _MapTapTarget { pickup, destination }
 
 class RideBookingScreen extends ConsumerStatefulWidget {
   const RideBookingScreen({super.key});
@@ -20,58 +23,63 @@ class RideBookingScreen extends ConsumerStatefulWidget {
 }
 
 class _RideBookingScreenState extends ConsumerState<RideBookingScreen> {
-  final _pickupLat = TextEditingController(text: '0.4162');
-  final _pickupLng = TextEditingController(text: '9.4673');
-  final _destLat = TextEditingController(text: '0.4200');
-  final _destLng = TextEditingController(text: '9.4800');
+  LatLng? _pickup;
+  LatLng? _destination;
+  _MapTapTarget _tapTarget = _MapTapTarget.pickup;
   bool _loading = false;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _useGpsPickup());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _initPickup());
   }
 
-  Future<void> _useGpsPickup() async {
+  Future<void> _initPickup() async {
     final pos = await ref.read(userLocationProvider.future);
     if (pos != null && mounted) {
-      _pickupLat.text = pos.latitude.toStringAsFixed(6);
-      _pickupLng.text = pos.longitude.toStringAsFixed(6);
+      setState(() => _pickup = pos);
       ref.read(bookingDraftProvider.notifier).setPickup(pos);
-      setState(() {});
     }
   }
 
-  @override
-  void dispose() {
-    _pickupLat.dispose();
-    _pickupLng.dispose();
-    _destLat.dispose();
-    _destLng.dispose();
-    super.dispose();
+  void _onMapTap(LatLng point) {
+    setState(() {
+      if (_tapTarget == _MapTapTarget.pickup) {
+        _pickup = point;
+        ref.read(bookingDraftProvider.notifier).setPickup(point);
+        _tapTarget = _MapTapTarget.destination;
+      } else {
+        _destination = point;
+        ref.read(bookingDraftProvider.notifier).setDestination(point);
+      }
+    });
   }
 
   double? _estimatedPrice() {
-    try {
-      return PriceUtils.estimateTripPrice(
-        double.parse(_pickupLat.text),
-        double.parse(_pickupLng.text),
-        double.parse(_destLat.text),
-        double.parse(_destLng.text),
-      );
-    } catch (_) {
-      return null;
-    }
+    if (_pickup == null || _destination == null) return null;
+    return PriceUtils.estimateTripPrice(
+      _pickup!.latitude,
+      _pickup!.longitude,
+      _destination!.latitude,
+      _destination!.longitude,
+    );
   }
 
   Future<void> _commander() async {
+    if (_pickup == null || _destination == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sélectionnez départ et destination sur la carte')),
+      );
+      return;
+    }
+
     setState(() => _loading = true);
     try {
       final ride = await ref.read(ridesRepositoryProvider).requestRide(
-            pickupLatitude: double.parse(_pickupLat.text),
-            pickupLongitude: double.parse(_pickupLng.text),
-            destinationLatitude: double.parse(_destLat.text),
-            destinationLongitude: double.parse(_destLng.text),
+            pickupLatitude: _pickup!.latitude,
+            pickupLongitude: _pickup!.longitude,
+            destinationLatitude: _destination!.latitude,
+            destinationLongitude: _destination!.longitude,
           );
 
       ref.read(activeRideProvider.notifier).setRide(ride);
@@ -96,106 +104,87 @@ class _RideBookingScreenState extends ConsumerState<RideBookingScreen> {
         ? NumberFormat.currency(symbol: 'FCFA ', decimalDigits: 0).format(price)
         : '—';
 
-    LatLng center;
-    try {
-      center = LatLng(
-        double.parse(_pickupLat.text),
-        double.parse(_pickupLng.text),
-      );
-    } catch (_) {
-      center = const LatLng(0.4162, 9.4673);
-    }
-
-    LatLng? destination;
-    try {
-      destination = LatLng(
-        double.parse(_destLat.text),
-        double.parse(_destLng.text),
-      );
-    } catch (_) {}
+    final route = (_pickup != null && _destination != null)
+        ? RouteUtils.straightLine(_pickup!, _destination!)
+        : null;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Réserver une course'),
+        title: const Text('Réserver'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      body: Column(
         children: [
-          RideMap(
-            center: center,
-            pickup: center,
-            destination: destination,
-            height: 200,
-          ),
-          const SizedBox(height: 16),
-          const Text('Point de départ', style: TextStyle(fontWeight: FontWeight.bold)),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _pickupLat,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Lat'),
-                  onChanged: (_) => setState(() {}),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: TextField(
-                  controller: _pickupLng,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Lng'),
-                  onChanged: (_) => setState(() {}),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          const Text('Destination', style: TextStyle(fontWeight: FontWeight.bold)),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _destLat,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Lat'),
-                  onChanged: (_) => setState(() {}),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: TextField(
-                  controller: _destLng,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Lng'),
-                  onChanged: (_) => setState(() {}),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.payments_outlined),
-              title: const Text('Prix estimé'),
-              trailing: Text(
-                priceLabel,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
+          Expanded(
+            child: MamiMap(
+              fullScreen: true,
+              pickup: _pickup,
+              destination: _destination,
+              route: route,
+              onTap: _onMapTap,
             ),
           ),
-          const SizedBox(height: 24),
-          PrimaryButton(
-            label: 'Commander',
-            loading: _loading,
-            onPressed: _commander,
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 8,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SegmentedButton<_MapTapTarget>(
+                  segments: const [
+                    ButtonSegment(
+                      value: _MapTapTarget.pickup,
+                      label: Text('Départ'),
+                      icon: Icon(Icons.trip_origin, size: 18),
+                    ),
+                    ButtonSegment(
+                      value: _MapTapTarget.destination,
+                      label: Text('Destination'),
+                      icon: Icon(Icons.flag, size: 18),
+                    ),
+                  ],
+                  selected: {_tapTarget},
+                  onSelectionChanged: (s) =>
+                      setState(() => _tapTarget = s.first),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Tapez sur la carte pour placer le point sélectionné',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Prix estimé',
+                        style: TextStyle(fontWeight: FontWeight.w600)),
+                    Text(priceLabel,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        )),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                PrimaryButton(
+                  label: 'Commander',
+                  loading: _loading,
+                  onPressed: _commander,
+                ),
+              ],
+            ),
           ),
         ],
       ),

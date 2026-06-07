@@ -8,6 +8,8 @@ class RideTrackingService
 {
     public function __construct(
         private readonly DistanceRefreshService $distanceRefreshService,
+        private readonly EstimatedArrivalService $estimatedArrivalService,
+        private readonly RouteService $routeService,
     ) {}
 
     public function snapshot(Ride $ride): array
@@ -23,6 +25,21 @@ class RideTrackingService
                 'target_latitude' => (float) $ride->pickup_latitude,
                 'target_longitude' => (float) $ride->pickup_longitude,
             ];
+
+        $eta = $driver
+            ? $this->estimatedArrivalService->forRide($driver, $ride)
+            : ['distance_km' => null, 'eta_minutes' => null];
+
+        $routeFrom = $driver && $driver->latitude !== null && $driver->longitude !== null
+            ? [(float) $driver->latitude, (float) $driver->longitude]
+            : [(float) $ride->pickup_latitude, (float) $ride->pickup_longitude];
+
+        $route = $this->routeService->route(
+            $routeFrom[0],
+            $routeFrom[1],
+            $distance['target_latitude'],
+            $distance['target_longitude'],
+        );
 
         return [
             'ride' => [
@@ -47,7 +64,9 @@ class RideTrackingService
                 'eta_minutes' => $distance['eta_minutes'],
                 'target_latitude' => $distance['target_latitude'],
                 'target_longitude' => $distance['target_longitude'],
+                'estimated_arrival' => $eta,
             ],
+            'route' => $route,
             'events' => $ride->events->map(fn ($event) => [
                 'id' => $event->id,
                 'event_type' => $event->event_type->value,

@@ -3,10 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../../../core/map/mami_map.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/primary_button.dart';
-import '../../../../core/widgets/ride_map.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../location/presentation/providers/user_location_provider.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -14,60 +13,78 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(authStateProvider).valueOrNull;
     final locationAsync = ref.watch(userLocationProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('MAMI.GA'),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Center(
-              child: Text(
-                user?.name.split(' ').first ?? '',
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-            ),
-          ),
-        ],
-      ),
       body: locationAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, __) => const Center(child: Text('GPS indisponible')),
         data: (position) {
-          final center = position ?? const LatLng(0.4162, 9.4673);
+          final user = position ?? const LatLng(0.4162, 9.4673);
 
-          return ListView(
-            padding: const EdgeInsets.all(16),
+          return Stack(
             children: [
-              RideMap(center: center, height: 280),
-              const SizedBox(height: 16),
-              Card(
+              Positioned.fill(
+                child: MamiMap(
+                  fullScreen: true,
+                  user: user,
+                  interactive: true,
+                ),
+              ),
+              SafeArea(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
                     children: [
-                      Text(
-                        'Bonjour, ${user?.name ?? 'Client'}',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Position : ${center.latitude.toStringAsFixed(4)}, '
-                        '${center.longitude.toStringAsFixed(4)}',
-                        style: TextStyle(color: Colors.grey.shade600),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.92),
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: const Text(
+                          'MAMI.GA',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
                       ),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
-              PrimaryButton(
-                label: 'Commander une course',
-                color: AppTheme.primary,
-                onPressed: () => context.push('/book'),
+              Positioned(
+                left: 16,
+                right: 16,
+                bottom: 24,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.95),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(
+                        'Votre position est affichée sur la carte',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.grey.shade700),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    PrimaryButton(
+                      label: 'Commander une course',
+                      color: AppTheme.primary,
+                      onPressed: () => context.push('/book'),
+                    ),
+                  ],
+                ),
               ),
             ],
           );
