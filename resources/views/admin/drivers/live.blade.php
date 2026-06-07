@@ -47,11 +47,8 @@
             'prefix' => config('mami.broadcast_prefix', 'mami'),
             'driver_id' => $driver->id,
         ];
-    @endphp
-    <script>
-        window.mamiReverbConfig = @json($reverbConfig);
-        window.mamiLiveEndpoint = @json(route('admin.live.driver', $driver));
-        window.mamiDriverLiveMeta = @json([
+
+        $driverLiveMeta = [
             'id' => $driver->id,
             'name' => $driver->user?->name ?? 'Chauffeur #'.$driver->id,
             'vehicle' => $driver->vehicle
@@ -60,7 +57,11 @@
             'latitude' => $driver->latitude !== null ? (float) $driver->latitude : null,
             'longitude' => $driver->longitude !== null ? (float) $driver->longitude : null,
             'presence' => $driver->presenceStatus(),
-        ]);
+        ];
+    @endphp
+    <script>
+        window.mamiReverbConfig = @json($reverbConfig);
+        window.mamiDriverLiveMeta = @json($driverLiveMeta);
     </script>
     <script>
         document.documentElement.classList.add('admin-map-fullscreen');

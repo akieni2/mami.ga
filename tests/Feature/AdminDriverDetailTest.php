@@ -50,16 +50,28 @@ class AdminDriverDetailTest extends TestCase
     public function test_admin_can_view_driver_live_page(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
+        $driverUser = User::factory()->create(['name' => 'Live Driver']);
         $driver = Driver::factory()->create([
+            'user_id' => $driverUser->id,
             'latitude' => 0.4162,
             'longitude' => 9.4673,
+        ]);
+
+        Vehicle::factory()->create([
+            'driver_id' => $driver->id,
+            'brand' => 'Toyota',
+            'model' => 'Yaris',
+            'plate_number' => 'GA-999-ZZ',
         ]);
 
         $this->actingAs($admin)
             ->get('/admin/drivers/'.$driver->id.'/live')
             ->assertOk()
             ->assertSee('driver-live-map')
-            ->assertSee('Reverb');
+            ->assertSee('mamiDriverLiveMeta')
+            ->assertSee('Live Driver')
+            ->assertSee('0.4162')
+            ->assertSee('data-live-endpoint');
     }
 
     public function test_admin_can_fetch_single_driver_live_json(): void
