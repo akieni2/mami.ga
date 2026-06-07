@@ -7,6 +7,7 @@ use App\Enums\RideEventType;
 use App\Events\DriverArrived;
 use App\Events\DriverLocationUpdated;
 use App\Events\RideAccepted;
+use App\Events\RideAssigned;
 use App\Events\RideCompleted;
 use App\Events\RideRequested;
 use App\Events\RideStarted;
@@ -27,6 +28,7 @@ class RealtimeEventsTest extends TestCase
     {
         Event::fake([
             RideRequested::class,
+            RideAssigned::class,
             RideAccepted::class,
             DriverArrived::class,
             RideStarted::class,
@@ -53,6 +55,7 @@ class RealtimeEventsTest extends TestCase
         ])->json('data.id');
 
         Event::assertDispatched(RideRequested::class);
+        Event::assertDispatched(RideAssigned::class);
         $this->assertDatabaseHas('ride_events', [
             'ride_id' => $rideId,
             'event_type' => RideEventType::RideRequested->value,

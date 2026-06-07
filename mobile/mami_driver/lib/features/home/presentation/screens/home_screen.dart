@@ -24,7 +24,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(activeRideProvider.notifier).startPolling();
+      ref.read(activeRideProvider.notifier).startHybridTracking();
       ref.read(activeRideProvider.notifier).refresh();
       final status = ref.read(driverStatusProvider).valueOrNull;
       if (status == DriverUiStatus.online || status == DriverUiStatus.busy) {

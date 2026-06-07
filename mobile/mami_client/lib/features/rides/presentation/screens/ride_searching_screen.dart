@@ -27,7 +27,7 @@ class _RideSearchingScreenState extends ConsumerState<RideSearchingScreen>
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
 
-    ref.read(activeRideProvider.notifier).startPolling(widget.rideId);
+    ref.read(activeRideProvider.notifier).startHybridTracking(widget.rideId);
     ref.read(activeRideProvider.notifier).refresh(widget.rideId);
   }
 

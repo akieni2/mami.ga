@@ -23,7 +23,7 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
   @override
   void initState() {
     super.initState();
-    ref.read(activeRideProvider.notifier).startPolling(widget.rideId);
+    ref.read(activeRideProvider.notifier).startHybridTracking(widget.rideId);
     ref.read(activeRideProvider.notifier).refresh(widget.rideId);
     _loadTracking();
   }

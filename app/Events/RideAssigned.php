@@ -9,7 +9,7 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class RideStarted implements ShouldBroadcastNow
+class RideAssigned implements ShouldBroadcastNow
 {
     use BroadcastsMamiRealtime, Dispatchable, InteractsWithSockets, SerializesModels;
 
@@ -24,9 +24,16 @@ class RideStarted implements ShouldBroadcastNow
     {
         return $this->firebaseEnvelope([
             'ride_id' => $this->ride->id,
-            'status' => $this->ride->status->value,
+            'client_id' => $this->ride->client_id,
             'driver_id' => $this->ride->driver_id,
-            'started_at' => $this->ride->started_at?->toIso8601String(),
+            'status' => $this->ride->status->value,
+            'pickup_latitude' => (float) $this->ride->pickup_latitude,
+            'pickup_longitude' => (float) $this->ride->pickup_longitude,
+            'destination_latitude' => (float) $this->ride->destination_latitude,
+            'destination_longitude' => (float) $this->ride->destination_longitude,
+            'estimated_price' => $this->ride->estimated_price !== null
+                ? (float) $this->ride->estimated_price
+                : null,
         ]);
     }
 }

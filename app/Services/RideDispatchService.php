@@ -7,6 +7,7 @@ use App\Enums\RideEventType;
 use App\Enums\RideStatus;
 use App\Events\DriverArrived;
 use App\Events\RideAccepted;
+use App\Events\RideAssigned;
 use App\Events\RideCompleted;
 use App\Events\RideRequested;
 use App\Events\RideStarted;
@@ -79,6 +80,7 @@ class RideDispatchService
             ]);
 
             RideRequested::dispatch($ride);
+            RideAssigned::dispatch($ride);
 
             return $ride;
         });

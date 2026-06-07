@@ -5,13 +5,12 @@ namespace App\Events;
 use App\Events\Concerns\BroadcastsMamiRealtime;
 use App\Models\Driver;
 use App\Models\Ride;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class DriverLocationUpdated implements ShouldBroadcast
+class DriverLocationUpdated implements ShouldBroadcastNow
 {
     use BroadcastsMamiRealtime, Dispatchable, InteractsWithSockets, SerializesModels;
 
@@ -24,15 +23,7 @@ class DriverLocationUpdated implements ShouldBroadcast
 
     public function broadcastOn(): array
     {
-        $channels = [
-            new Channel($this->channelName('drivers.'.$this->driver->id)),
-        ];
-
-        if ($this->activeRide !== null) {
-            $channels[] = new Channel($this->channelName('rides.'.$this->activeRide->id));
-        }
-
-        return $channels;
+        return $this->driverBroadcastChannels($this->driver, $this->activeRide);
     }
 
     public function broadcastWith(): array

@@ -4,13 +4,12 @@ namespace App\Events;
 
 use App\Events\Concerns\BroadcastsMamiRealtime;
 use App\Models\Ride;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class RideCompleted implements ShouldBroadcast
+class RideCompleted implements ShouldBroadcastNow
 {
     use BroadcastsMamiRealtime, Dispatchable, InteractsWithSockets, SerializesModels;
 
@@ -18,10 +17,7 @@ class RideCompleted implements ShouldBroadcast
 
     public function broadcastOn(): array
     {
-        return [
-            new Channel($this->channelName('rides.'.$this->ride->id)),
-            new Channel($this->channelName('drivers.'.$this->ride->driver_id)),
-        ];
+        return $this->rideBroadcastChannels($this->ride);
     }
 
     public function broadcastWith(): array
