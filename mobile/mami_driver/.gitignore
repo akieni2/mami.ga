@@ -13,3 +13,11 @@ local.properties
 **/GeneratedPluginRegistrant.java
 **/Pods/
 .DS_Store
+android/.gradle/
+android/.kotlin/
+android/local.properties
+
+android/*.iml
+
+android/hs_err_pid*.log
+android/replay_pid*.log
