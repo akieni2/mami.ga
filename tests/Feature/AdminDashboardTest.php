@@ -47,6 +47,7 @@ class AdminDashboardTest extends TestCase
         $this->actingAs($admin)->get('/admin/clients')->assertOk()->assertSee('Clients');
         $this->actingAs($admin)->get('/admin/map')->assertOk()->assertSee('Carte opérationnelle');
         $this->actingAs($admin)->get('/admin/reports')->assertOk()->assertSee('Rapports');
+        $this->actingAs($admin)->get('/admin/driver-applications')->assertOk()->assertSee('Candidatures chauffeurs');
     }
 
     public function test_legacy_urls_redirect_to_admin_prefix(): void

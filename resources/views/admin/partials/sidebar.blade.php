@@ -17,6 +17,7 @@
             ['route' => 'admin.dashboard', 'label' => 'Tableau de bord', 'match' => 'admin.dashboard'],
             ['route' => 'admin.rides.index', 'label' => 'Courses', 'match' => 'admin.rides.*'],
             ['route' => 'admin.drivers.index', 'label' => 'Chauffeurs', 'match' => 'admin.drivers.*'],
+            ['route' => 'admin.driver-applications.index', 'label' => 'Candidatures', 'match' => 'admin.driver-applications.*'],
             ['route' => 'admin.clients.index', 'label' => 'Clients', 'match' => 'admin.clients.*'],
             ['route' => 'admin.map.index', 'label' => 'Carte opérationnelle', 'match' => 'admin.map.*'],
             ['route' => 'admin.reports.index', 'label' => 'Rapports', 'match' => 'admin.reports.*'],

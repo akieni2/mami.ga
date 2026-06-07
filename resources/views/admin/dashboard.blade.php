@@ -15,6 +15,18 @@
         @include('admin.partials.stat-card', ['label' => 'Courses terminées', 'value' => $stats['completed_rides'], 'color' => 'emerald', 'id' => 'stat-completed-rides'])
     </div>
 
+    <div class="mt-4 grid gap-4 sm:grid-cols-3">
+        <a href="{{ route('admin.driver-applications.index', ['status' => 'pending']) }}" class="block transition hover:opacity-90">
+            @include('admin.partials.stat-card', ['label' => 'Candidatures en attente', 'value' => $stats['pending_applications'], 'color' => 'amber', 'id' => 'stat-pending-applications'])
+        </a>
+        <a href="{{ route('admin.driver-applications.index', ['status' => 'approved']) }}" class="block transition hover:opacity-90">
+            @include('admin.partials.stat-card', ['label' => 'Candidatures approuvées', 'value' => $stats['approved_applications'], 'color' => 'emerald', 'id' => 'stat-approved-applications'])
+        </a>
+        <a href="{{ route('admin.driver-applications.index', ['status' => 'rejected']) }}" class="block transition hover:opacity-90">
+            @include('admin.partials.stat-card', ['label' => 'Candidatures rejetées', 'value' => $stats['rejected_applications'], 'color' => 'slate', 'id' => 'stat-rejected-applications'])
+        </a>
+    </div>
+
     <div class="mt-4 grid gap-4 lg:grid-cols-3">
         <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-1">
             <h2 class="text-sm font-semibold text-slate-800">Activité chauffeurs</h2>

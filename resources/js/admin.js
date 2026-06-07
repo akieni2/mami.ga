@@ -61,6 +61,9 @@ function updateDashboard(data) {
         'stat-busy-drivers': data.stats?.busy_drivers,
         'stat-total-drivers-side': data.stats?.total_drivers,
         'stat-completed-rides': data.stats?.completed_rides,
+        'stat-pending-applications': data.stats?.pending_applications,
+        'stat-approved-applications': data.stats?.approved_applications,
+        'stat-rejected-applications': data.stats?.rejected_applications,
     };
 
     Object.entries(map).forEach(([id, value]) => {

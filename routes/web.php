@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DriverApplicationController;
 use App\Http\Controllers\Admin\DriverController;
 use App\Http\Controllers\Admin\LiveDataController;
 use App\Http\Controllers\Admin\LiveMapController;
@@ -22,6 +23,10 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/rides', [RideController::class, 'index'])->name('rides.index');
     Route::get('/rides/{ride}', [RideController::class, 'show'])->name('rides.show');
     Route::get('/drivers', [DriverController::class, 'index'])->name('drivers.index');
+    Route::get('/driver-applications', [DriverApplicationController::class, 'index'])->name('driver-applications.index');
+    Route::get('/driver-applications/{driverApplication}', [DriverApplicationController::class, 'show'])->name('driver-applications.show');
+    Route::post('/driver-applications/{driverApplication}/approve', [DriverApplicationController::class, 'approve'])->name('driver-applications.approve');
+    Route::post('/driver-applications/{driverApplication}/reject', [DriverApplicationController::class, 'reject'])->name('driver-applications.reject');
     Route::get('/clients', [ClientController::class, 'index'])->name('clients.index');
     Route::get('/clients/{user}', [ClientController::class, 'show'])->name('clients.show');
     Route::get('/map', [LiveMapController::class, 'index'])->name('map.index');

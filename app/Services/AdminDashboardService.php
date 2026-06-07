@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\Enums\DriverStatus;
 use App\Enums\RideStatus;
+use App\Enums\DriverApplicationStatus;
 use App\Models\Driver;
+use App\Models\DriverApplication;
 use App\Models\Ride;
 use Illuminate\Support\Carbon;
 
@@ -62,6 +64,15 @@ class AdminDashboardService
             'estimated_revenue_total' => (float) Ride::query()
                 ->where('status', RideStatus::Completed)
                 ->sum('estimated_price'),
+            'pending_applications' => DriverApplication::query()
+                ->where('status', DriverApplicationStatus::Pending)
+                ->count(),
+            'approved_applications' => DriverApplication::query()
+                ->where('status', DriverApplicationStatus::Approved)
+                ->count(),
+            'rejected_applications' => DriverApplication::query()
+                ->where('status', DriverApplicationStatus::Rejected)
+                ->count(),
         ];
     }
 }

@@ -46,6 +46,16 @@ class User extends Authenticatable
         return $this->hasMany(Ride::class, 'client_id');
     }
 
+    public function driverApplication(): HasOne
+    {
+        return $this->hasOne(DriverApplication::class)->latestOfMany();
+    }
+
+    public function driverApplications(): HasMany
+    {
+        return $this->hasMany(DriverApplication::class);
+    }
+
     public function isDriver(): bool
     {
         return $this->driver()->exists();

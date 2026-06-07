@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\DriverApplicationController;
 use App\Http\Controllers\Api\DriverController;
 use App\Http\Controllers\Api\RideController;
 use Illuminate\Support\Facades\Route;
@@ -11,6 +12,9 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
+
+    Route::post('/driver-applications', [DriverApplicationController::class, 'store']);
+    Route::get('/driver-applications/status', [DriverApplicationController::class, 'status']);
 
     Route::get('/drivers/nearby', [DriverController::class, 'nearby']);
     Route::get('/drivers/{driver}/live-location', [DriverController::class, 'liveLocation']);
