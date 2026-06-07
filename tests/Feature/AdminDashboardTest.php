@@ -43,6 +43,9 @@ class AdminDashboardTest extends TestCase
         $admin = User::factory()->create(['is_admin' => true]);
 
         $this->actingAs($admin)->get('/admin/drivers')->assertOk()->assertSee('Chauffeurs');
+
+        $driver = \App\Models\Driver::factory()->create();
+        $this->actingAs($admin)->get('/admin/drivers/'.$driver->id)->assertOk()->assertSee('Voir en temps réel');
         $this->actingAs($admin)->get('/admin/rides')->assertOk()->assertSee('Courses');
         $this->actingAs($admin)->get('/admin/clients')->assertOk()->assertSee('Clients');
         $this->actingAs($admin)->get('/admin/map')->assertOk()->assertSee('Carte opérationnelle');

@@ -26,13 +26,18 @@
                         <th class="px-5 py-3">Véhicule</th>
                         <th class="px-5 py-3">Note</th>
                         <th class="px-5 py-3">Dernière activité</th>
+                        <th class="px-5 py-3"></th>
                     </tr>
                 </thead>
                 <tbody id="drivers-table-body" class="divide-y divide-slate-100">
                     @forelse ($drivers as $driver)
                         <tr>
                             <td class="px-5 py-3 font-medium">{{ $driver->id }}</td>
-                            <td class="px-5 py-3">{{ $driver->user?->name ?? '—' }}</td>
+                            <td class="px-5 py-3">
+                                <a href="{{ route('admin.drivers.show', $driver) }}" class="font-medium text-sky-600 hover:underline">
+                                    {{ $driver->user?->name ?? '—' }}
+                                </a>
+                            </td>
                             <td class="px-5 py-3">{{ $driver->user?->phone ?? '—' }}</td>
                             <td class="px-5 py-3">
                                 @include('admin.partials.status-badge', ['status' => $driver->status?->value ?? 'offline'])
@@ -59,10 +64,13 @@
                             <td class="px-5 py-3 text-slate-500">
                                 {{ $driver->last_seen_at?->diffForHumans() ?? 'Jamais' }}
                             </td>
+                            <td class="px-5 py-3 text-right">
+                                <a href="{{ route('admin.drivers.show', $driver) }}" class="text-sky-600 hover:underline">Fiche</a>
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="px-5 py-10 text-center text-slate-500">Aucun chauffeur enregistré.</td>
+                            <td colspan="10" class="px-5 py-10 text-center text-slate-500">Aucun chauffeur enregistré.</td>
                         </tr>
                     @endforelse
                 </tbody>

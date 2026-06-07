@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Driver;
 use App\Models\Ride;
 use App\Services\AdminDashboardService;
 use App\Services\AdminLiveMapService;
@@ -57,6 +58,14 @@ class LiveDataController extends Controller
     {
         return response()->json([
             'drivers' => $this->liveMapService->driversPayload(mapOnly: true),
+            'refreshed_at' => now()->toIso8601String(),
+        ]);
+    }
+
+    public function driver(Driver $driver): JsonResponse
+    {
+        return response()->json([
+            'driver' => $this->liveMapService->driverPayload($driver),
             'refreshed_at' => now()->toIso8601String(),
         ]);
     }

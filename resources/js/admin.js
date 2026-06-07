@@ -100,14 +100,14 @@ function updateDriversTable(drivers) {
     if (!tbody) return;
 
     if (!drivers?.length) {
-        tbody.innerHTML = '<tr><td colspan="9" class="px-5 py-10 text-center text-slate-500">Aucun chauffeur.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" class="px-5 py-10 text-center text-slate-500">Aucun chauffeur.</td></tr>';
         return;
     }
 
     tbody.innerHTML = drivers.map((d) => `
         <tr>
             <td class="px-5 py-3 font-medium">${d.id}</td>
-            <td class="px-5 py-3">${d.name}</td>
+            <td class="px-5 py-3"><a href="/admin/drivers/${d.id}" class="font-medium text-sky-600 hover:underline">${d.name}</a></td>
             <td class="px-5 py-3">${d.phone ?? '—'}</td>
             <td class="px-5 py-3">${statusBadge(d.status ?? 'offline')}</td>
             <td class="px-5 py-3">${statusBadge(d.presence)}</td>
@@ -115,6 +115,7 @@ function updateDriversTable(drivers) {
             <td class="px-5 py-3">${d.vehicle ?? '—'}</td>
             <td class="px-5 py-3">${d.rating ?? '—'}</td>
             <td class="px-5 py-3 text-slate-500">${d.last_seen_human ?? '—'}</td>
+            <td class="px-5 py-3 text-right"><a href="/admin/drivers/${d.id}" class="text-sky-600 hover:underline">Fiche</a></td>
         </tr>
     `).join('');
 }
@@ -127,7 +128,9 @@ function enrichDriversForTable(drivers) {
 }
 
 async function poll() {
-    const url = endpoints[page];
+    const url = page === 'driver-live'
+        ? document.body.dataset.liveEndpoint
+        : endpoints[page];
     if (!url) return;
 
     setIndicator(true);
@@ -145,6 +148,8 @@ async function poll() {
             }
         } else if (page === 'map' && typeof window.mamiUpdateMapMarkers === 'function') {
             window.mamiUpdateMapMarkers(data.drivers ?? []);
+        } else if (page === 'driver-live' && typeof window.mamiUpdateSingleDriverMarker === 'function' && data.driver) {
+            window.mamiUpdateSingleDriverMarker(data.driver);
         }
     } catch (e) {
         console.warn('Live refresh failed', e);
@@ -176,7 +181,9 @@ function initSidebar() {
 document.addEventListener('DOMContentLoaded', () => {
     initSidebar();
 
-    if (endpoints[page]) {
+    const shouldPoll = endpoints[page] || (page === 'driver-live' && document.body.dataset.liveEndpoint);
+
+    if (shouldPoll) {
         poll();
         setInterval(poll, POLL_INTERVAL_MS);
     }

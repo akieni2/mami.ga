@@ -23,6 +23,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/rides', [RideController::class, 'index'])->name('rides.index');
     Route::get('/rides/{ride}', [RideController::class, 'show'])->name('rides.show');
     Route::get('/drivers', [DriverController::class, 'index'])->name('drivers.index');
+    Route::get('/drivers/{driver}/live', [DriverController::class, 'live'])->name('drivers.live');
+    Route::get('/drivers/{driver}', [DriverController::class, 'show'])->name('drivers.show');
     Route::get('/driver-applications', [DriverApplicationController::class, 'index'])->name('driver-applications.index');
     Route::get('/driver-applications/{driverApplication}', [DriverApplicationController::class, 'show'])->name('driver-applications.show');
     Route::post('/driver-applications/{driverApplication}/approve', [DriverApplicationController::class, 'approve'])->name('driver-applications.approve');
@@ -35,6 +37,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::prefix('live')->name('live.')->group(function (): void {
         Route::get('/dashboard', [LiveDataController::class, 'dashboard'])->name('dashboard');
         Route::get('/drivers', [LiveDataController::class, 'drivers'])->name('drivers');
+        Route::get('/drivers/{driver}', [LiveDataController::class, 'driver'])->name('driver');
         Route::get('/map', [LiveDataController::class, 'map'])->name('map');
         Route::get('/stats', [LiveDataController::class, 'stats'])->name('stats');
     });

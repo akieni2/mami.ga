@@ -17,4 +17,18 @@ class DriverController extends Controller
 
         return view('admin.drivers.index', compact('drivers'));
     }
+
+    public function show(Driver $driver): View
+    {
+        $driver->load(['user', 'vehicle']);
+
+        return view('admin.drivers.show', compact('driver'));
+    }
+
+    public function live(Driver $driver): View
+    {
+        $driver->load(['user', 'vehicle']);
+
+        return view('admin.drivers.live', compact('driver'));
+    }
 }

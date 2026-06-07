@@ -9,7 +9,8 @@
     @stack('styles')
 </head>
 <body class="min-h-screen bg-slate-100 text-slate-900 antialiased"
-      data-admin-page="@yield('admin_page', 'dashboard')">
+      data-admin-page="@yield('admin_page', 'dashboard')"
+      @hasSection('live_endpoint') data-live-endpoint="@yield('live_endpoint')" @endif>
     <div class="flex min-h-screen">
         @include('admin.partials.sidebar')
 
