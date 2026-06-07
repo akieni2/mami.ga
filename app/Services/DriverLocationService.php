@@ -39,18 +39,28 @@ class DriverLocationService
 
         if ($activeRide !== null) {
             $metrics = $this->distanceRefreshService->refreshForRide($driver, $activeRide);
+
             $distanceKm = $metrics['distance_km'];
             $etaMinutes = $metrics['eta_minutes'];
 
-            $this->rideEventRecorder->record($activeRide, RideEventType::DriverLocationUpdated, [
-                'latitude' => $latitude,
-                'longitude' => $longitude,
-                'distance_km' => $distanceKm,
-                'eta_minutes' => $etaMinutes,
-            ]);
+            $this->rideEventRecorder->record(
+                $activeRide,
+                RideEventType::DriverLocationUpdated,
+                [
+                    'latitude' => $latitude,
+                    'longitude' => $longitude,
+                    'distance_km' => $distanceKm,
+                    'eta_minutes' => $etaMinutes,
+                ]
+            );
         }
 
-        DriverLocationUpdated::dispatch($driver, $activeRide, $distanceKm, $etaMinutes);
+        DriverLocationUpdated::dispatch(
+            $driver,
+            $activeRide,
+            $distanceKm,
+            $etaMinutes
+        );
 
         return $driver->load(['user', 'vehicle']);
     }
@@ -58,8 +68,11 @@ class DriverLocationService
     /**
      * @return \Illuminate\Support\Collection<int, Driver>
      */
-    public function findNearby(float $latitude, float $longitude, ?float $radiusKm = null)
-    {
+    public function findNearby(
+        float $latitude,
+        float $longitude,
+        ?float $radiusKm = null
+    ) {
         $radiusKm ??= (float) config('mami.driver_search_radius_km');
 
         return Driver::query()
@@ -70,12 +83,16 @@ class DriverLocationService
             ->whereNotNull('longitude')
             ->get()
             ->map(function (Driver $driver) use ($latitude, $longitude) {
-                $driver->distance_km = \App\Support\GeoDistance::kilometers(
+
+                $distanceKm = \App\Support\GeoDistance::kilometers(
                     $latitude,
                     $longitude,
                     (float) $driver->latitude,
                     (float) $driver->longitude,
                 );
+
+                // Attribut calculé uniquement pour le tri/filtrage
+                $driver->distance_km = $distanceKm;
 
                 return $driver;
             })
@@ -84,3 +101,4 @@ class DriverLocationService
             ->values();
     }
 }
+\ No newline at end of file

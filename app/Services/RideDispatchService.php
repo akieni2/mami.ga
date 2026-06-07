@@ -64,6 +64,7 @@ class RideDispatchService
                     $destinationLongitude,
                 ),
             ]);
+            unset($driver->distance_km);
 
             $driver->update([
                 'is_available' => false,
