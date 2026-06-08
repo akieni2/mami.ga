@@ -83,7 +83,6 @@ class DriverLocationService
             ->whereNotNull('longitude')
             ->get()
             ->map(function (Driver $driver) use ($latitude, $longitude) {
-
                 $distanceKm = \App\Support\GeoDistance::kilometers(
                     $latitude,
                     $longitude,
@@ -101,4 +100,3 @@ class DriverLocationService
             ->values();
     }
 }
-\ No newline at end of file
