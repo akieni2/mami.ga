@@ -43,53 +43,79 @@ class ReverbService {
 
     await _pusher.init(
       apiKey: ReverbConfig.appKey,
-      cluster: 'mt1',
-      hostEndPoint: ReverbConfig.host,
-      wsPort: ReverbConfig.port,
-      wssPort: ReverbConfig.port,
-      encrypted: ReverbConfig.useTls,
-      authEndpoint: authUrl,
-      onAuthorizer: (channelName, socketId, options) async {
-        final response = await _dio.post(
-          authUrl,
-          data: {
-            'socket_id': socketId,
-            'channel_name': channelName,
-          },
-          options: Options(
-            headers: {
-              'Authorization': 'Bearer $token',
-              'Accept': 'application/json',
-            },
-          ),
-        );
-        return jsonDecode(response.data is String
-            ? response.data as String
-            : jsonEncode(response.data)) as Map<String, dynamic>;
-      },
-      onEvent: (event) {
-        final handlers = _handlers[event.channelName] ?? [];
-        Map<String, dynamic> data = {};
-        try {
-          final decoded = jsonDecode(event.data);
-          if (decoded is Map<String, dynamic>) {
-            data = decoded;
-          }
-        } catch (_) {}
-
-        final eventName = data['event'] as String? ?? event.eventName;
-        final payload = data['payload'] is Map
-            ? Map<String, dynamic>.from(data['payload'] as Map)
-            : data;
-
-        for (final handler in handlers) {
-          handler(eventName, payload);
-        }
-      },
+      cluster: ReverbConfig.pusherCluster,
+      useTLS: ReverbConfig.useTls,
+      onAuthorizer: (channelName, socketId, options) => _authorize(
+        authUrl: authUrl,
+        token: token,
+        channelName: channelName,
+        socketId: socketId,
+      ),
+      onEvent: _handleEvent,
     );
+
+    await _configureReverbNativeLayer();
 
     await _pusher.connect();
     _initialized = true;
+  }
+
+  Future<Map<String, dynamic>> _authorize({
+    required String authUrl,
+    required String token,
+    required String channelName,
+    required String socketId,
+  }) async {
+    final response = await _dio.post(
+      authUrl,
+      data: {
+        'socket_id': socketId,
+        'channel_name': channelName,
+      },
+      options: Options(
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      ),
+    );
+
+    return jsonDecode(response.data is String
+        ? response.data as String
+        : jsonEncode(response.data)) as Map<String, dynamic>;
+  }
+
+  void _handleEvent(PusherEvent event) {
+    final handlers = _handlers[event.channelName] ?? [];
+    Map<String, dynamic> data = {};
+    try {
+      final decoded = jsonDecode(event.data);
+      if (decoded is Map<String, dynamic>) {
+        data = decoded;
+      }
+    } catch (_) {}
+
+    final eventName = data['event'] as String? ?? event.eventName;
+    final payload = data['payload'] is Map
+        ? Map<String, dynamic>.from(data['payload'] as Map)
+        : data;
+
+    for (final handler in handlers) {
+      handler(eventName, payload);
+    }
+  }
+
+  /// pusher_channels_flutter 2.4.0 n'expose pas host/wsPort dans init().
+  /// iOS et notre patch Android les acceptent via le MethodChannel natif.
+  Future<void> _configureReverbNativeLayer() async {
+    await _pusher.methodChannel.invokeMethod<void>('init', {
+      'apiKey': ReverbConfig.appKey,
+      'host': ReverbConfig.host,
+      'wsPort': ReverbConfig.port,
+      'wssPort': ReverbConfig.port,
+      'useTLS': ReverbConfig.useTls,
+      'authorizer': true,
+    });
   }
 
   Future<void> subscribe(String channelName, RealtimeHandler handler) async {

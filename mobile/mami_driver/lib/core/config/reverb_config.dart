@@ -21,6 +21,12 @@ class ReverbConfig {
 
   static bool get useTls => scheme == 'https';
 
+  /// Requis par le SDK Pusher (valeur factice si Reverb self-hosted).
+  static const String pusherCluster = String.fromEnvironment(
+    'REVERB_PUSHER_CLUSTER',
+    defaultValue: 'mt1',
+  );
+
   static String broadcastAuthUrl(String apiBaseUrl) {
     final root = apiBaseUrl.replaceAll(RegExp(r'/api$'), '');
     return '$root/broadcasting/auth';
