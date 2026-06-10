@@ -28,11 +28,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    debugPrint('BUTTON PRESSED');
+    if (!_formKey.currentState!.validate()) {
+      debugPrint('FORM INVALID');
+      return;
+    }
+    debugPrint('CALLING LOGIN');
     await ref.read(authStateProvider.notifier).login(
           _identifier.text.trim(),
           _password.text,
         );
+    debugPrint('LOGIN FINISHED');
   }
 
   @override
