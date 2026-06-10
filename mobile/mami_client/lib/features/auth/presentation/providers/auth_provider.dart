@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/network/api_exception.dart';
@@ -11,34 +12,45 @@ final authStateProvider =
 );
 
 class AuthNotifier extends StateNotifier<AsyncValue<UserModel?>> {
-  AuthNotifier(this._ref) : super(const AsyncValue.loading());
+  AuthNotifier(this._ref) : super(const AsyncValue.loading()) {
+    debugPrint('AUTH STATE LOADING (initial)');
+  }
 
   final Ref _ref;
 
   AuthRepository get _repo => _ref.read(authRepositoryProvider);
 
   Future<void> bootstrap() async {
+    debugPrint('AUTH BOOTSTRAP START');
     try {
       final user = await _repo.restoreSession();
       state = AsyncValue.data(user);
+      debugPrint('AUTH STATE DATA: user=${user?.id}');
+      debugPrint('AUTH BOOTSTRAP END');
     } catch (e, st) {
       state = AsyncValue.error(e, st);
+      debugPrint('AUTH STATE ERROR: $e');
+      debugPrint('AUTH BOOTSTRAP END (error)');
     }
   }
 
   Future<void> login(String identifier, String password) async {
+    debugPrint('AUTH STATE LOADING (login)');
     state = const AsyncValue.loading();
     try {
       final user = await _repo.login(identifier, password);
       state = AsyncValue.data(user);
+      debugPrint('AUTH STATE DATA: user=${user.id}');
     } on DioException catch (e) {
       final err = e.error;
       state = AsyncValue.error(
         err is ApiException ? err : ApiException(e.message ?? 'Connexion impossible'),
         StackTrace.current,
       );
+      debugPrint('AUTH STATE ERROR: $err');
     } catch (e, st) {
       state = AsyncValue.error(e, st);
+      debugPrint('AUTH STATE ERROR: $e');
     }
   }
 
@@ -49,6 +61,7 @@ class AuthNotifier extends StateNotifier<AsyncValue<UserModel?>> {
     required String password,
     required String passwordConfirmation,
   }) async {
+    debugPrint('AUTH STATE LOADING (register)');
     state = const AsyncValue.loading();
     try {
       final user = await _repo.register(
@@ -59,19 +72,23 @@ class AuthNotifier extends StateNotifier<AsyncValue<UserModel?>> {
         passwordConfirmation: passwordConfirmation,
       );
       state = AsyncValue.data(user);
+      debugPrint('AUTH STATE DATA: user=${user.id}');
     } on DioException catch (e) {
       final err = e.error;
       state = AsyncValue.error(
         err is ApiException ? err : ApiException(e.message ?? 'Inscription impossible'),
         StackTrace.current,
       );
+      debugPrint('AUTH STATE ERROR: $err');
     } catch (e, st) {
       state = AsyncValue.error(e, st);
+      debugPrint('AUTH STATE ERROR: $e');
     }
   }
 
   Future<void> logout() async {
     await _repo.logout();
     state = const AsyncValue.data(null);
+    debugPrint('AUTH STATE DATA: user=null (logout)');
   }
 }

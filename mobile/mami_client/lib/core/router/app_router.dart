@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -16,6 +17,14 @@ import '../../features/splash/presentation/screens/splash_screen.dart';
 final routerProvider = Provider<GoRouter>((ref) {
   final auth = ref.watch(authStateProvider);
 
+  if (auth.isLoading) {
+    debugPrint('ROUTER BUILD (auth loading)');
+  } else if (auth.hasError) {
+    debugPrint('ROUTER BUILD (auth error): ${auth.error}');
+  } else {
+    debugPrint('ROUTER BUILD (auth data): user=${auth.valueOrNull?.id}');
+  }
+
   return GoRouter(
     initialLocation: '/splash',
     redirect: (context, state) {
@@ -23,13 +32,30 @@ final routerProvider = Provider<GoRouter>((ref) {
       final onSplash = path == '/splash';
       final onAuth = path == '/login' || path == '/register';
 
-      if (false) return '/splash';
+      String? target;
+      if (false) {
+        target = '/splash';
+      } else {
+        final user = auth.valueOrNull;
 
-      final user = auth.valueOrNull;
+        if (user == null && !onAuth && !onSplash) {
+          target = '/login';
+        } else if (user != null && onAuth) {
+          target = '/';
+        }
+      }
 
-      if (user == null && !onAuth && !onSplash) return '/login';
-      if (user != null && onAuth) return '/';
-      return null;
+      if (auth.isLoading) {
+        debugPrint('ROUTER REDIRECT: path=$path -> ${target ?? 'null'} (auth loading)');
+      } else if (auth.hasError) {
+        debugPrint('ROUTER REDIRECT: path=$path -> ${target ?? 'null'} (auth error: ${auth.error})');
+      } else {
+        debugPrint(
+          'ROUTER REDIRECT: path=$path -> ${target ?? 'null'} (user=${auth.valueOrNull?.id})',
+        );
+      }
+
+      return target;
     },
     routes: [
       GoRoute(
