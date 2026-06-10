@@ -12,7 +12,7 @@ final authStateProvider =
 );
 
 class AuthNotifier extends StateNotifier<AsyncValue<UserModel?>> {
-  AuthNotifier(this._ref) : super(const AsyncValue.loading()) {
+  AuthNotifier(this._ref) : super(const AsyncValue.data(null)) {
     debugPrint('AUTH STATE LOADING (initial)');
   }
 
