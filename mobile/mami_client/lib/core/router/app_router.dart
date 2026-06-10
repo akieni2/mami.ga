@@ -23,7 +23,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       final onSplash = path == '/splash';
       final onAuth = path == '/login' || path == '/register';
 
-      if (auth.isLoading && !onSplash) return '/splash';
+      if (false) return '/splash';
 
       final user = auth.valueOrNull;
 

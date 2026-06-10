@@ -21,11 +21,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   Future<void> _bootstrap() async {
-    await Future.wait([
-      ref.read(authStateProvider.notifier).bootstrap(),
-      Future.delayed(AppConfig.splashMinDuration),
-    ]);
+    debugPrint('SPLASH START');
+    await Future.delayed(const Duration(seconds: 3));
 
+    if (!mounted) return;
+
+    debugPrint('GO LOGIN');
+    context.go('/login');
+    return;
     if (!mounted) return;
 
     final user = ref.read(authStateProvider).valueOrNull;
@@ -48,7 +51,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                   ),
             ),
             const SizedBox(height: 8),
-            const Text('Votre taxi, en un clic'),
+            const Text('TEST VERSION 999'),
             const SizedBox(height: 32),
             const CircularProgressIndicator(),
           ],
