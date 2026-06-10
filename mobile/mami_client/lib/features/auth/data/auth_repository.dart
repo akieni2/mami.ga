@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
@@ -13,25 +14,43 @@ class AuthRepository {
   final TokenStorage _tokenStorage;
 
   Future<UserModel> login(String identifier, String password) async {
-    final email = _resolveLoginEmail(identifier);
+    try {
+      debugPrint('LOGIN START');
+      final email = _resolveLoginEmail(identifier);
+      debugPrint('EMAIL: $email');
 
-    final response = await _dio.post('/login', data: {
-      'email': email,
-      'password': password,
-    });
+      final response = await _dio.post('/login', data: {
+        'email': email,
+        'password': password,
+      });
 
-    final data =
-        extractData<Map<String, dynamic>>(response.data, (d) => d as Map<String, dynamic>);
-    final user = UserModel.fromJson(data['user'] as Map<String, dynamic>);
+      debugPrint('LOGIN RESPONSE STATUS: ${response.statusCode}');
+      debugPrint('LOGIN RESPONSE DATA: ${response.data}');
 
-    if (user.isDriver) {
-      throw ApiException('Utilisez l\'application chauffeur pour ce compte.');
+      final data =
+          extractData<Map<String, dynamic>>(response.data, (d) => d as Map<String, dynamic>);
+      debugPrint('EXTRACT DATA OK');
+
+      final user = UserModel.fromJson(data['user'] as Map<String, dynamic>);
+      debugPrint('USER PARSED');
+
+      if (user.isDriver) {
+        throw ApiException('Utilisez l\'application chauffeur pour ce compte.');
+      }
+
+      final token = data['token'] as String;
+      debugPrint('TOKEN RECEIVED');
+      debugPrint('SAVING TOKEN');
+      await _tokenStorage.saveToken(token);
+      debugPrint('TOKEN SAVED');
+      debugPrint('LOGIN SUCCESS');
+
+      return user;
+    } catch (e, st) {
+      debugPrint('LOGIN ERROR: $e');
+      debugPrint('$st');
+      rethrow;
     }
-
-    final token = data['token'] as String;
-    await _tokenStorage.saveToken(token);
-
-    return user;
   }
 
   Future<UserModel> register({
