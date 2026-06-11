@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/network/api_exception.dart';
+import '../../../../core/storage/token_storage.dart';
 import '../../data/auth_repository.dart';
 import '../../domain/models/user_model.dart';
 
@@ -23,6 +24,14 @@ class AuthNotifier extends StateNotifier<AsyncValue<UserModel?>> {
   Future<void> bootstrap() async {
     debugPrint('AUTH BOOTSTRAP START');
     try {
+      final token = await _ref.read(tokenStorageProvider).readToken();
+      if (token == null || token.isEmpty) {
+        state = const AsyncValue.data(null);
+        debugPrint('AUTH STATE DATA: user=null (no token)');
+        debugPrint('AUTH BOOTSTRAP END');
+        return;
+      }
+
       final user = await _repo.restoreSession();
       state = AsyncValue.data(user);
       debugPrint('AUTH STATE DATA: user=${user?.id}');
