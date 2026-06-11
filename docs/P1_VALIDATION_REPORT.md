@@ -1,7 +1,7 @@
 # Rapport de validation P1 — MAMI Taxi V2
 
-**Branche :** `feature/mami-taxi-v2-p1`  
-**Date :** 2026-06-11  
+**Branche :** `feature/mami-taxi-v2-p1` (+ hotfix)  
+**Date :** 2026-06-11 (mis à jour post-déploiement VPS)  
 **Validateur :** Agent CI / audit automatisé + revue code  
 **Référence :** [MAMI_TAXI_V2.md](./MAMI_TAXI_V2.md), [P0_AUDIT_REPORT.md](./P0_AUDIT_REPORT.md)
 
@@ -27,7 +27,7 @@
 
 | Élément | Résultat | Détail |
 |---------|----------|--------|
-| Build APK release | **EN COURS / NON CONFIRMÉ** | `flutter build apk --release` lancé ; Gradle > 60 min dans l’environnement agent |
+| Build APK release | **OK** | `app-release.apk` (51,2 Mo) généré avec `--dart-define=MAMI_TAXI_V2=true` |
 | ADB / installation | **NON EXÉCUTÉ** | `adb` absent du PATH Windows |
 | Captures d’écran | **NON DISPONIBLES** | Nécessite exécution manuelle sur appareil |
 
@@ -67,7 +67,7 @@ flutter build apk --release --dart-define=MAMI_TAXI_V2=true
 
 - Permission refusée → fallback **Libreville** `LatLng(0.4162, 9.4673)`.
 - La carte s’affiche ; le départ utilise le fallback (pas de blocage).
-- **Risque UX :** l’utilisateur voit « Départ : votre position GPS » même en fallback — **message trompeur** (amélioration P1.1 recommandée).
+- **Hotfix :** message « Position GPS indisponible — carte centrée sur Libreville » si permission refusée.
 
 | Test | Revue | Device |
 |------|-------|--------|
@@ -129,14 +129,14 @@ php artisan migrate --force
 
 ## 5. API `POST /api/rides/estimate`
 
-### Production actuelle (`63.142.241.105`)
+### Production (`63.142.241.105`) — backend P0/P1 déployé
 
-| Endpoint | HTTP | Interprétation |
-|----------|------|----------------|
-| `POST /api/rides/estimate` | **405** | Route **non déployée** (branche pas sur VPS) |
-| `GET /api/app/features` | **404** | Idem |
+| Endpoint | Statut |
+|----------|--------|
+| `GET /api/app/features` | **200** — `taxi_v2_enabled`, tarifs, flags |
+| `POST /api/rides/estimate` | **200** — estimation distance / durée / prix (auth Sanctum) |
 
-**Login API :** OK (`client@mami.ga` → token Sanctum reçu).
+**Login API :** OK (`client@mami.ga` → token Sanctum).
 
 ### Valeurs attendues (calcul `RideEstimateService` — formule validée)
 
@@ -166,7 +166,7 @@ flutter analyze mami_client
 
 | Sévérité | Fichier | Issue |
 |----------|---------|-------|
-| error | `test/widget_test.dart` | `MyApp` n’existe pas (test template Flutter) |
+| — | `test/widget_test.dart` | **Corrigé** — test unitaire `TripEstimate.fromJson` |
 | warning | `app_router.dart` | dead_code (diagnostic `if (false)`) |
 | info | divers | `prefer_const_constructors` |
 
@@ -176,17 +176,14 @@ flutter analyze mami_client
 
 ## 7. Logs attendus (device)
 
-Aucun log `debugPrint` ajouté dans l’écran P1. Logs possibles côté auth/router (diagnostic sprint précédent) :
+Logs P1 (hotfix) :
 
 ```
-ROUTER BUILD (auth data): user=...
-```
-
-Pour debug GPS :
-
-```dart
-// Optionnel P1.1 : ajouter en debug uniquement
-debugPrint('GPS pickup: $pickup');
+P1 GPS obtained: lat, lng
+P1 GPS refused — fallback Libreville
+P1 destination selected: lat, lng
+P1 estimate API response: distance=… duration=… price=…
+P1 estimate API error: …
 ```
 
 ---
@@ -230,11 +227,10 @@ debugPrint('GPS pickup: $pickup');
 - Gestion erreur réseau présente.
 - Splash bootstrap restauré.
 
-### Points bloquants production
+### Points bloquants merge
 
-- API non déployée sur `63.142.241.105`.
-- Validation téléphone réelle non effectuée.
-- Message UX GPS fallback à améliorer (non bloquant merge).
+- Validation téléphone réelle non effectuée (checklist : [P1_DEPLOYMENT_CHECKLIST.md](./P1_DEPLOYMENT_CHECKLIST.md)).
+- Captures d’écran à fournir.
 
 ---
 

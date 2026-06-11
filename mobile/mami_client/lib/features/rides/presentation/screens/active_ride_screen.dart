@@ -42,7 +42,7 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
   Widget build(BuildContext context) {
     final rideAsync = ref.watch(activeRideProvider);
     final live = ref.watch(rideLiveTrackingProvider(widget.rideId));
-    final userPos = ref.watch(userLocationProvider).valueOrNull;
+    final userPos = ref.watch(userLocationProvider).valueOrNull?.position;
 
     ref.listen(activeRideProvider, (prev, next) {
       final ride = next.valueOrNull;

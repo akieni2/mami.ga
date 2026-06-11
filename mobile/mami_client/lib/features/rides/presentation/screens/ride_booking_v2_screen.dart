@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -32,14 +33,18 @@ class _RideBookingV2ScreenState extends ConsumerState<RideBookingV2Screen> {
 
   /// Position actuelle = point de départ (non modifiable manuellement en P1).
   Future<void> _initPickupFromGps() async {
-    final position = await ref.read(userLocationProvider.future);
-    if (position != null && mounted) {
-      setState(() => _pickup = position);
-      ref.read(bookingDraftProvider.notifier).setPickup(position);
+    final location = await ref.read(userLocationProvider.future);
+    if (mounted) {
+      setState(() => _pickup = location.position);
+      ref.read(bookingDraftProvider.notifier).setPickup(location.position);
     }
   }
 
   void _onMapTap(LatLng point) {
+    debugPrint(
+      'P1 destination selected: ${point.latitude.toStringAsFixed(4)}, '
+      '${point.longitude.toStringAsFixed(4)}',
+    );
     setState(() => _destination = point);
     ref.read(bookingDraftProvider.notifier).setDestination(point);
   }
@@ -55,21 +60,30 @@ class _RideBookingV2ScreenState extends ConsumerState<RideBookingV2Screen> {
     );
   }
 
+  String _pickupLabel(bool isGpsAvailable) {
+    if (!isGpsAvailable) {
+      return 'Position GPS indisponible — carte centrée sur Libreville';
+    }
+    return 'Départ : votre position GPS';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final userPosition = ref.watch(userLocationProvider).valueOrNull;
+    final locationAsync = ref.watch(userLocationProvider);
+    final userPosition = locationAsync.valueOrNull?.position;
+    final isGpsAvailable = locationAsync.valueOrNull?.isGpsAvailable ?? true;
     final pickup = _pickup ?? userPosition;
 
     final route = (pickup != null && _destination != null)
         ? RouteUtils.straightLine(pickup, _destination!)
         : null;
 
-    final estimateAsync = (pickup != null && _destination != null)
-        ? ref.watch(
-            tripEstimateProvider(
-              TripEstimateRequest(pickup: pickup, destination: _destination!),
-            ),
-          )
+    final estimateRequest = (pickup != null && _destination != null)
+        ? TripEstimateRequest(pickup: pickup, destination: _destination!)
+        : null;
+
+    final estimateAsync = estimateRequest != null
+        ? ref.watch(tripEstimateProvider(estimateRequest))
         : null;
 
     final canPreview = pickup != null && _destination != null;
@@ -147,11 +161,15 @@ class _RideBookingV2ScreenState extends ConsumerState<RideBookingV2Screen> {
                 else
                   Row(
                     children: [
-                      Icon(Icons.my_location, size: 18, color: Colors.blue.shade700),
+                      Icon(
+                        isGpsAvailable ? Icons.my_location : Icons.location_off,
+                        size: 18,
+                        color: isGpsAvailable ? Colors.blue.shade700 : Colors.orange.shade800,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Départ : votre position GPS',
+                          _pickupLabel(isGpsAvailable),
                           style: TextStyle(
                             fontSize: 13,
                             color: Colors.grey.shade700,

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -35,12 +36,22 @@ class TripEstimateRequest {
 /// Appelle `POST /api/rides/estimate` lorsque pickup et destination sont définis.
 final tripEstimateProvider =
     FutureProvider.autoDispose.family<TripEstimate, TripEstimateRequest>(
-  (ref, request) {
-    return ref.read(ridesRepositoryProvider).estimateTrip(
-          pickupLatitude: request.pickup.latitude,
-          pickupLongitude: request.pickup.longitude,
-          destinationLatitude: request.destination.latitude,
-          destinationLongitude: request.destination.longitude,
-        );
+  (ref, request) async {
+    try {
+      final estimate = await ref.read(ridesRepositoryProvider).estimateTrip(
+            pickupLatitude: request.pickup.latitude,
+            pickupLongitude: request.pickup.longitude,
+            destinationLatitude: request.destination.latitude,
+            destinationLongitude: request.destination.longitude,
+          );
+      debugPrint(
+        'P1 estimate API response: distance=${estimate.distanceKm}km '
+        'duration=${estimate.durationMinutes}min price=${estimate.suggestedPrice}',
+      );
+      return estimate;
+    } catch (e) {
+      debugPrint('P1 estimate API error: $e');
+      rethrow;
+    }
   },
 );

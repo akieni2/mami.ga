@@ -19,8 +19,8 @@ class HomeScreen extends ConsumerWidget {
       body: locationAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, __) => const Center(child: Text('GPS indisponible')),
-        data: (position) {
-          final user = position ?? const LatLng(0.4162, 9.4673);
+        data: (location) {
+          final user = location.position;
 
           return Stack(
             children: [

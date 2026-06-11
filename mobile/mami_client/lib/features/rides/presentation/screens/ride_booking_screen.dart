@@ -35,10 +35,10 @@ class _RideBookingScreenState extends ConsumerState<RideBookingScreen> {
   }
 
   Future<void> _initPickup() async {
-    final pos = await ref.read(userLocationProvider.future);
-    if (pos != null && mounted) {
-      setState(() => _pickup = pos);
-      ref.read(bookingDraftProvider.notifier).setPickup(pos);
+    final location = await ref.read(userLocationProvider.future);
+    if (mounted) {
+      setState(() => _pickup = location.position);
+      ref.read(bookingDraftProvider.notifier).setPickup(location.position);
     }
   }
 
