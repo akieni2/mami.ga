@@ -47,6 +47,10 @@
 			</array>
 		</dict>
 	</dict>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>MAMI.GA utilise votre position pour afficher le point de départ de votre course.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>MAMI.GA utilise votre position pour le suivi de course.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
