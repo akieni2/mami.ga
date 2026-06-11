@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DriverApplicationController;
 use App\Http\Controllers\Api\DriverController;
 use App\Http\Controllers\Api\RideController;
+use App\Http\Controllers\Api\RideOfferController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/app/features', [AppConfigController::class, 'features']);
@@ -27,6 +28,9 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/rides/estimate', [RideController::class, 'estimate']);
     Route::post('/rides/request', [RideController::class, 'request']);
     Route::get('/rides/current', [RideController::class, 'current']);
+    Route::get('/rides/offers/current', [RideOfferController::class, 'current']);
+    Route::post('/rides/{ride}/offers/{offer}/accept', [RideOfferController::class, 'accept']);
+    Route::post('/rides/{ride}/offers/{offer}/reject', [RideOfferController::class, 'reject']);
     Route::get('/rides/history', [RideController::class, 'history']);
     Route::get('/rides/{ride}/tracking', [RideController::class, 'tracking']);
     Route::post('/rides/{ride}/reject', [RideController::class, 'reject']);

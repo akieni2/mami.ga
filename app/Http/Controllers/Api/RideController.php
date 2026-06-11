@@ -11,10 +11,12 @@ use App\Models\Ride;
 use App\Enums\RideStatus;
 use App\Http\Requests\Rides\EstimateRideRequest;
 use App\Services\RideBookingService;
+use App\Services\RideDispatchEngine;
 use App\Services\RideDispatchService;
 use App\Services\RideEstimateService;
 use App\Services\RideTrackingService;
 use App\Support\ApiResponse;
+use App\Support\MamiFeatures;
 use App\Support\GeoDistance;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -24,6 +26,7 @@ class RideController extends Controller
 {
     public function __construct(
         private readonly RideBookingService $rideBookingService,
+        private readonly RideDispatchEngine $rideDispatchEngine,
         private readonly RideDispatchService $rideDispatchService,
         private readonly RideEstimateService $rideEstimateService,
         private readonly RideTrackingService $rideTrackingService,
@@ -43,16 +46,44 @@ class RideController extends Controller
 
     public function current(Request $request): JsonResponse
     {
-        $driver = $request->user()->driver;
+        $user = $request->user();
+        $driver = $user->driver;
 
-        if ($driver === null) {
-            return ApiResponse::error('User is not a driver.', 403);
+        if ($driver !== null && ! $request->boolean('as_client')) {
+            $ride = $driver->rides()
+                ->with(['client'])
+                ->whereIn('status', [
+                    RideStatus::Pending,
+                    RideStatus::Accepted,
+                    RideStatus::Arrived,
+                    RideStatus::Started,
+                ])
+                ->latest('id')
+                ->first();
+
+            if ($ride === null) {
+                return ApiResponse::success(null, 'No active ride');
+            }
+
+            $payload = (new RideResource($ride))->resolve();
+
+            if ($driver->hasGpsPosition() && $ride->hasPickupCoordinates()) {
+                $payload['distance_to_pickup_km'] = round(GeoDistance::kilometers(
+                    (float) $driver->latitude,
+                    (float) $driver->longitude,
+                    (float) $ride->pickup_latitude,
+                    (float) $ride->pickup_longitude,
+                ), 3);
+            }
+
+            return ApiResponse::success($payload, 'Active ride retrieved');
         }
 
-        $ride = $driver->rides()
-            ->with(['client'])
+        $ride = Ride::query()
+            ->with(['client', 'driver.user', 'driver.vehicle'])
+            ->where('client_id', $user->id)
             ->whereIn('status', [
-                RideStatus::Pending,
+                RideStatus::Searching,
                 RideStatus::Accepted,
                 RideStatus::Arrived,
                 RideStatus::Started,
@@ -64,18 +95,10 @@ class RideController extends Controller
             return ApiResponse::success(null, 'No active ride');
         }
 
-        $payload = (new RideResource($ride))->resolve();
-
-        if ($driver->hasGpsPosition()) {
-            $payload['distance_to_pickup_km'] = round(GeoDistance::kilometers(
-                (float) $driver->latitude,
-                (float) $driver->longitude,
-                (float) $ride->pickup_latitude,
-                (float) $ride->pickup_longitude,
-            ), 3);
-        }
-
-        return ApiResponse::success($payload, 'Active ride retrieved');
+        return ApiResponse::success(
+            (new RideResource($ride))->resolve(),
+            'Active ride retrieved',
+        );
     }
 
     public function request(CreateRideRequest $request): JsonResponse
@@ -94,10 +117,21 @@ class RideController extends Controller
                     $request->filled('destination_longitude') ? (float) $request->input('destination_longitude') : null,
                 );
 
+                if (MamiFeatures::dispatchV2Enabled()) {
+                    $this->rideDispatchEngine->start($ride);
+                    $ride->refresh();
+                }
+
                 return ApiResponse::success(
                     (new RideResource($ride->load('client')))->resolve(),
                     'Ride search started',
                     201,
+                );
+            }
+
+            if (MamiFeatures::dispatchV2Enabled()) {
+                throw new RuntimeException(
+                    'GPS-only booking is disabled when dispatch V2 is enabled. Use text booking.',
                 );
             }
 
