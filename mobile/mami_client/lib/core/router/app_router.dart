@@ -8,7 +8,7 @@ import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/rides/presentation/screens/active_ride_screen.dart';
-import '../../features/rides/presentation/screens/ride_booking_screen.dart';
+import '../../features/rides/presentation/screens/ride_booking_gate.dart';
 import '../../features/rides/presentation/screens/ride_history_screen.dart';
 import '../../features/rides/presentation/screens/ride_searching_screen.dart';
 import '../../features/shell/presentation/screens/main_shell.dart';
@@ -89,7 +89,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/book',
-        builder: (context, state) => const RideBookingScreen(),
+        builder: (context, state) => const RideBookingGate(),
       ),
       GoRoute(
         path: '/ride/searching/:id',

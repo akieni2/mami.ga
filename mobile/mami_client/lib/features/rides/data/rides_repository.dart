@@ -3,11 +3,32 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
 import '../domain/models/ride_model.dart';
+import '../domain/models/trip_estimate.dart';
 
 class RidesRepository {
   RidesRepository(this._dio);
 
   final Dio _dio;
+
+  /// Estimation serveur (P1) — sans création de course.
+  Future<TripEstimate> estimateTrip({
+    required double pickupLatitude,
+    required double pickupLongitude,
+    required double destinationLatitude,
+    required double destinationLongitude,
+  }) async {
+    final response = await _dio.post('/rides/estimate', data: {
+      'pickup_latitude': pickupLatitude,
+      'pickup_longitude': pickupLongitude,
+      'destination_latitude': destinationLatitude,
+      'destination_longitude': destinationLongitude,
+    });
+
+    return extractData<TripEstimate>(
+      response.data,
+      (data) => TripEstimate.fromJson(data as Map<String, dynamic>),
+    );
+  }
 
   Future<RideModel> requestRide({
     required double pickupLatitude,
