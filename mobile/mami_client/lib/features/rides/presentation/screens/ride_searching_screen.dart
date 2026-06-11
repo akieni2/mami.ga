@@ -53,13 +53,15 @@ class _RideSearchingScreenState extends ConsumerState<RideSearchingScreen>
         return;
       }
 
-      if (!ride.isPending) {
+      if (ride.status == 'accepted' ||
+          ride.status == 'arrived' ||
+          ride.status == 'started') {
         context.go('/ride/active/${ride.id}');
       }
     });
 
     final ride = rideAsync.valueOrNull;
-    final statusLabel = ride?.status ?? 'pending';
+    final statusLabel = ride?.status ?? 'searching';
 
     return Scaffold(
       appBar: AppBar(
@@ -90,6 +92,49 @@ class _RideSearchingScreenState extends ConsumerState<RideSearchingScreen>
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.grey.shade600),
               ),
+              if (ride != null) ...[
+                const SizedBox(height: 16),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.trip_origin,
+                                size: 18, color: Colors.green),
+                            const SizedBox(width: 8),
+                            Expanded(child: Text(ride.pickupDisplay)),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            const Icon(Icons.flag, size: 18, color: Colors.red),
+                            const SizedBox(width: 8),
+                            Expanded(child: Text(ride.destinationDisplay)),
+                          ],
+                        ),
+                        if (ride.proposedPrice != null) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            'Prix proposé : ${ride.proposedPrice!.toStringAsFixed(0)} FCFA',
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                        if (ride.paymentMethod != null) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            'Paiement : ${ride.paymentMethod!.label}',
+                            style: TextStyle(color: Colors.grey.shade700),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ],
               if (ride?.driver != null) ...[
                 const SizedBox(height: 8),
                 Text('Chauffeur assigné : ${ride!.driver!.name}'),

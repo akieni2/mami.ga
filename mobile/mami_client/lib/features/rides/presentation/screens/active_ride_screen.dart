@@ -61,9 +61,28 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
             return const Center(child: Text('Aucune course active'));
           }
 
-          final pickup = LatLng(ride.pickupLatitude, ride.pickupLongitude);
-          final destination =
-              LatLng(ride.destinationLatitude, ride.destinationLongitude);
+          if (!ride.hasPickupCoordinates || !ride.hasDestinationCoordinates) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text('Course #${ride.id}', style: Theme.of(context).textTheme.titleLarge),
+                    const SizedBox(height: 12),
+                    Text('Départ : ${ride.pickupDisplay}'),
+                    Text('Destination : ${ride.destinationDisplay}'),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          final pickup = LatLng(ride.pickupLatitude!, ride.pickupLongitude!);
+          final destination = LatLng(
+            ride.destinationLatitude!,
+            ride.destinationLongitude!,
+          );
           LatLng? driver = live.driverPosition;
           if (driver == null &&
               ride.driver?.latitude != null &&

@@ -1,3 +1,5 @@
+import 'payment_method.dart';
+
 class RideDriverInfo {
   const RideDriverInfo({
     required this.name,
@@ -55,39 +57,74 @@ class RideModel {
   const RideModel({
     required this.id,
     required this.status,
-    required this.pickupLatitude,
-    required this.pickupLongitude,
-    required this.destinationLatitude,
-    required this.destinationLongitude,
+    this.pickupLabel,
+    this.destinationLabel,
+    this.pickupLatitude,
+    this.pickupLongitude,
+    this.destinationLatitude,
+    this.destinationLongitude,
     this.estimatedPrice,
+    this.suggestedPrice,
+    this.proposedPrice,
+    this.paymentMethod,
     this.driver,
     this.createdAt,
   });
 
   final int id;
   final String status;
-  final double pickupLatitude;
-  final double pickupLongitude;
-  final double destinationLatitude;
-  final double destinationLongitude;
+  final String? pickupLabel;
+  final String? destinationLabel;
+  final double? pickupLatitude;
+  final double? pickupLongitude;
+  final double? destinationLatitude;
+  final double? destinationLongitude;
   final double? estimatedPrice;
+  final double? suggestedPrice;
+  final double? proposedPrice;
+  final RidePaymentMethod? paymentMethod;
   final RideDriverInfo? driver;
   final String? createdAt;
 
   bool get isPending => status == 'pending';
-  bool get isSearching => isPending;
+  bool get isSearching => status == 'searching';
   bool get isActive => !['completed', 'cancelled'].contains(status);
   bool get isCompleted => status == 'completed';
 
+  bool get hasPickupCoordinates =>
+      pickupLatitude != null && pickupLongitude != null;
+
+  bool get hasDestinationCoordinates =>
+      destinationLatitude != null && destinationLongitude != null;
+
+  String get pickupDisplay =>
+      pickupLabel ?? (hasPickupCoordinates
+          ? '${pickupLatitude!.toStringAsFixed(4)}, ${pickupLongitude!.toStringAsFixed(4)}'
+          : '—');
+
+  String get destinationDisplay =>
+      destinationLabel ?? (hasDestinationCoordinates
+          ? '${destinationLatitude!.toStringAsFixed(4)}, ${destinationLongitude!.toStringAsFixed(4)}'
+          : '—');
+
   factory RideModel.fromJson(Map<String, dynamic> json) {
+    final paymentRaw = json['payment_method'] as String?;
+
     return RideModel(
       id: json['id'] as int,
       status: json['status'] as String,
-      pickupLatitude: (json['pickup_latitude'] as num).toDouble(),
-      pickupLongitude: (json['pickup_longitude'] as num).toDouble(),
-      destinationLatitude: (json['destination_latitude'] as num).toDouble(),
-      destinationLongitude: (json['destination_longitude'] as num).toDouble(),
+      pickupLabel: json['pickup_label'] as String?,
+      destinationLabel: json['destination_label'] as String?,
+      pickupLatitude: (json['pickup_latitude'] as num?)?.toDouble(),
+      pickupLongitude: (json['pickup_longitude'] as num?)?.toDouble(),
+      destinationLatitude: (json['destination_latitude'] as num?)?.toDouble(),
+      destinationLongitude: (json['destination_longitude'] as num?)?.toDouble(),
       estimatedPrice: (json['estimated_price'] as num?)?.toDouble(),
+      suggestedPrice: (json['suggested_price'] as num?)?.toDouble(),
+      proposedPrice: (json['proposed_price'] as num?)?.toDouble(),
+      paymentMethod: paymentRaw != null
+          ? RidePaymentMethod.fromApi(paymentRaw)
+          : null,
       driver: json['driver'] != null
           ? RideDriverInfo.fromJson(json['driver'])
           : null,

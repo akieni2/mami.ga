@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/config/app_features_provider.dart';
 import 'ride_booking_screen.dart';
-import 'ride_booking_v2_screen.dart';
+import 'ride_booking_text_screen.dart';
 
 /// Choisit l'écran de réservation V1 ou V2 selon le feature flag.
 class RideBookingGate extends ConsumerWidget {
@@ -17,9 +17,9 @@ class RideBookingGate extends ConsumerWidget {
       loading: () => const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       ),
-      error: (_, __) => const RideBookingV2Screen(),
+      error: (_, __) => const RideBookingTextScreen(),
       data: (f) => f.useV2Booking
-          ? const RideBookingV2Screen()
+          ? const RideBookingTextScreen()
           : const RideBookingScreen(),
     );
   }
