@@ -111,6 +111,12 @@ POST /api/rides/request
 
 **Baseline figée :** ne pas modifier le contrat API text-first P2A sans versionning.
 
+### Contraintes P2B
+
+- Parcours texte P2A **inchangé** (régression interdite)
+- Carte **facultative** uniquement
+- Pas de GPS obligatoire à la réservation
+
 ### Périmètre P2B (prochain sprint)
 
 | Tâche | Fichier(s) cible(s) |
@@ -120,6 +126,18 @@ POST /api/rides/request
 | Enrichissement coords optionnelles | `booking_form_provider.dart`, `rides_repository.dart` |
 | `suggested_price` live | `trip_estimate_provider.dart` ou appel direct estimate |
 | Badge « Affiné sur carte » | `ride_booking_text_screen.dart` |
+| **Analyse d'usage** — `pickup_source`, `destination_source` | migration, `LocationSource` enum, `RideBookingService` |
+| Métriques : text / map / hybrid | calcul serveur auto, `RideResource`, tests |
+
+### Analyse d'usage (`pickup_source` / `destination_source`)
+
+| Valeur | Signification |
+|--------|---------------|
+| `text` | Saisie texte seule (défaut P2A) |
+| `map` | Point choisi sur carte uniquement |
+| `hybrid` | Texte saisi + coords via carte |
+
+Objectif : mesurer texte pur vs carte vs hybride pour décisions produit futures. Voir [P2_IMPLEMENTATION_PLAN.md](./P2_IMPLEMENTATION_PLAN.md) § P2B — Analyse d'usage.
 
 ### Commande démarrage P2B
 
@@ -132,10 +150,11 @@ git log -1 v2-p2a-stable --oneline
 
 ### Critères d'acceptation P2B (rappel)
 
-- [ ] Commander en texte seul (régression P2A)
-- [ ] Option carte pour affiner départ et/ou destination
+- [ ] Commander en texte seul — comportement **identique** à P2A (`pickup_source=text`, `destination_source=text`)
+- [ ] Option carte pour affiner départ et/ou destination (facultatif)
 - [ ] `suggested_price` affiché après sélection carte
 - [ ] Labels texte conservés en base
+- [ ] Sources `text` / `map` / `hybrid` correctement enregistrées par combinaison
 
 **Référence technique :** [P2_IMPLEMENTATION_PLAN.md](./P2_IMPLEMENTATION_PLAN.md) § P2B
 
