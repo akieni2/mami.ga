@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\BookingType;
+use App\Enums\LocationSource;
 use App\Enums\PaymentMethod;
 use App\Enums\RideStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -20,6 +21,8 @@ class Ride extends Model
         'driver_id',
         'pickup_label',
         'destination_label',
+        'pickup_source',
+        'destination_source',
         'pickup_latitude',
         'pickup_longitude',
         'destination_latitude',
@@ -56,6 +59,8 @@ class Ride extends Model
         return [
             'status' => RideStatus::class,
             'booking_type' => BookingType::class,
+            'pickup_source' => LocationSource::class,
+            'destination_source' => LocationSource::class,
             'payment_method' => PaymentMethod::class,
             'balance_payment_method' => PaymentMethod::class,
             'pickup_latitude' => 'float',

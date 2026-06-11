@@ -3,14 +3,16 @@
 namespace App\Services;
 
 use App\Enums\BookingType;
+use App\Enums\LocationSource;
 use App\Enums\PaymentMethod;
 use App\Enums\RideStatus;
 use App\Models\Ride;
 use App\Models\User;
+use App\Support\LocationSourceResolver;
 use RuntimeException;
 
 /**
- * P2A — création course text-first (sans dispatch).
+ * P2A/P2B — création course text-first (sans dispatch).
  */
 class RideBookingService
 {
@@ -32,6 +34,18 @@ class RideBookingService
         if ($client->isDriver()) {
             throw new RuntimeException('Drivers cannot request rides as clients.');
         }
+
+        $pickupSource = LocationSourceResolver::resolve(
+            $pickupLabel,
+            $pickupLatitude,
+            $pickupLongitude,
+        );
+
+        $destinationSource = LocationSourceResolver::resolve(
+            $destinationLabel,
+            $destinationLatitude,
+            $destinationLongitude,
+        );
 
         $suggestedPrice = null;
         $distanceKm = null;
@@ -61,6 +75,8 @@ class RideBookingService
             'driver_id' => null,
             'pickup_label' => $pickupLabel,
             'destination_label' => $destinationLabel,
+            'pickup_source' => $pickupSource,
+            'destination_source' => $destinationSource,
             'pickup_latitude' => $pickupLatitude,
             'pickup_longitude' => $pickupLongitude,
             'destination_latitude' => $destinationLatitude,

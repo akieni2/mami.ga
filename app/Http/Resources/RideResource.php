@@ -15,6 +15,8 @@ class RideResource extends JsonResource
             'driver_id' => $this->driver_id,
             'pickup_label' => $this->pickup_label,
             'destination_label' => $this->destination_label,
+            'pickup_source' => $this->pickup_source?->value ?? $this->pickup_source,
+            'destination_source' => $this->destination_source?->value ?? $this->destination_source,
             'pickup_latitude' => $this->pickup_latitude !== null ? (float) $this->pickup_latitude : null,
             'pickup_longitude' => $this->pickup_longitude !== null ? (float) $this->pickup_longitude : null,
             'destination_latitude' => $this->destination_latitude !== null ? (float) $this->destination_latitude : null,

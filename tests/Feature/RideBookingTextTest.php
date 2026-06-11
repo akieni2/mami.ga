@@ -37,7 +37,9 @@ class RideBookingTextTest extends TestCase
             ->assertJsonPath('data.payment_method', 'cash')
             ->assertJsonPath('data.booking_type', 'immediate')
             ->assertJsonPath('data.pickup_latitude', null)
-            ->assertJsonPath('data.destination_latitude', null);
+            ->assertJsonPath('data.destination_latitude', null)
+            ->assertJsonPath('data.pickup_source', 'text')
+            ->assertJsonPath('data.destination_source', 'text');
 
         $this->assertDatabaseHas('rides', [
             'client_id' => $client->id,

@@ -59,6 +59,8 @@ class RideModel {
     required this.status,
     this.pickupLabel,
     this.destinationLabel,
+    this.pickupSource,
+    this.destinationSource,
     this.pickupLatitude,
     this.pickupLongitude,
     this.destinationLatitude,
@@ -75,6 +77,8 @@ class RideModel {
   final String status;
   final String? pickupLabel;
   final String? destinationLabel;
+  final String? pickupSource;
+  final String? destinationSource;
   final double? pickupLatitude;
   final double? pickupLongitude;
   final double? destinationLatitude;
@@ -115,6 +119,8 @@ class RideModel {
       status: json['status'] as String,
       pickupLabel: json['pickup_label'] as String?,
       destinationLabel: json['destination_label'] as String?,
+      pickupSource: json['pickup_source'] as String?,
+      destinationSource: json['destination_source'] as String?,
       pickupLatitude: (json['pickup_latitude'] as num?)?.toDouble(),
       pickupLongitude: (json['pickup_longitude'] as num?)?.toDouble(),
       destinationLatitude: (json['destination_latitude'] as num?)?.toDouble(),
