@@ -9,6 +9,11 @@ return [
     'taxi_v2_enabled' => (bool) env('MAMI_TAXI_V2', false),
     'dispatch_v2_enabled' => (bool) env('MAMI_DISPATCH_V2', false),
 
+    'min_proposed_price' => (int) env('MAMI_MIN_PROPOSED_PRICE', 500),
+    'max_proposed_price' => (int) env('MAMI_MAX_PROPOSED_PRICE', 500000),
+    'pickup_label_min_length' => 3,
+    'destination_label_min_length' => 3,
+
     'driver_search_radius_km' => (float) env('MAMI_DRIVER_SEARCH_RADIUS_KM', 10),
     'ride_base_price' => (float) env('MAMI_RIDE_BASE_PRICE', 500),
     'ride_price_per_km' => (float) env('MAMI_RIDE_PRICE_PER_KM', 250),

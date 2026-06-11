@@ -18,6 +18,8 @@ class Ride extends Model
     protected $fillable = [
         'client_id',
         'driver_id',
+        'pickup_label',
+        'destination_label',
         'pickup_latitude',
         'pickup_longitude',
         'destination_latitude',
@@ -106,5 +108,15 @@ class Ride extends Model
     public function isTrackable(): bool
     {
         return ! in_array($this->status, [RideStatus::Completed, RideStatus::Cancelled], true);
+    }
+
+    public function hasPickupCoordinates(): bool
+    {
+        return $this->pickup_latitude !== null && $this->pickup_longitude !== null;
+    }
+
+    public function hasDestinationCoordinates(): bool
+    {
+        return $this->destination_latitude !== null && $this->destination_longitude !== null;
     }
 }
