@@ -110,6 +110,21 @@ class Ride extends Model
         return $this->hasMany(RideEvent::class);
     }
 
+    public function offers(): HasMany
+    {
+        return $this->hasMany(RideOffer::class);
+    }
+
+    public function dispatchWaves(): HasMany
+    {
+        return $this->hasMany(RideDispatchWave::class);
+    }
+
+    public function isSearching(): bool
+    {
+        return $this->status === RideStatus::Searching;
+    }
+
     public function isTrackable(): bool
     {
         return ! in_array($this->status, [RideStatus::Completed, RideStatus::Cancelled], true);

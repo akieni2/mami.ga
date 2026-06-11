@@ -11,4 +11,5 @@ enum RideStatus: string
     case Started = 'started';
     case Completed = 'completed';
     case Cancelled = 'cancelled';
+    case Expired = 'expired';
 }

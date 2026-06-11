@@ -59,6 +59,11 @@ class Driver extends Model
         return $this->hasMany(DriverLocation::class);
     }
 
+    public function rideOffers(): HasMany
+    {
+        return $this->hasMany(RideOffer::class);
+    }
+
     public function activeRide(): ?Ride
     {
         return $this->rides()
