@@ -3,11 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Enums\PaymentMethod;
+use App\Http\Requests\Rides\CreateRideRequest;
 use App\Http\Requests\Rides\RequestRideRequest;
 use App\Http\Resources\RideResource;
 use App\Models\Ride;
 use App\Enums\RideStatus;
 use App\Http\Requests\Rides\EstimateRideRequest;
+use App\Services\RideBookingService;
 use App\Services\RideDispatchService;
 use App\Services\RideEstimateService;
 use App\Services\RideTrackingService;
@@ -20,6 +23,7 @@ use RuntimeException;
 class RideController extends Controller
 {
     public function __construct(
+        private readonly RideBookingService $rideBookingService,
         private readonly RideDispatchService $rideDispatchService,
         private readonly RideEstimateService $rideEstimateService,
         private readonly RideTrackingService $rideTrackingService,
@@ -74,9 +78,29 @@ class RideController extends Controller
         return ApiResponse::success($payload, 'Active ride retrieved');
     }
 
-    public function request(RequestRideRequest $request): JsonResponse
+    public function request(CreateRideRequest $request): JsonResponse
     {
         try {
+            if ($request->isTextBooking()) {
+                $ride = $this->rideBookingService->createTextBooking(
+                    $request->user(),
+                    (string) $request->input('pickup_label'),
+                    (string) $request->input('destination_label'),
+                    (float) $request->input('proposed_price'),
+                    PaymentMethod::from((string) $request->input('payment_method')),
+                    $request->filled('pickup_latitude') ? (float) $request->input('pickup_latitude') : null,
+                    $request->filled('pickup_longitude') ? (float) $request->input('pickup_longitude') : null,
+                    $request->filled('destination_latitude') ? (float) $request->input('destination_latitude') : null,
+                    $request->filled('destination_longitude') ? (float) $request->input('destination_longitude') : null,
+                );
+
+                return ApiResponse::success(
+                    (new RideResource($ride->load('client')))->resolve(),
+                    'Ride search started',
+                    201,
+                );
+            }
+
             $ride = $this->rideDispatchService->requestRide(
                 $request->user(),
                 (float) $request->input('pickup_latitude'),
