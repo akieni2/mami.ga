@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../../../core/map/lat_lng_utils.dart';
 import '../../data/rides_repository.dart';
 import '../../domain/models/trip_estimate.dart';
 
@@ -37,6 +38,12 @@ class TripEstimateRequest {
 final tripEstimateProvider =
     FutureProvider.autoDispose.family<TripEstimate, TripEstimateRequest>(
   (ref, request) async {
+    if (!LatLngUtils.isValid(request.pickup) ||
+        !LatLngUtils.isValid(request.destination)) {
+      debugPrint('DESTINATION INVALID: trip estimate skipped');
+      throw StateError('Coordonnées GPS invalides');
+    }
+
     try {
       final estimate = await ref.read(ridesRepositoryProvider).estimateTrip(
             pickupLatitude: request.pickup.latitude,

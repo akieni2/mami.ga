@@ -1,9 +1,9 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../../../core/map/lat_lng_utils.dart';
 import '../../../../core/map/mami_map.dart';
 import '../../../../core/map/route_utils.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -25,6 +25,8 @@ class _RideBookingV2ScreenState extends ConsumerState<RideBookingV2Screen> {
   LatLng? _pickup;
   LatLng? _destination;
 
+  bool get _hasValidDestination => LatLngUtils.isValid(_destination);
+
   @override
   void initState() {
     super.initState();
@@ -34,15 +36,27 @@ class _RideBookingV2ScreenState extends ConsumerState<RideBookingV2Screen> {
   /// Position actuelle = point de départ (non modifiable manuellement en P1).
   Future<void> _initPickupFromGps() async {
     final location = await ref.read(userLocationProvider.future);
-    if (mounted) {
-      setState(() => _pickup = location.position);
-      ref.read(bookingDraftProvider.notifier).setPickup(location.position);
-    }
+    if (!mounted || !LatLngUtils.isValid(location.position)) return;
+
+    debugPrint(
+      'GPS POSITION: ${location.position.latitude.toStringAsFixed(4)}, '
+      '${location.position.longitude.toStringAsFixed(4)}',
+    );
+
+    setState(() => _pickup = location.position);
+    ref.read(bookingDraftProvider.notifier).setPickup(location.position);
   }
 
   void _onMapTap(LatLng point) {
+    if (!LatLngUtils.isValid(point)) {
+      debugPrint(
+        'DESTINATION INVALID: ${point.latitude}, ${point.longitude}',
+      );
+      return;
+    }
+
     debugPrint(
-      'P1 destination selected: ${point.latitude.toStringAsFixed(4)}, '
+      'DESTINATION SELECTED: ${point.latitude.toStringAsFixed(4)}, '
       '${point.longitude.toStringAsFixed(4)}',
     );
     setState(() => _destination = point);
@@ -67,26 +81,39 @@ class _RideBookingV2ScreenState extends ConsumerState<RideBookingV2Screen> {
     return 'Départ : votre position GPS';
   }
 
+  String _destinationLabel() {
+    if (!_hasValidDestination) {
+      return 'Aucune destination sélectionnée';
+    }
+    return 'Destination : ${LatLngUtils.format(_destination)}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final locationAsync = ref.watch(userLocationProvider);
     final userPosition = locationAsync.valueOrNull?.position;
     final isGpsAvailable = locationAsync.valueOrNull?.isGpsAvailable ?? true;
-    final pickup = _pickup ?? userPosition;
+    final pickup = LatLngUtils.isValid(_pickup)
+        ? _pickup
+        : LatLngUtils.isValid(userPosition)
+            ? userPosition
+            : null;
 
-    final route = (pickup != null && _destination != null)
-        ? RouteUtils.straightLine(pickup, _destination!)
+    final destination = _hasValidDestination ? _destination : null;
+
+    final route = (pickup != null && destination != null)
+        ? RouteUtils.straightLine(pickup, destination)
         : null;
 
-    final estimateRequest = (pickup != null && _destination != null)
-        ? TripEstimateRequest(pickup: pickup, destination: _destination!)
+    final estimateRequest = (pickup != null && destination != null)
+        ? TripEstimateRequest(pickup: pickup, destination: destination)
         : null;
 
     final estimateAsync = estimateRequest != null
         ? ref.watch(tripEstimateProvider(estimateRequest))
         : null;
 
-    final canPreview = pickup != null && _destination != null;
+    final canPreview = pickup != null && destination != null;
 
     return Scaffold(
       appBar: AppBar(
@@ -103,9 +130,8 @@ class _RideBookingV2ScreenState extends ConsumerState<RideBookingV2Screen> {
               children: [
                 MamiMap(
                   fullScreen: true,
-                  user: userPosition,
-                  pickup: pickup,
-                  destination: _destination,
+                  user: pickup,
+                  destination: destination,
                   route: route,
                   onTap: _onMapTap,
                 ),
@@ -164,7 +190,9 @@ class _RideBookingV2ScreenState extends ConsumerState<RideBookingV2Screen> {
                       Icon(
                         isGpsAvailable ? Icons.my_location : Icons.location_off,
                         size: 18,
-                        color: isGpsAvailable ? Colors.blue.shade700 : Colors.orange.shade800,
+                        color: isGpsAvailable
+                            ? Colors.blue.shade700
+                            : Colors.orange.shade800,
                       ),
                       const SizedBox(width: 8),
                       Expanded(
@@ -178,25 +206,26 @@ class _RideBookingV2ScreenState extends ConsumerState<RideBookingV2Screen> {
                       ),
                     ],
                   ),
-                if (_destination != null) ...[
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(Icons.flag, size: 18, color: Colors.red),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Destination : ${_destination!.latitude.toStringAsFixed(4)}, '
-                          '${_destination!.longitude.toStringAsFixed(4)}',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey.shade700,
-                          ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(
+                      _hasValidDestination ? Icons.flag : Icons.place_outlined,
+                      size: 18,
+                      color: _hasValidDestination ? Colors.red : Colors.grey,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _destinationLabel(),
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey.shade700,
                         ),
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 12),
                 if (estimateAsync != null)
                   estimateAsync.when(

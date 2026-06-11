@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../../../core/map/lat_lng_utils.dart';
+
 class BookingDraft {
   const BookingDraft({
     this.pickup,
@@ -26,10 +28,15 @@ final bookingDraftProvider =
 class BookingDraftNotifier extends StateNotifier<BookingDraft> {
   BookingDraftNotifier() : super(const BookingDraft());
 
-  void setPickup(LatLng value) => state = state.copyWith(pickup: value);
+  void setPickup(LatLng value) {
+    if (!LatLngUtils.isValid(value)) return;
+    state = state.copyWith(pickup: value);
+  }
 
-  void setDestination(LatLng value) =>
-      state = state.copyWith(destination: value);
+  void setDestination(LatLng value) {
+    if (!LatLngUtils.isValid(value)) return;
+    state = state.copyWith(destination: value);
+  }
 
   void reset() => state = const BookingDraft();
 }

@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:latlong2/latlong.dart';
 
 import '../../domain/user_location_result.dart';
 
@@ -28,10 +27,16 @@ final userLocationProvider = FutureProvider<UserLocationResult>((ref) async {
       'P1 GPS obtained: ${position.latitude.toStringAsFixed(4)}, '
       '${position.longitude.toStringAsFixed(4)}',
     );
-    return UserLocationResult(
-      position: LatLng(position.latitude, position.longitude),
+    final result = UserLocationResult.fromCoordinates(
+      latitude: position.latitude,
+      longitude: position.longitude,
       isGpsAvailable: true,
     );
+    debugPrint(
+      'GPS POSITION: ${result.position.latitude.toStringAsFixed(4)}, '
+      '${result.position.longitude.toStringAsFixed(4)}',
+    );
+    return result;
   } catch (e) {
     debugPrint('P1 GPS refused — position unavailable ($e)');
     return const UserLocationResult(
