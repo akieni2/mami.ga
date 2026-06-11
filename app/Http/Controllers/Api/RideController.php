@@ -7,7 +7,9 @@ use App\Http\Requests\Rides\RequestRideRequest;
 use App\Http\Resources\RideResource;
 use App\Models\Ride;
 use App\Enums\RideStatus;
+use App\Http\Requests\Rides\EstimateRideRequest;
 use App\Services\RideDispatchService;
+use App\Services\RideEstimateService;
 use App\Services\RideTrackingService;
 use App\Support\ApiResponse;
 use App\Support\GeoDistance;
@@ -19,8 +21,21 @@ class RideController extends Controller
 {
     public function __construct(
         private readonly RideDispatchService $rideDispatchService,
+        private readonly RideEstimateService $rideEstimateService,
         private readonly RideTrackingService $rideTrackingService,
     ) {}
+
+    public function estimate(EstimateRideRequest $request): JsonResponse
+    {
+        $estimate = $this->rideEstimateService->estimate(
+            (float) $request->input('pickup_latitude'),
+            (float) $request->input('pickup_longitude'),
+            (float) $request->input('destination_latitude'),
+            (float) $request->input('destination_longitude'),
+        );
+
+        return ApiResponse::success($estimate, 'Trip estimate calculated');
+    }
 
     public function current(Request $request): JsonResponse
     {

@@ -1,10 +1,13 @@
 <?php
 
+use App\Http\Controllers\Api\AppConfigController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DriverApplicationController;
 use App\Http\Controllers\Api\DriverController;
 use App\Http\Controllers\Api\RideController;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/app/features', [AppConfigController::class, 'features']);
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -21,6 +24,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/drivers/location/update', [DriverController::class, 'updateLocation']);
     Route::post('/drivers/availability', [DriverController::class, 'updateAvailability']);
 
+    Route::post('/rides/estimate', [RideController::class, 'estimate']);
     Route::post('/rides/request', [RideController::class, 'request']);
     Route::get('/rides/current', [RideController::class, 'current']);
     Route::get('/rides/history', [RideController::class, 'history']);
