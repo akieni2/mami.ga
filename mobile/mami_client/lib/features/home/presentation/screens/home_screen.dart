@@ -8,11 +8,22 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../location/presentation/providers/user_location_provider.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    debugPrint('HOME SCREEN OPENED');
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final locationAsync = ref.watch(userLocationProvider);
 
     return Scaffold(

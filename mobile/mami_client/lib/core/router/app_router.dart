@@ -15,40 +15,37 @@ import '../../features/shell/presentation/screens/main_shell.dart';
 import '../../features/splash/presentation/screens/splash_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final auth = ref.watch(authStateProvider);
+  debugPrint('ROUTER CREATED');
 
-  if (auth.isLoading) {
-    debugPrint('ROUTER BUILD (auth loading)');
-  } else if (auth.hasError) {
-    debugPrint('ROUTER BUILD (auth error): ${auth.error}');
-  } else {
-    debugPrint('ROUTER BUILD (auth data): user=${auth.valueOrNull?.id}');
-  }
-
-  return GoRouter(
+  final router = GoRouter(
     initialLocation: '/splash',
     redirect: (context, state) {
+      final auth = ref.read(authStateProvider);
       final path = state.matchedLocation;
       final onSplash = path == '/splash';
       final onAuth = path == '/login' || path == '/register';
 
       String? target;
-      if (false) {
-        target = '/splash';
+      if (auth.isLoading) {
+        target = null;
       } else {
         final user = auth.valueOrNull;
 
         if (user == null && !onAuth && !onSplash) {
           target = '/login';
-        } else if (user != null && onAuth) {
+        } else if (user != null && (onAuth || onSplash)) {
           target = '/';
         }
       }
 
       if (auth.isLoading) {
-        debugPrint('ROUTER REDIRECT: path=$path -> ${target ?? 'null'} (auth loading)');
+        debugPrint(
+          'ROUTER REDIRECT: path=$path -> ${target ?? 'null'} (auth loading)',
+        );
       } else if (auth.hasError) {
-        debugPrint('ROUTER REDIRECT: path=$path -> ${target ?? 'null'} (auth error: ${auth.error})');
+        debugPrint(
+          'ROUTER REDIRECT: path=$path -> ${target ?? 'null'} (auth error: ${auth.error})',
+        );
       } else {
         debugPrint(
           'ROUTER REDIRECT: path=$path -> ${target ?? 'null'} (user=${auth.valueOrNull?.id})',
@@ -107,4 +104,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+
+  ref.listen(authStateProvider, (previous, next) {
+    debugPrint(
+      'ROUTER REFRESH (auth changed): user=${next.valueOrNull?.id}',
+    );
+    router.refresh();
+  });
+
+  ref.onDispose(router.dispose);
+
+  return router;
 });

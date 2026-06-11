@@ -18,10 +18,17 @@ class AuthNotifier extends StateNotifier<AsyncValue<UserModel?>> {
   }
 
   final Ref _ref;
+  bool _bootstrapped = false;
 
   AuthRepository get _repo => _ref.read(authRepositoryProvider);
 
   Future<void> bootstrap() async {
+    if (_bootstrapped) {
+      debugPrint('AUTH BOOTSTRAP SKIP (already done)');
+      return;
+    }
+    _bootstrapped = true;
+
     debugPrint('AUTH BOOTSTRAP START');
     try {
       final token = await _ref.read(tokenStorageProvider).readToken();
