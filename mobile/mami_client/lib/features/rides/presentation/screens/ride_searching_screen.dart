@@ -37,6 +37,30 @@ class _RideSearchingScreenState extends ConsumerState<RideSearchingScreen>
     super.dispose();
   }
 
+  Future<void> _showExpiredDialog() async {
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Recherche terminée'),
+        content: const Text(
+          'Aucun chauffeur n\'a accepté votre demande.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              ref.read(activeRideProvider.notifier).clear();
+              context.go('/');
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final rideAsync = ref.watch(activeRideProvider);
@@ -49,13 +73,17 @@ class _RideSearchingScreenState extends ConsumerState<RideSearchingScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Course annulée')),
         );
+        ref.read(activeRideProvider.notifier).clear();
         context.go('/');
         return;
       }
 
-      if (ride.status == 'accepted' ||
-          ride.status == 'arrived' ||
-          ride.status == 'started') {
+      if (ride.isExpired) {
+        _showExpiredDialog();
+        return;
+      }
+
+      if (ride.isAccepted) {
         context.go('/ride/active/${ride.id}');
       }
     });

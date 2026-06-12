@@ -31,6 +31,8 @@ class ReverbService {
     'RideStarted',
     'RideCompleted',
     'DriverLocationUpdated',
+    'RideOfferAccepted',
+    'RideSearchExpired',
   };
 
   Future<void> ensureConnected() async {

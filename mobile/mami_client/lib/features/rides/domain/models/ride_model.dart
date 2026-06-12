@@ -92,7 +92,11 @@ class RideModel {
 
   bool get isPending => status == 'pending';
   bool get isSearching => status == 'searching';
-  bool get isActive => !['completed', 'cancelled'].contains(status);
+  bool get isExpired => status == 'expired';
+  bool get isAccepted =>
+      status == 'accepted' || status == 'arrived' || status == 'started';
+  bool get isActive =>
+      !['completed', 'cancelled', 'expired'].contains(status);
   bool get isCompleted => status == 'completed';
 
   bool get hasPickupCoordinates =>

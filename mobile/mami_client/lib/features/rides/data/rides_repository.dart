@@ -85,6 +85,19 @@ class RidesRepository {
     );
   }
 
+  /// P3 — course active ou en recherche côté client.
+  Future<RideModel?> fetchCurrentClientRide() async {
+    final response = await _dio.get(
+      '/rides/current',
+      queryParameters: {'as_client': true},
+    );
+    final ride = extractData<dynamic>(response.data, (d) => d);
+
+    if (ride == null) return null;
+
+    return RideModel.fromJson(ride as Map<String, dynamic>);
+  }
+
   Future<RideModel> fetchRide(int id) async {
     final response = await _dio.get('/rides/$id');
 

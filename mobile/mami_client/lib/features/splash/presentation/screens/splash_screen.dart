@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../rides/presentation/providers/active_ride_provider.dart';
+import '../../../rides/data/rides_repository.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -29,7 +31,28 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     if (!mounted) return;
 
     final user = ref.read(authStateProvider).valueOrNull;
-    context.go(user == null ? '/login' : '/');
+    if (user == null) {
+      context.go('/login');
+      return;
+    }
+
+    try {
+      final ride = await ref.read(ridesRepositoryProvider).fetchCurrentClientRide();
+      if (!mounted) return;
+      if (ride != null) {
+        ref.read(activeRideProvider.notifier).setRide(ride);
+        if (ride.isSearching) {
+          context.go('/ride/searching/${ride.id}');
+          return;
+        }
+        if (ride.isAccepted) {
+          context.go('/ride/active/${ride.id}');
+          return;
+        }
+      }
+    } catch (_) {}
+
+    if (mounted) context.go('/');
   }
 
   @override
