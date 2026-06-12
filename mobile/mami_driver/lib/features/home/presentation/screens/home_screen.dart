@@ -177,7 +177,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          if (rideAsync.isLoading && offersAsync.isLoading)
+          if (offersAsync.hasError)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.red),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Erreur chargement des offres',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${offersAsync.error}',
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                    ),
+                    TextButton(
+                      onPressed: () =>
+                          ref.read(pendingOffersProvider.notifier).refresh(),
+                      child: const Text('Réessayer'),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else if (rideAsync.isLoading && offersAsync.isLoading)
             const Center(child: CircularProgressIndicator())
           else if (hasActiveRide)
             Card(
@@ -208,24 +234,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               onAccept: () => _acceptV1(ride.id),
               onReject: () => _rejectV1(ride.id),
             )
-          else if (offersAsync.hasError)
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    const Icon(Icons.error_outline, color: Colors.red),
-                    const SizedBox(height: 8),
-                    const Text('Erreur chargement des offres'),
-                    TextButton(
-                      onPressed: () =>
-                          ref.read(pendingOffersProvider.notifier).refresh(),
-                      child: const Text('Réessayer'),
-                    ),
-                  ],
-                ),
-              ),
-            )
+          else if (offersAsync.isLoading && offers.isEmpty)
+            const Center(child: CircularProgressIndicator())
           else
             Card(
               child: Padding(

@@ -35,9 +35,9 @@ class RideOfferModel {
     final rideJson = json['ride'] as Map<String, dynamic>?;
 
     return RideOfferModel(
-      id: json['id'] as int,
-      rideId: json['ride_id'] as int,
-      driverId: json['driver_id'] as int,
+      id: (json['id'] as num).toInt(),
+      rideId: (json['ride_id'] as num).toInt(),
+      driverId: (json['driver_id'] as num).toInt(),
       status: json['status'] as String,
       offeredPrice: (json['offered_price'] as num).toDouble(),
       distanceToPickupKm: (json['distance_to_pickup_km'] as num).toDouble(),

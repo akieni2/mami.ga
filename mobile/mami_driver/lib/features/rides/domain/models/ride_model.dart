@@ -82,7 +82,7 @@ class RideModel {
     }
 
     return RideModel(
-      id: json['id'] as int,
+      id: (json['id'] as num).toInt(),
       status: json['status'] as String,
       pickupLabel: json['pickup_label'] as String?,
       destinationLabel: json['destination_label'] as String?,

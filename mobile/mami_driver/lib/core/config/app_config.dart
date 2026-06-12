@@ -9,4 +9,6 @@ class AppConfig {
 
   static const Duration gpsInterval = Duration(seconds: 10);
   static const Duration ridePollInterval = Duration(seconds: 8);
+  /// P3 — poll offres plus fréquent pour affichage < 10 s.
+  static const Duration offerPollInterval = Duration(seconds: 5);
 }

@@ -1,6 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/config/app_config.dart';
+import '../../../core/logging/offers_logger.dart';
 import '../../../core/network/api_client.dart';
 import '../domain/models/ride_model.dart';
 import '../domain/models/ride_offer_model.dart';
@@ -42,14 +45,29 @@ class RidesRepository {
   }
 
   /// P3 — offres dispatch en attente.
+  /// URL : GET {API_BASE_URL}/rides/offers/current
   Future<List<RideOfferModel>> fetchCurrentOffers() async {
+    final url = '${AppConfig.apiBaseUrl}/rides/offers/current';
+    if (kDebugMode) {
+      debugPrint('[OFFERS_FETCH_START] url=$url');
+    }
+
     final response = await _dio.get('/rides/offers/current');
     final data = extractData<dynamic>(response.data, (d) => d);
     final list = data is List ? data : <dynamic>[];
 
-    return list
-        .map((e) => RideOfferModel.fromJson(e as Map<String, dynamic>))
-        .toList();
+    final offers = <RideOfferModel>[];
+    for (final item in list) {
+      if (item is! Map<String, dynamic>) continue;
+      try {
+        offers.add(RideOfferModel.fromJson(item));
+      } catch (e, st) {
+        OffersLogger.parseError(e, item);
+        OffersLogger.fetchError('parse failed: $e', st);
+      }
+    }
+
+    return offers;
   }
 
   Future<RideModel> acceptOffer(int rideId, int offerId) async {
