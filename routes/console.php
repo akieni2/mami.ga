@@ -1,6 +1,7 @@
 <?php
 
 use App\Jobs\ExpireRideSearchJob;
+use App\Jobs\ExpireStaleOffersJob;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -11,3 +12,4 @@ Artisan::command('inspire', function () {
 
 Schedule::command('drivers:mark-offline')->everyMinute();
 Schedule::job(new ExpireRideSearchJob)->everyMinute();
+Schedule::job(new ExpireStaleOffersJob)->everyMinute();

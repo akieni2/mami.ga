@@ -9,6 +9,7 @@ use App\Models\Ride;
 use App\Models\RideOffer;
 use App\Services\RideOfferService;
 use App\Support\ApiResponse;
+use App\Support\Dispatch\DispatchLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use RuntimeException;
@@ -24,10 +25,16 @@ class RideOfferController extends Controller
         $driver = $request->user()->driver;
 
         if ($driver === null) {
+            DispatchLogger::offersApi('driver profile missing user='.$request->user()->id);
+
             return ApiResponse::error('User is not a driver.', 403);
         }
 
         $offers = $this->rideOfferService->pendingOffersForDriver($driver);
+
+        DispatchLogger::offersApi(
+            'driver #'.$driver->id.' pending_count='.$offers->count(),
+        );
 
         return ApiResponse::success(
             RideOfferResource::collection($offers)->resolve(),

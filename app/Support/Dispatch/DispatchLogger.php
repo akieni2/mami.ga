@@ -43,4 +43,9 @@ class DispatchLogger
     {
         Log::info("[DRIVER_FILTER] {$message}");
     }
+
+    public static function offersApi(string $message): void
+    {
+        Log::info("[OFFERS_API] {$message}");
+    }
 }

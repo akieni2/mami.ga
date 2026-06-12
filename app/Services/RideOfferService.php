@@ -144,6 +144,18 @@ class RideOfferService
      */
     public function pendingOffersForDriver(Driver $driver)
     {
+        $staleCount = RideOffer::query()
+            ->where('driver_id', $driver->id)
+            ->where('status', RideOfferStatus::Pending)
+            ->where('expires_at', '<=', now())
+            ->count();
+
+        if ($staleCount > 0) {
+            DispatchLogger::offersApi(
+                "driver #{$driver->id} has {$staleCount} time-expired pending offer(s) hidden from API",
+            );
+        }
+
         return RideOffer::query()
             ->with(['ride.client'])
             ->where('driver_id', $driver->id)

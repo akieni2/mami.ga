@@ -37,7 +37,7 @@ return [
     ],
     'dispatch_wave_delay_seconds' => (int) env('MAMI_DISPATCH_WAVE_DELAY_SECONDS', 15),
     'dispatch_wave_max_drivers' => (int) env('MAMI_DISPATCH_WAVE_MAX_DRIVERS', 5),
-    'offer_timeout_seconds' => (int) env('MAMI_OFFER_TIMEOUT_SECONDS', 30),
+    'offer_timeout_seconds' => (int) env('MAMI_OFFER_TIMEOUT_SECONDS', 120),
     'search_max_duration_hours' => (int) env('MAMI_SEARCH_MAX_DURATION_HOURS', 2),
     'dispatch_scoring_weights' => [
         'distance' => (float) env('MAMI_DISPATCH_SCORE_DISTANCE', 0.5),
