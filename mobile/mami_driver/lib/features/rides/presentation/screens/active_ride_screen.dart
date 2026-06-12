@@ -53,15 +53,20 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
       );
     }
 
-    final pickup = LatLng(ride.pickupLatitude, ride.pickupLongitude);
-    final destination =
-        LatLng(ride.destinationLatitude, ride.destinationLongitude);
+    const fallback = LatLng(0.4162, 9.4673);
+    final pickup = ride.hasPickupCoordinates
+        ? LatLng(ride.pickupLatitude!, ride.pickupLongitude!)
+        : fallback;
+    final destination = ride.hasDestinationCoordinates
+        ? LatLng(ride.destinationLatitude!, ride.destinationLongitude!)
+        : fallback;
     final client = pickup;
     final driver = gps ?? live.driverPosition;
 
-    final price = ride.estimatedPrice != null
+    final priceValue = ride.displayPrice;
+    final price = priceValue != null
         ? NumberFormat.currency(symbol: 'FCFA ', decimalDigits: 0)
-            .format(ride.estimatedPrice)
+            .format(priceValue)
         : '—';
 
     return Scaffold(

@@ -33,6 +33,13 @@ class ReverbService {
     'DriverLocationUpdated',
   };
 
+  /// Événements dispatch P3 (canal private-driver-{id}).
+  static const dispatchEvents = {
+    'RideOfferCreated',
+    'RideOfferAccepted',
+    'RideSearchExpired',
+  };
+
   Future<void> ensureConnected() async {
     if (_initialized) return;
 

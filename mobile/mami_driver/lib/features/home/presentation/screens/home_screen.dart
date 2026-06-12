@@ -7,8 +7,11 @@ import '../../../../core/widgets/status_chip.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../driver/presentation/providers/driver_status_provider.dart';
 import '../../../location/presentation/providers/location_tracker_provider.dart';
+import '../../../rides/domain/models/ride_offer_model.dart';
 import '../../../rides/presentation/providers/active_ride_provider.dart';
+import '../../../rides/presentation/providers/pending_offers_provider.dart';
 import '../../../rides/presentation/widgets/incoming_ride_card.dart';
+import '../../../rides/presentation/widgets/ride_offer_card.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -26,6 +29,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(activeRideProvider.notifier).startHybridTracking();
       ref.read(activeRideProvider.notifier).refresh();
+      ref.read(pendingOffersProvider.notifier).startHybridTracking();
+      ref.read(pendingOffersProvider.notifier).refresh();
       final status = ref.read(driverStatusProvider).valueOrNull;
       if (status == DriverUiStatus.online || status == DriverUiStatus.busy) {
         ref.read(locationTrackerProvider.notifier).start();
@@ -37,12 +42,39 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     await ref.read(driverStatusProvider.notifier).setOnline(online);
     if (online) {
       await ref.read(locationTrackerProvider.notifier).start();
+      ref.read(pendingOffersProvider.notifier).startHybridTracking();
+      ref.read(pendingOffersProvider.notifier).refresh();
     } else {
       ref.read(locationTrackerProvider.notifier).stop();
+      ref.read(pendingOffersProvider.notifier).stopTracking();
     }
   }
 
-  Future<void> _accept(int id) async {
+  Future<void> _acceptOffer(RideOfferModel offer) async {
+    setState(() => _actionLoading = true);
+    try {
+      final ride = await ref
+          .read(activeRideProvider.notifier)
+          .acceptOffer(offer.rideId, offer.id);
+      await ref.read(pendingOffersProvider.notifier).refresh();
+      if (mounted && ride.isAccepted) {
+        context.push('/ride/active');
+      }
+    } finally {
+      if (mounted) setState(() => _actionLoading = false);
+    }
+  }
+
+  Future<void> _rejectOffer(RideOfferModel offer) async {
+    setState(() => _actionLoading = true);
+    try {
+      await ref.read(pendingOffersProvider.notifier).rejectOffer(offer);
+    } finally {
+      if (mounted) setState(() => _actionLoading = false);
+    }
+  }
+
+  Future<void> _acceptV1(int id) async {
     setState(() => _actionLoading = true);
     try {
       await ref.read(activeRideProvider.notifier).accept(id);
@@ -52,7 +84,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
-  Future<void> _reject(int id) async {
+  Future<void> _rejectV1(int id) async {
     setState(() => _actionLoading = true);
     try {
       await ref.read(activeRideProvider.notifier).reject(id);
@@ -64,19 +96,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authStateProvider).valueOrNull;
-    final status = ref.watch(driverStatusProvider).valueOrNull ?? DriverUiStatus.offline;
+    final status =
+        ref.watch(driverStatusProvider).valueOrNull ?? DriverUiStatus.offline;
     final rideAsync = ref.watch(activeRideProvider);
+    final offersAsync = ref.watch(pendingOffersProvider);
     final gpsActive = ref.watch(locationTrackerProvider);
 
     final ride = rideAsync.valueOrNull;
+    final offers = offersAsync.valueOrNull ?? [];
+    final hasActiveRide = ride != null && ride.isAccepted;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Tableau de bord'),
-        actions: [Padding(
-          padding: const EdgeInsets.only(right: 16),
-          child: StatusChip(status: status),
-        )],
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: StatusChip(status: status),
+          ),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -139,16 +177,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          if (rideAsync.isLoading)
+          if (rideAsync.isLoading && offersAsync.isLoading)
             const Center(child: CircularProgressIndicator())
-          else if (ride != null && ride.isPending)
-            IncomingRideCard(
-              ride: ride,
-              loading: _actionLoading,
-              onAccept: () => _accept(ride.id),
-              onReject: () => _reject(ride.id),
-            )
-          else if (ride != null)
+          else if (hasActiveRide)
             Card(
               child: ListTile(
                 leading: const Icon(Icons.local_taxi, color: AppTheme.primary),
@@ -156,6 +187,43 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 subtitle: Text('Statut: ${ride.status}'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.push('/ride/active'),
+              ),
+            )
+          else if (offers.isNotEmpty)
+            ...offers.map(
+              (offer) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: RideOfferCard(
+                  offer: offer,
+                  loading: _actionLoading,
+                  onAccept: () => _acceptOffer(offer),
+                  onReject: () => _rejectOffer(offer),
+                ),
+              ),
+            )
+          else if (ride != null && ride.isPending)
+            IncomingRideCard(
+              ride: ride,
+              loading: _actionLoading,
+              onAccept: () => _acceptV1(ride.id),
+              onReject: () => _rejectV1(ride.id),
+            )
+          else if (offersAsync.hasError)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.red),
+                    const SizedBox(height: 8),
+                    const Text('Erreur chargement des offres'),
+                    TextButton(
+                      onPressed: () =>
+                          ref.read(pendingOffersProvider.notifier).refresh(),
+                      child: const Text('Réessayer'),
+                    ),
+                  ],
+                ),
               ),
             )
           else
@@ -174,8 +242,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     const SizedBox(height: 12),
                     Text(
                       status == DriverUiStatus.online
-                          ? 'En attente de courses…'
-                          : 'Passez en ligne pour recevoir des courses',
+                          ? 'En attente d\'offres de course…'
+                          : 'Passez en ligne pour recevoir des offres',
                       textAlign: TextAlign.center,
                     ),
                   ],

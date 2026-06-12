@@ -72,6 +72,13 @@ class ActiveRideNotifier extends StateNotifier<AsyncValue<RideModel?>> {
     });
   }
 
+  Future<RideModel> acceptOffer(int rideId, int offerId) async {
+    final ride = await _repo.acceptOffer(rideId, offerId);
+    state = AsyncValue.data(ride);
+    _subscribeRideRealtime(rideId);
+    return ride;
+  }
+
   Future<RideModel> accept(int id) async {
     final ride = await _repo.accept(id);
     state = AsyncValue.data(ride);

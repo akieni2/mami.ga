@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
 import '../domain/models/ride_model.dart';
+import '../domain/models/ride_offer_model.dart';
 
 class RidesRepository {
   RidesRepository(this._dio);
@@ -38,6 +39,31 @@ class RidesRepository {
       response.data,
       (data) => data as Map<String, dynamic>,
     );
+  }
+
+  /// P3 — offres dispatch en attente.
+  Future<List<RideOfferModel>> fetchCurrentOffers() async {
+    final response = await _dio.get('/rides/offers/current');
+    final data = extractData<dynamic>(response.data, (d) => d);
+    final list = data is List ? data : <dynamic>[];
+
+    return list
+        .map((e) => RideOfferModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<RideModel> acceptOffer(int rideId, int offerId) async {
+    final response =
+        await _dio.post('/rides/$rideId/offers/$offerId/accept');
+
+    return extractData<RideModel>(
+      response.data,
+      (data) => RideModel.fromJson(data as Map<String, dynamic>),
+    );
+  }
+
+  Future<void> rejectOffer(int rideId, int offerId) async {
+    await _dio.post('/rides/$rideId/offers/$offerId/reject');
   }
 
   Future<RideModel> accept(int rideId) => _action(rideId, 'accept');

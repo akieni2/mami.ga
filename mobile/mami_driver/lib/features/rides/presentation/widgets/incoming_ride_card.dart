@@ -51,15 +51,21 @@ class IncomingRideCard extends StatelessWidget {
                 'Distance pickup: ${distance.toStringAsFixed(2)} km',
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
-            const SizedBox(height: 12),
-            RideMap(
-              pickup: LatLng(ride.pickupLatitude, ride.pickupLongitude),
-              destination: LatLng(
-                ride.destinationLatitude,
-                ride.destinationLongitude,
+            if (ride.hasPickupCoordinates && ride.hasDestinationCoordinates) ...[
+              const SizedBox(height: 12),
+              RideMap(
+                pickup: LatLng(ride.pickupLatitude!, ride.pickupLongitude!),
+                destination: LatLng(
+                  ride.destinationLatitude!,
+                  ride.destinationLongitude!,
+                ),
+                height: 180,
               ),
-              height: 180,
-            ),
+            ] else ...[
+              const SizedBox(height: 8),
+              Text('Départ : ${ride.pickupDisplay}'),
+              Text('Destination : ${ride.destinationDisplay}'),
+            ],
             const SizedBox(height: 16),
             Row(
               children: [
