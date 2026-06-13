@@ -241,7 +241,59 @@ Si `expires_at < NOW()` → offre **masquée** par l'API (normal).
 
 ---
 
-## 9. Procédure si offres toujours invisibles
+## 10. Incident production 2026-06-13 — rides 22–24 sans offres
+
+### Symptômes logs
+
+```
+[DISPATCH] Ride #24 searching
+[OFFERS_API] driver #1 pending_count=0
+[OFFERS_API] driver #1 has 3 time-expired pending offer(s) hidden from API
+```
+
+**Absent :** `[WAVE]`, `[OFFER]`, `[SCORING]`
+
+### Cause racine
+
+`DispatchWaveJob` était **mis en queue** (`QUEUE_CONNECTION=database`) sans `queue:work` actif sur le VPS.  
+Résultat : `dispatch_started_at` renseigné, **aucune vague exécutée**, **aucune `ride_offer` créée** pour rides 22–24.
+
+Les 3 offres « pending » visibles en MySQL datent du **2026-06-12** (`expires_at` dépassé) — bruit dans les logs, pas les offres courantes.
+
+### Correctif code (commit suivant)
+
+- Vague **0 exécutée synchrone** dans `RideDispatchEngine::start()`
+- `recoverStuckDispatches()` pour rides `searching` sans `ride_dispatch_waves`
+- Expiration stale inline à chaque `GET /offers/current`
+
+### Actions VPS immédiates (avant ou après deploy)
+
+```bash
+# 1. Débloquer rides 22–24 manuellement
+php artisan tinker
+>>> app(\App\Services\RideDispatchEngine::class)->recoverStuckDispatches();
+
+# 2. Worker queue (vagues 1–3+)
+php artisan queue:work --daemon &
+
+# 3. Scheduler (expiration + recovery)
+# crontab: * * * * * cd /var/www/mami.ga && php artisan schedule:run
+
+# 4. Nettoyer offres fantômes
+mysql -e "UPDATE ride_offers SET status='expired', responded_at=NOW() WHERE status='pending' AND expires_at < NOW();"
+```
+
+### Après correctif — logs attendus
+
+```
+[DISPATCH] Ride #25 searching
+[WAVE] Ride #25 wave 0-1km started
+[SCORING] Driver #1 score=...
+[OFFER] Ride #25 offered to driver #1
+[WAVE] Ride #25 wave 0-1km ended drivers_notified=1
+[OFFERS_API] driver #1 pending_count=1
+```
+
 
 1. `curl /rides/offers/current` avec token du téléphone
 2. Comparer `driver.id` du `/me` avec `ride_offers.driver_id`

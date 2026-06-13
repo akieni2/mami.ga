@@ -45,7 +45,28 @@ class RideDispatchEngine
 
         DispatchLogger::dispatch("Ride #{$ride->id} searching");
 
-        DispatchWaveJob::dispatch($ride->id, 0);
+        // Vague 0 synchrone — ne dépend pas de queue:work (terrain VPS).
+        $this->processWave($ride->id, 0);
+    }
+
+    /**
+     * Courses dont dispatch_started_at est set mais aucune vague exécutée (queue bloquée).
+     */
+    public function recoverStuckDispatches(): void
+    {
+        if (! MamiFeatures::dispatchV2Enabled()) {
+            return;
+        }
+
+        Ride::query()
+            ->where('status', RideStatus::Searching)
+            ->whereNotNull('dispatch_started_at')
+            ->where('dispatch_expires_at', '>', now())
+            ->whereDoesntHave('dispatchWaves')
+            ->each(function (Ride $ride) {
+                DispatchLogger::dispatch("Ride #{$ride->id} recover stuck dispatch (no waves executed)");
+                $this->processWave($ride->id, 0);
+            });
     }
 
     public function recoverPendingSearches(): void
@@ -115,6 +136,10 @@ class RideDispatchEngine
             $maxKm,
             $alreadyOfferedIds,
         );
+
+        if ($candidates->isEmpty()) {
+            DispatchLogger::wave("Ride #{$rideId} wave {$waveLabel} zero eligible drivers");
+        }
 
         $scored = $candidates
             ->map(function (Driver $driver) use ($maxKm) {

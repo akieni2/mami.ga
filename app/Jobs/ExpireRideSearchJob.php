@@ -20,6 +20,7 @@ class ExpireRideSearchJob implements ShouldQueue
         }
 
         $engine->recoverPendingSearches();
+        $engine->recoverStuckDispatches();
 
         Ride::query()
             ->where('status', RideStatus::Searching)
