@@ -24,6 +24,7 @@ class Driver extends Model
         'latitude',
         'longitude',
         'last_seen_at',
+        'last_gps_at',
         'rating',
     ];
 
@@ -35,6 +36,7 @@ class Driver extends Model
             'latitude' => 'float',
             'longitude' => 'float',
             'last_seen_at' => 'datetime',
+            'last_gps_at' => 'datetime',
             'rating' => 'float',
         ];
     }
@@ -85,5 +87,21 @@ class Driver extends Model
     public function hasGpsPosition(): bool
     {
         return $this->latitude !== null && $this->longitude !== null;
+    }
+
+    public function hasFreshGpsPosition(): bool
+    {
+        if (! $this->hasGpsPosition()) {
+            return false;
+        }
+
+        $gpsAt = $this->last_gps_at ?? $this->last_seen_at;
+        if ($gpsAt === null) {
+            return false;
+        }
+
+        $freshnessSeconds = (int) config('mami.driver_gps_freshness_seconds', 120);
+
+        return $gpsAt->greaterThanOrEqualTo(now()->subSeconds($freshnessSeconds));
     }
 }

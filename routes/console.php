@@ -2,6 +2,7 @@
 
 use App\Jobs\ExpireRideSearchJob;
 use App\Jobs\ExpireStaleOffersJob;
+use App\Jobs\PruneDriverLocationsJob;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -13,3 +14,4 @@ Artisan::command('inspire', function () {
 Schedule::command('drivers:mark-offline')->everyMinute();
 Schedule::job(new ExpireRideSearchJob)->everyMinute();
 Schedule::job(new ExpireStaleOffersJob)->everyMinute();
+Schedule::job(new PruneDriverLocationsJob)->everyMinute();

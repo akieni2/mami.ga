@@ -61,6 +61,7 @@ class LocationTrackerNotifier extends StateNotifier<bool> {
       final driver = await _ref.read(driverRepositoryProvider).updateLocation(
             position.latitude,
             position.longitude,
+            position.accuracy,
           );
 
       _ref.read(authStateProvider.notifier).updateDriver(driver);

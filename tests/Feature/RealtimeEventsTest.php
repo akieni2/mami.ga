@@ -93,6 +93,7 @@ class RealtimeEventsTest extends TestCase
         $this->postJson('/api/drivers/location/update', [
             'latitude' => 0.4170,
             'longitude' => 9.4680,
+            'accuracy_meters' => 12,
         ])->assertOk();
 
         Event::assertDispatched(DriverLocationUpdated::class);

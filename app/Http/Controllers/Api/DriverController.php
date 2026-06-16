@@ -56,6 +56,7 @@ class DriverController extends Controller
             $driver,
             (float) $request->input('latitude'),
             (float) $request->input('longitude'),
+            (float) $request->input('accuracy_meters'),
         );
 
         return ApiResponse::success(

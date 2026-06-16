@@ -21,6 +21,9 @@ return [
     'broadcast_prefix' => env('MAMI_BROADCAST_PREFIX', 'mami'),
 
     'driver_offline_threshold_seconds' => (int) env('MAMI_DRIVER_OFFLINE_THRESHOLD_SECONDS', 300),
+    'driver_gps_freshness_seconds' => (int) env('MAMI_DRIVER_GPS_FRESHNESS_SECONDS', 120),
+    'driver_gps_max_accuracy_meters' => (float) env('MAMI_DRIVER_GPS_MAX_ACCURACY_METERS', 100),
+    'driver_location_history_minutes' => (int) env('MAMI_DRIVER_LOCATION_HISTORY_MINUTES', 10),
     'eta_average_speed_kmh' => (float) env('MAMI_ETA_AVERAGE_SPEED_KMH', 25),
 
     /*
@@ -29,11 +32,11 @@ return [
     |--------------------------------------------------------------------------
     */
     'dispatch_radius_waves' => [
-        ['min' => 0, 'max' => 1],
-        ['min' => 1, 'max' => 3],
-        ['min' => 3, 'max' => 5],
-        ['min' => 5, 'max' => 10],
-        ['min' => 10, 'max' => 20],
+        ['max' => 1],
+        ['max' => 3],
+        ['max' => 5],
+        ['max' => 10],
+        ['max' => 20],
     ],
     'dispatch_wave_delay_seconds' => (int) env('MAMI_DISPATCH_WAVE_DELAY_SECONDS', 15),
     'dispatch_wave_max_drivers' => (int) env('MAMI_DISPATCH_WAVE_MAX_DRIVERS', 5),

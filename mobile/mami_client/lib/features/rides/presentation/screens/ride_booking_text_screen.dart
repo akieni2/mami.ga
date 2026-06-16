@@ -11,6 +11,7 @@ import '../../domain/models/payment_method.dart';
 import '../providers/active_ride_provider.dart';
 import '../widgets/payment_method_selector.dart';
 import '../widgets/price_input_field.dart';
+import '../utils/booking_pickup_location.dart';
 import 'ride_map_picker_sheet.dart';
 
 /// P2A/P2B — réservation text-first, carte optionnelle.
@@ -33,6 +34,7 @@ class _RideBookingTextScreenState extends ConsumerState<RideBookingTextScreen> {
 
   LatLng? _pickupCoord;
   LatLng? _destinationCoord;
+  bool _pickupFromGps = false;
   bool _pickupFromMap = false;
   bool _destinationFromMap = false;
   double? _suggestedPrice;
@@ -85,6 +87,7 @@ class _RideBookingTextScreenState extends ConsumerState<RideBookingTextScreen> {
       if (result.pickup != null) {
         _pickupCoord = result.pickup;
         _pickupFromMap = true;
+        _pickupFromGps = false;
         if (_pickup.text.trim().isEmpty) {
           _pickup.text = LatLngUtils.format(result.pickup);
         }
@@ -106,13 +109,26 @@ class _RideBookingTextScreenState extends ConsumerState<RideBookingTextScreen> {
 
     setState(() => _loading = true);
     try {
+      final pickup = await resolveTextBookingPickup(
+        context: context,
+        mapPickup: _pickupCoord,
+      );
+
+      if (pickup.fromGps) {
+        setState(() {
+          _pickupCoord = pickup.position;
+          _pickupFromGps = true;
+          _pickupFromMap = false;
+        });
+      }
+
       final ride = await ref.read(ridesRepositoryProvider).requestTextRide(
             pickupLabel: _pickup.text.trim(),
             destinationLabel: _destination.text.trim(),
             proposedPrice: double.parse(_price.text.trim()),
             paymentMethod: _payment,
-            pickupLatitude: _pickupCoord?.latitude,
-            pickupLongitude: _pickupCoord?.longitude,
+            pickupLatitude: pickup.position.latitude,
+            pickupLongitude: pickup.position.longitude,
             destinationLatitude: _destinationCoord?.latitude,
             destinationLongitude: _destinationCoord?.longitude,
           );
@@ -121,6 +137,29 @@ class _RideBookingTextScreenState extends ConsumerState<RideBookingTextScreen> {
 
       if (mounted) {
         context.go('/ride/searching/${ride.id}');
+      }
+    } on BookingPickupLocationDenied catch (e) {
+      if (mounted) {
+        await showDialog<void>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Position requise'),
+            content: Text(e.message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('OK'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  _openMapPicker();
+                },
+                child: const Text('Choisir sur la carte'),
+              ),
+            ],
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -172,7 +211,7 @@ class _RideBookingTextScreenState extends ConsumerState<RideBookingTextScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Quartiers, points de repère — la carte est optionnelle.',
+              'Saisissez départ et destination — votre position GPS sera utilisée automatiquement.',
               style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
             ),
             const SizedBox(height: 20),
@@ -188,11 +227,16 @@ class _RideBookingTextScreenState extends ConsumerState<RideBookingTextScreen> {
               validator: (v) =>
                   v == null || v.trim().length < 3 ? 'Départ requis (3 car. min.)' : null,
               onChanged: (_) {
-                if (_pickupFromMap) {
-                  setState(() => _pickupFromMap = false);
+                if (_pickupFromMap || _pickupFromGps) {
+                  setState(() {
+                    _pickupFromMap = false;
+                    _pickupFromGps = false;
+                  });
                 }
               },
             ),
+            if (_pickupFromGps && _pickupCoord != null)
+              _mapRefinedBadge('Position GPS utilisée'),
             if (_pickupFromMap && _pickupCoord != null)
               _mapRefinedBadge('Affiné sur la carte'),
             const SizedBox(height: 16),
@@ -246,7 +290,7 @@ class _RideBookingTextScreenState extends ConsumerState<RideBookingTextScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              'MAMI Taxi V2 — P2B (carte optionnelle)',
+              'MAMI Taxi V2 — commande texte + GPS auto',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 11,

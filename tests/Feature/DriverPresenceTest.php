@@ -32,6 +32,7 @@ class DriverPresenceTest extends TestCase
         $this->postJson('/api/drivers/location/update', [
             'latitude' => 0.4162,
             'longitude' => 9.4673,
+            'accuracy_meters' => 25,
         ])->assertOk()
             ->assertJsonPath('data.presence', 'online');
 
@@ -70,5 +71,24 @@ class DriverPresenceTest extends TestCase
         $driver->refresh();
         $this->assertSame(DriverStatus::Offline, $driver->status);
         $this->assertFalse($driver->is_available);
+    }
+
+    public function test_location_update_rejects_low_precision_gps(): void
+    {
+        $driverUser = User::factory()->create();
+        Driver::factory()->create([
+            'user_id' => $driverUser->id,
+            'is_available' => true,
+            'status' => DriverStatus::Online,
+        ]);
+
+        Sanctum::actingAs($driverUser);
+
+        $this->postJson('/api/drivers/location/update', [
+            'latitude' => 0.4162,
+            'longitude' => 9.4673,
+            'accuracy_meters' => 150,
+        ])->assertStatus(422)
+            ->assertJsonValidationErrors(['accuracy_meters']);
     }
 }

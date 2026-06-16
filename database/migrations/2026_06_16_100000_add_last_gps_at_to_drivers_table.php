@@ -8,19 +8,15 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (Schema::hasColumn('drivers', 'last_seen_at')) {
-            return;
-        }
-
         Schema::table('drivers', function (Blueprint $table) {
-            $table->timestamp('last_seen_at')->nullable()->after('longitude');
+            $table->timestamp('last_gps_at')->nullable()->after('last_seen_at');
         });
     }
 
     public function down(): void
     {
         Schema::table('drivers', function (Blueprint $table) {
-            $table->dropColumn('last_seen_at');
+            $table->dropColumn('last_gps_at');
         });
     }
 };

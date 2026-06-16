@@ -16,12 +16,18 @@ class DriverLocationService
         private readonly RideEventRecorder $rideEventRecorder,
     ) {}
 
-    public function update(Driver $driver, float $latitude, float $longitude): Driver
+    public function update(
+        Driver $driver,
+        float $latitude,
+        float $longitude,
+        float $accuracyMeters,
+    ): Driver
     {
         $driver->update([
             'latitude' => $latitude,
             'longitude' => $longitude,
             'last_seen_at' => Carbon::now(),
+            'last_gps_at' => Carbon::now(),
         ]);
 
         DriverLocation::query()->create([
@@ -49,6 +55,7 @@ class DriverLocationService
                 [
                     'latitude' => $latitude,
                     'longitude' => $longitude,
+                    'accuracy_meters' => $accuracyMeters,
                     'distance_km' => $distanceKm,
                     'eta_minutes' => $etaMinutes,
                 ]

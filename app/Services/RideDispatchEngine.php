@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Enums\DriverStatus;
-use App\Enums\RideOfferStatus;
 use App\Enums\RideStatus;
 use App\Jobs\DispatchWaveJob;
 use App\Models\Driver;
@@ -14,6 +13,7 @@ use App\Support\Geo\GeoPoint;
 use App\Support\GeoDistance;
 use App\Support\MamiFeatures;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Number;
 
 class RideDispatchEngine
 {
@@ -41,23 +41,24 @@ class RideDispatchEngine
             return;
         }
 
-        $ride->update(['dispatch_started_at' => now()]);
-
-        DispatchLogger::dispatch("Ride #{$ride->id} searching");
-
         if (! $ride->hasPickupCoordinates()) {
             DispatchLogger::dispatch(
-                "Ride #{$ride->id} text-only without coords — search from Libreville center, chaining waves until driver found",
+                "Ride #{$ride->id} aborted: no client pickup GPS — cannot dispatch text-only ride",
             );
+
+            return;
         }
 
-        // Vague 0 synchrone — enchaînement auto si aucun chauffeur dans le rayon.
+        $ride->update(['dispatch_started_at' => now()]);
+
+        DispatchLogger::dispatch(
+            "Ride #{$ride->id} searching from client GPS "
+            ."({$ride->pickup_latitude}, {$ride->pickup_longitude})",
+        );
+
         $this->processWave($ride->id, 0);
     }
 
-    /**
-     * Courses dont dispatch_started_at est set mais aucune vague exécutée (queue bloquée).
-     */
     public function recoverStuckDispatches(): void
     {
         if (! MamiFeatures::dispatchV2Enabled()) {
@@ -69,6 +70,8 @@ class RideDispatchEngine
             ->whereNotNull('dispatch_started_at')
             ->where('dispatch_expires_at', '>', now())
             ->whereDoesntHave('dispatchWaves')
+            ->whereNotNull('pickup_latitude')
+            ->whereNotNull('pickup_longitude')
             ->each(function (Ride $ride) {
                 DispatchLogger::dispatch("Ride #{$ride->id} recover stuck dispatch (no waves executed)");
                 $this->processWave($ride->id, 0);
@@ -117,18 +120,17 @@ class RideDispatchEngine
         }
 
         $wave = $waves[$waveIndex];
-        $minKm = (float) $wave['min'];
-        $maxKm = (float) $wave['max'];
-        $waveLabel = "{$minKm}-{$maxKm}km";
+        $maxKm = (float) ($wave['max'] ?? 1);
+        $waveLabel = "{$maxKm}km";
 
-        DispatchLogger::wave("Ride #{$rideId} wave {$waveLabel} started");
+        DispatchLogger::wave("Ride #{$rideId} wave radius {$waveLabel} started");
 
         $searchPoint = $this->resolveSearchPoint($ride);
         $maxDrivers = (int) config('mami.dispatch_wave_max_drivers', 5);
 
         $waveRecord = RideDispatchWave::query()->create([
             'ride_id' => $ride->id,
-            'radius_min_km' => $minKm,
+            'radius_min_km' => 0,
             'radius_max_km' => $maxKm,
             'drivers_notified' => 0,
             'started_at' => now(),
@@ -138,7 +140,6 @@ class RideDispatchEngine
 
         $candidates = $this->findEligibleDrivers(
             $searchPoint,
-            $minKm,
             $maxKm,
             $alreadyOfferedIds,
         );
@@ -192,7 +193,6 @@ class RideDispatchEngine
         $nextIndex = $waveIndex + 1;
 
         if ($notified === 0 && isset($waves[$nextIndex])) {
-            // Aucun chauffeur dans cette vague — enchaîner immédiatement (sans queue).
             DispatchLogger::wave("Ride #{$rideId} chaining to wave index {$nextIndex} (no drivers in {$waveLabel})");
             $this->processWave($rideId, $nextIndex);
 
@@ -210,16 +210,6 @@ class RideDispatchEngine
             return GeoPoint::fromRidePickup($ride);
         }
 
-        $hint = $this->addressHintService->resolve($ride->pickup_label);
-
-        if ($hint !== null) {
-            DispatchLogger::dispatch("Ride #{$ride->id} search point from address hint");
-
-            return $hint;
-        }
-
-        DispatchLogger::dispatch("Ride #{$ride->id} search point fallback Libreville center");
-
         return $this->addressHintService->fallbackSearchPoint();
     }
 
@@ -229,34 +219,63 @@ class RideDispatchEngine
      */
     private function findEligibleDrivers(
         GeoPoint $searchPoint,
-        float $minKm,
         float $maxKm,
         array $excludeDriverIds,
     ) {
+        $freshnessSeconds = (int) config('mami.driver_gps_freshness_seconds', 120);
+
         return Driver::query()
             ->with(['user', 'vehicle'])
             ->get()
-            ->filter(function (Driver $driver) use ($excludeDriverIds, $minKm, $maxKm, $searchPoint) {
+            ->filter(function (Driver $driver) use ($excludeDriverIds, $maxKm, $searchPoint, $freshnessSeconds) {
+                $clientGps = "{$searchPoint->latitude},{$searchPoint->longitude}";
+                $driverGps = $driver->latitude !== null && $driver->longitude !== null
+                    ? "{$driver->latitude},{$driver->longitude}"
+                    : 'null';
+                $gpsAt = $driver->last_gps_at ?? $driver->last_seen_at;
+                $gpsAgeSeconds = $gpsAt?->diffInSeconds(now());
+
                 if (in_array($driver->id, $excludeDriverIds, true)) {
-                    DispatchLogger::driverFilter("Driver #{$driver->id} rejected: already solicited");
+                    DispatchLogger::driverFilter(
+                        "Driver #{$driver->id} rejected: already solicited client_gps={$clientGps} "
+                        ."driver_gps={$driverGps} distance_km=n/a gps_age_seconds=".($gpsAgeSeconds ?? 'n/a')
+                    );
 
                     return false;
                 }
 
                 if (! $driver->hasGpsPosition()) {
-                    DispatchLogger::driverFilter("Driver #{$driver->id} rejected: no coordinates");
+                    DispatchLogger::driverFilter(
+                        "Driver #{$driver->id} rejected: no coordinates client_gps={$clientGps} "
+                        ."driver_gps={$driverGps} distance_km=n/a gps_age_seconds=".($gpsAgeSeconds ?? 'n/a')
+                    );
+
+                    return false;
+                }
+
+                if ($gpsAt === null || $gpsAt->lt(now()->subSeconds($freshnessSeconds))) {
+                    DispatchLogger::driverFilter(
+                        "Driver #{$driver->id} rejected: stale GPS client_gps={$clientGps} "
+                        ."driver_gps={$driverGps} distance_km=n/a gps_age_seconds=".($gpsAgeSeconds ?? 'n/a')
+                    );
 
                     return false;
                 }
 
                 if ($driver->status !== DriverStatus::Online) {
-                    DispatchLogger::driverFilter("Driver #{$driver->id} rejected: offline");
+                    DispatchLogger::driverFilter(
+                        "Driver #{$driver->id} rejected: offline client_gps={$clientGps} "
+                        ."driver_gps={$driverGps} distance_km=n/a gps_age_seconds=".($gpsAgeSeconds ?? 'n/a')
+                    );
 
                     return false;
                 }
 
                 if (! $driver->is_available) {
-                    DispatchLogger::driverFilter("Driver #{$driver->id} rejected: unavailable");
+                    DispatchLogger::driverFilter(
+                        "Driver #{$driver->id} rejected: unavailable client_gps={$clientGps} "
+                        ."driver_gps={$driverGps} distance_km=n/a gps_age_seconds=".($gpsAgeSeconds ?? 'n/a')
+                    );
 
                     return false;
                 }
@@ -268,9 +287,20 @@ class RideDispatchEngine
                     (float) $driver->longitude,
                 );
 
-                if ($distanceKm < $minKm || $distanceKm > $maxKm) {
+                if ($distanceKm > $maxKm) {
+                    DispatchLogger::driverFilter(
+                        "Driver #{$driver->id} rejected: out of radius client_gps={$clientGps} "
+                        ."driver_gps={$driverGps} distance_km=".Number::format($distanceKm, 3)
+                        ." gps_age_seconds=".($gpsAgeSeconds ?? 'n/a')
+                    );
                     return false;
                 }
+
+                DispatchLogger::driverFilter(
+                    "Driver #{$driver->id} eligible client_gps={$clientGps} driver_gps={$driverGps} "
+                    ."distance_km=".Number::format($distanceKm, 3)
+                    ." gps_age_seconds=".($gpsAgeSeconds ?? 'n/a')
+                );
 
                 $driver->distance_km = $distanceKm;
 

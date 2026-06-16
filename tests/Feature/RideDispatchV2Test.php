@@ -40,6 +40,7 @@ class RideDispatchV2Test extends TestCase
             'latitude' => 0.4162,
             'longitude' => 9.4673,
             'last_seen_at' => now(),
+            'last_gps_at' => now(),
         ]);
 
         Vehicle::factory()->create(['driver_id' => $driver->id]);

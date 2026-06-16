@@ -20,10 +20,15 @@ class DriverRepository {
     );
   }
 
-  Future<DriverModel> updateLocation(double latitude, double longitude) async {
+  Future<DriverModel> updateLocation(
+    double latitude,
+    double longitude,
+    double accuracyMeters,
+  ) async {
     final response = await _dio.post('/drivers/location/update', data: {
       'latitude': latitude,
       'longitude': longitude,
+      'accuracy_meters': accuracyMeters,
     });
 
     return extractData<DriverModel>(
