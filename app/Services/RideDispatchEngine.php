@@ -45,7 +45,13 @@ class RideDispatchEngine
 
         DispatchLogger::dispatch("Ride #{$ride->id} searching");
 
-        // Vague 0 synchrone — ne dépend pas de queue:work (terrain VPS).
+        if (! $ride->hasPickupCoordinates()) {
+            DispatchLogger::dispatch(
+                "Ride #{$ride->id} text-only without coords — search from Libreville center, chaining waves until driver found",
+            );
+        }
+
+        // Vague 0 synchrone — enchaînement auto si aucun chauffeur dans le rayon.
         $this->processWave($ride->id, 0);
     }
 
@@ -179,7 +185,21 @@ class RideDispatchEngine
 
         $ride->refresh();
 
-        if ($ride->status === RideStatus::Searching) {
+        if ($ride->status !== RideStatus::Searching) {
+            return;
+        }
+
+        $nextIndex = $waveIndex + 1;
+
+        if ($notified === 0 && isset($waves[$nextIndex])) {
+            // Aucun chauffeur dans cette vague — enchaîner immédiatement (sans queue).
+            DispatchLogger::wave("Ride #{$rideId} chaining to wave index {$nextIndex} (no drivers in {$waveLabel})");
+            $this->processWave($rideId, $nextIndex);
+
+            return;
+        }
+
+        if (isset($waves[$nextIndex])) {
             $this->scheduleNextWave($rideId, $waveIndex);
         }
     }
