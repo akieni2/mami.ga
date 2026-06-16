@@ -25,6 +25,7 @@ class RideResource extends JsonResource
             'estimated_price' => $this->estimated_price !== null ? (float) $this->estimated_price : null,
             'suggested_price' => $this->displaySuggestedPrice(),
             'proposed_price' => $this->proposed_price !== null ? (float) $this->proposed_price : null,
+            'agreed_price' => $this->agreed_price !== null ? (float) $this->agreed_price : null,
             'payment_method' => $this->payment_method?->value ?? $this->payment_method,
             'distance_km' => $this->distance_km !== null ? (float) $this->distance_km : null,
             'duration_minutes' => $this->duration_minutes,
