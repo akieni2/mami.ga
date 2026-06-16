@@ -6,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../../../../core/map/mami_map.dart';
 import '../../../../core/widgets/primary_button.dart';
+import '../../../driver/presentation/providers/driver_status_provider.dart';
 import '../../../location/presentation/providers/location_tracker_provider.dart';
 import '../../../location/presentation/providers/user_location_provider.dart';
 import '../providers/active_ride_provider.dart';
@@ -20,22 +21,39 @@ class ActiveRideScreen extends ConsumerStatefulWidget {
 
 class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
   bool _loading = false;
+  String? _lastStatus;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(activeRideProvider.notifier).startHybridTracking();
+      ref.read(locationTrackerProvider.notifier).start();
     });
   }
 
-  Future<void> _run(Future<void> Function() action) async {
+  Future<void> _run(Future<void> Function() action, int rideId) async {
     setState(() => _loading = true);
     try {
       await action();
+      await ref.read(rideLiveTrackingProvider(rideId).notifier).refreshFromApi();
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  String _statusLabel(String status) {
+    return switch (status) {
+      'accepted' => 'En route vers le client',
+      'arrived' => 'Client à bord — prêt à démarrer',
+      'started' => 'Course en cours',
+      _ => status,
+    };
+  }
+
+  LatLng _navigationTarget(String status, LatLng pickup, LatLng destination) {
+    if (status == 'started') return destination;
+    return pickup;
   }
 
   @override
@@ -46,9 +64,20 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
         ? ref.watch(rideLiveTrackingProvider(ride.id))
         : const RideLiveTrackingState();
 
+    ref.listen(activeRideProvider, (prev, next) {
+      final updated = next.valueOrNull;
+      if (updated == null) return;
+      if (_lastStatus != updated.status) {
+        _lastStatus = updated.status;
+        ref
+            .read(rideLiveTrackingProvider(updated.id).notifier)
+            .refreshFromApi();
+      }
+    });
+
     if (ride == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Course active')),
+        appBar: AppBar(title: const Text('Navigation')),
         body: const Center(child: Text('Aucune course active')),
       );
     }
@@ -60,8 +89,8 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
     final destination = ride.hasDestinationCoordinates
         ? LatLng(ride.destinationLatitude!, ride.destinationLongitude!)
         : fallback;
-    final client = pickup;
-    final driver = gps ?? live.driverPosition;
+    final navTarget = _navigationTarget(ride.status, pickup, destination);
+    final driver = live.driverPosition ?? gps;
 
     final priceValue = ride.displayPrice;
     final price = priceValue != null
@@ -78,7 +107,7 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
                 MamiMap(
                   fullScreen: true,
                   driver: driver,
-                  client: client,
+                  client: navTarget,
                   pickup: pickup,
                   destination: destination,
                   route: live.route.isNotEmpty ? live.route : null,
@@ -104,14 +133,20 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Client: ${ride.client?.name ?? '—'}',
-                    style: Theme.of(context).textTheme.titleMedium),
-                Text('Statut: ${ride.status}'),
+                Text(
+                  _statusLabel(ride.status),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                Text('Client : ${ride.client?.name ?? '—'}'),
                 if (live.etaMinutes != null)
-                  Text('ETA : ~${live.etaMinutes} min'),
+                  Text('Temps estimé : ~${live.etaMinutes} min'),
                 if (live.distanceKm != null)
-                  Text('Distance : ${live.distanceKm!.toStringAsFixed(2)} km'),
-                Text('Tarif estimé: $price'),
+                  Text(
+                    'Distance restante : ${live.distanceKm! < 1 ? '${(live.distanceKm! * 1000).round()} m' : '${live.distanceKm!.toStringAsFixed(2)} km'}',
+                  ),
+                Text('Tarif : $price'),
                 const SizedBox(height: 12),
                 if (ride.status == 'accepted')
                   PrimaryButton(
@@ -121,7 +156,7 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
                       await ref
                           .read(activeRideProvider.notifier)
                           .arrived(ride.id);
-                    }),
+                    }, ride.id),
                   ),
                 if (ride.status == 'arrived')
                   PrimaryButton(
@@ -129,7 +164,7 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
                     loading: _loading,
                     onPressed: () => _run(() async {
                       await ref.read(activeRideProvider.notifier).start(ride.id);
-                    }),
+                    }, ride.id),
                   ),
                 if (ride.status == 'started')
                   PrimaryButton(
@@ -141,8 +176,10 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
                           .read(activeRideProvider.notifier)
                           .complete(ride.id);
                       ref.read(locationTrackerProvider.notifier).stop();
-                      if (mounted) context.go('/');
-                    }),
+                      await ref.read(driverStatusProvider.notifier).setOnline(true);
+                      if (!mounted) return;
+                      context.go('/');
+                    }, ride.id),
                   ),
               ],
             ),

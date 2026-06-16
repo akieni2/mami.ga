@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../../../core/config/app_config.dart';
 import '../../../../core/map/route_utils.dart';
 import '../../../../core/realtime/reverb_service.dart';
 import '../../data/rides_repository.dart';
@@ -46,10 +49,14 @@ class RideLiveTrackingNotifier extends StateNotifier<RideLiveTrackingState> {
 
   final Ref _ref;
   final int _rideId;
+  Timer? _pollTimer;
 
   Future<void> _init() async {
     await refreshFromApi();
     _listenWebSocket();
+    _pollTimer = Timer.periodic(AppConfig.trackingPollInterval, (_) {
+      refreshFromApi();
+    });
   }
 
   Future<void> refreshFromApi() async {
@@ -98,20 +105,9 @@ class RideLiveTrackingNotifier extends StateNotifier<RideLiveTrackingState> {
       if (lat == null || lng == null) return;
 
       final driverPos = LatLng(lat.toDouble(), lng.toDouble());
-      final targetLat = payload['target_latitude'] as num?;
-      final targetLng = payload['target_longitude'] as num?;
-
-      List<LatLng> route = state.route;
-      if (targetLat != null && targetLng != null) {
-        route = RouteUtils.straightLine(
-          driverPos,
-          LatLng(targetLat.toDouble(), targetLng.toDouble()),
-        );
-      }
 
       state = state.copyWith(
         driverPosition: driverPos,
-        route: route,
         distanceKm: (payload['distance_to_client_km'] as num?)?.toDouble() ??
             state.distanceKm,
         etaMinutes:
@@ -133,5 +129,11 @@ class RideLiveTrackingNotifier extends StateNotifier<RideLiveTrackingState> {
               (c['longitude'] as num).toDouble(),
             ))
         .toList();
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
   }
 }

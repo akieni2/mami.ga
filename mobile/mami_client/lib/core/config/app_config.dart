@@ -8,5 +8,6 @@ class AppConfig {
   static const double ridePricePerKm = 250;
 
   static const Duration ridePollInterval = Duration(seconds: 5);
+  static const Duration trackingPollInterval = Duration(seconds: 8);
   static const Duration splashMinDuration = Duration(seconds: 2);
 }

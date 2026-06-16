@@ -19,6 +19,8 @@ class ActiveRideScreen extends ConsumerStatefulWidget {
 }
 
 class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
+  bool _arrivedNotified = false;
+
   @override
   void initState() {
     super.initState();
@@ -38,6 +40,67 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
     };
   }
 
+  Future<void> _showArrivedDialog() async {
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Chauffeur arrivé'),
+        content: const Text('Votre chauffeur est arrivé.'),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showCompletionFlow() async {
+    if (!mounted) return;
+
+    var rating = 5;
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Course terminée'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Merci d\'avoir voyagé avec MAMI !'),
+              const SizedBox(height: 16),
+              const Text('Notez votre chauffeur'),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(5, (i) {
+                  return IconButton(
+                    onPressed: () => setState(() => rating = i + 1),
+                    icon: Icon(
+                      i < rating ? Icons.star : Icons.star_border,
+                      color: Colors.amber,
+                    ),
+                  );
+                }),
+              ),
+            ],
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Terminer'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    ref.read(activeRideProvider.notifier).clear();
+    if (mounted) context.go('/');
+  }
+
   @override
   Widget build(BuildContext context) {
     final rideAsync = ref.watch(activeRideProvider);
@@ -46,9 +109,22 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
 
     ref.listen(activeRideProvider, (prev, next) {
       final ride = next.valueOrNull;
-      if (ride?.isCompleted == true || ride?.status == 'cancelled') {
-        ref.read(activeRideProvider.notifier).clear();
-        context.go('/history');
+      if (ride == null) return;
+
+      if (ride.status == 'arrived' &&
+          !_arrivedNotified &&
+          prev?.valueOrNull?.status != 'arrived') {
+        _arrivedNotified = true;
+        _showArrivedDialog();
+      }
+
+      if (ride.isCompleted || ride.status == 'cancelled') {
+        if (ride.isCompleted) {
+          _showCompletionFlow();
+        } else {
+          ref.read(activeRideProvider.notifier).clear();
+          context.go('/');
+        }
       }
     });
 
@@ -68,10 +144,15 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('Course #${ride.id}', style: Theme.of(context).textTheme.titleLarge),
+                    Text(
+                      'Course #${ride.id}',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
                     const SizedBox(height: 12),
                     Text('Départ : ${ride.pickupDisplay}'),
                     Text('Destination : ${ride.destinationDisplay}'),
+                    const SizedBox(height: 8),
+                    Text(_statusLabel(ride.status)),
                   ],
                 ),
               ),
@@ -93,9 +174,10 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
             );
           }
 
-          final price = ride.estimatedPrice != null
+          final price = ride.proposedPrice ?? ride.suggestedPrice ?? ride.estimatedPrice;
+          final priceLabel = price != null
               ? NumberFormat.currency(symbol: 'FCFA ', decimalDigits: 0)
-                  .format(ride.estimatedPrice)
+                  .format(price)
               : '—';
 
           return Column(
@@ -130,6 +212,7 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
                 ),
               ),
               Container(
+                width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -140,18 +223,47 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
                             fontWeight: FontWeight.bold,
                           ),
                     ),
-                    if (live.etaMinutes != null)
+                    if (live.etaMinutes != null && ride.status != 'started')
                       Text('Arrivée estimée : ~${live.etaMinutes} min'),
                     if (live.distanceKm != null)
                       Text(
-                        'Distance chauffeur : ${live.distanceKm!.toStringAsFixed(2)} km',
+                        ride.status == 'started'
+                            ? 'Distance restante : ${live.distanceKm!.toStringAsFixed(2)} km'
+                            : 'Distance chauffeur : ${live.distanceKm!.toStringAsFixed(2)} km',
                       ),
                     const SizedBox(height: 8),
-                    if (ride.driver != null)
-                      Text(
-                        '${ride.driver!.name} · ${ride.driver!.vehicleLabel}',
+                    if (ride.driver != null) ...[
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            child: Text(
+                              ride.driver!.name.isNotEmpty
+                                  ? ride.driver!.name[0].toUpperCase()
+                                  : 'C',
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  ride.driver!.name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                Text(ride.driver!.vehicleLabel),
+                                if (ride.driver!.plateNumber != null)
+                                  Text('Plaque : ${ride.driver!.plateNumber}'),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                    Text('Tarif estimé : $price'),
+                    ],
+                    const SizedBox(height: 8),
+                    Text('Tarif estimé : $priceLabel'),
                   ],
                 ),
               ),

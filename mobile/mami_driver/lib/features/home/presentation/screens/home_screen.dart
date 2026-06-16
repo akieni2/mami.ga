@@ -35,6 +35,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (status == DriverUiStatus.online || status == DriverUiStatus.busy) {
         ref.read(locationTrackerProvider.notifier).start();
       }
+      final ride = ref.read(activeRideProvider).valueOrNull;
+      if (ride != null && ride.isAccepted && mounted) {
+        context.go('/ride/active');
+      }
     });
   }
 
@@ -58,7 +62,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           .acceptOffer(offer.rideId, offer.id);
       await ref.read(pendingOffersProvider.notifier).refresh();
       if (mounted && ride.isAccepted) {
-        context.push('/ride/active');
+        ref.read(locationTrackerProvider.notifier).start();
+        context.go('/ride/active');
       }
     } finally {
       if (mounted) setState(() => _actionLoading = false);
@@ -78,7 +83,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     setState(() => _actionLoading = true);
     try {
       await ref.read(activeRideProvider.notifier).accept(id);
-      if (mounted) context.push('/ride/active');
+      if (mounted) {
+        ref.read(locationTrackerProvider.notifier).start();
+        context.go('/ride/active');
+      }
     } finally {
       if (mounted) setState(() => _actionLoading = false);
     }
@@ -105,6 +113,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final ride = rideAsync.valueOrNull;
     final offers = offersAsync.valueOrNull ?? [];
     final hasActiveRide = ride != null && ride.isAccepted;
+
+    ref.listen(activeRideProvider, (prev, next) {
+      final activeRide = next.valueOrNull;
+      if (activeRide == null || !activeRide.isAccepted) return;
+      final wasActive = prev?.valueOrNull?.isAccepted ?? false;
+      if (!wasActive && mounted) {
+        ref.read(locationTrackerProvider.notifier).start();
+        context.go('/ride/active');
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -212,7 +230,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 title: const Text('Course en cours'),
                 subtitle: Text('Statut: ${ride.status}'),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () => context.push('/ride/active'),
+                onTap: () => context.go('/ride/active'),
               ),
             )
           else if (offers.isNotEmpty)
