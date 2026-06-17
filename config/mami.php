@@ -3,6 +3,21 @@
 return [
     /*
     |--------------------------------------------------------------------------
+    | MAMI Super App — feature flags globaux
+    |--------------------------------------------------------------------------
+    */
+    'super_app_enabled' => (bool) env('MAMI_SUPER_APP', true),
+
+    'modules' => [
+        'taxi' => true,
+        'carpool' => (bool) env('MAMI_MODULE_CARPOOL', false),
+        'transport' => (bool) env('MAMI_MODULE_TRANSPORT', false),
+        'commerce' => (bool) env('MAMI_MODULE_COMMERCE', false),
+        'municipality' => (bool) env('MAMI_MODULE_MUNICIPALITY', false),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | MAMI Taxi V2 — feature flags (docs/MAMI_TAXI_V2.md)
     |--------------------------------------------------------------------------
     */

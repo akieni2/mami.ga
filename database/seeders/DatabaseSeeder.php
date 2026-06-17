@@ -12,7 +12,7 @@ class DatabaseSeeder extends Seeder
             AdminSeeder::class,
             DriverSeeder::class,
             VehicleSeeder::class,
-            AdminSeeder::class,
+            RolePermissionSeeder::class,
         ]);
     }
 }
