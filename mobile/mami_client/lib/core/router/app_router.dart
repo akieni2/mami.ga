@@ -7,6 +7,8 @@ import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/municipality/presentation/screens/create_municipality_report_screen.dart';
+import '../../features/municipality/presentation/screens/enroll_economic_operator_screen.dart';
+import '../../features/municipality/presentation/screens/municipality_agent_home_screen.dart';
 import '../../features/municipality/presentation/screens/municipality_home_screen.dart';
 import '../../features/municipality/presentation/screens/my_municipality_reports_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
@@ -108,6 +110,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/municipality',
         builder: (context, state) => const MunicipalityHomeScreen(),
+      ),
+      GoRoute(
+        path: '/municipality/agent',
+        builder: (context, state) => const MunicipalityAgentHomeScreen(),
+      ),
+      GoRoute(
+        path: '/municipality/enrollment/new',
+        builder: (context, state) => const EnrollEconomicOperatorScreen(),
       ),
       GoRoute(
         path: '/municipality/report/new',

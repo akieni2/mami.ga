@@ -4,7 +4,9 @@ namespace App\Modules\Municipality;
 
 use App\Modules\Municipality\Events\MunicipalityReportStatusChanged;
 use App\Modules\Municipality\Listeners\NotifyCitizenOnReportStatusChange;
+use App\Modules\Municipality\Models\EconomicOperator;
 use App\Modules\Municipality\Models\MunicipalityReport;
+use App\Modules\Municipality\Policies\EconomicOperatorPolicy;
 use App\Modules\Municipality\Policies\MunicipalityReportPolicy;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
@@ -20,9 +22,14 @@ class MunicipalityModuleServiceProvider extends ServiceProvider
             ->group(base_path('app/Modules/Municipality/Routes/api.php'));
 
         Gate::policy(MunicipalityReport::class, MunicipalityReportPolicy::class);
+        Gate::policy(EconomicOperator::class, EconomicOperatorPolicy::class);
 
         \Illuminate\Support\Facades\Route::bind('report', function (string $value): MunicipalityReport {
             return MunicipalityReport::query()->findOrFail($value);
+        });
+
+        \Illuminate\Support\Facades\Route::bind('operator', function (string $value): EconomicOperator {
+            return EconomicOperator::query()->findOrFail($value);
         });
 
         Event::listen(

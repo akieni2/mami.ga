@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 
-class MunicipalityHomeScreen extends StatelessWidget {
+class MunicipalityHomeScreen extends ConsumerWidget {
   const MunicipalityHomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(authStateProvider).valueOrNull;
+    final isAgent = user?.canEnrollEconomicOperators ?? false;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mairie d\'Owendo'),
@@ -19,6 +24,30 @@ class MunicipalityHomeScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (isAgent) ...[
+              const Text(
+                'Espace agent municipal',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Recensement économique sur le terrain.',
+                style: TextStyle(color: Colors.grey.shade700),
+              ),
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                onPressed: () => context.push('/municipality/agent'),
+                icon: const Icon(Icons.storefront_outlined),
+                label: const Text('Recensement économique'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Divider(),
+              const SizedBox(height: 16),
+            ],
             const Text(
               'Signalements citoyens',
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
@@ -29,16 +58,17 @@ class MunicipalityHomeScreen extends StatelessWidget {
               style: TextStyle(color: Colors.grey.shade700),
             ),
             const SizedBox(height: 24),
-            FilledButton.icon(
-              onPressed: () => context.push('/municipality/report/new'),
-              icon: const Icon(Icons.add_location_alt_outlined),
-              label: const Text('Signaler un problème'),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppTheme.primary,
-                padding: const EdgeInsets.symmetric(vertical: 14),
+            if (!isAgent)
+              FilledButton.icon(
+                onPressed: () => context.push('/municipality/report/new'),
+                icon: const Icon(Icons.add_location_alt_outlined),
+                label: const Text('Signaler un problème'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
+            if (!isAgent) const SizedBox(height: 12),
             OutlinedButton.icon(
               onPressed: () => context.push('/municipality/reports'),
               icon: const Icon(Icons.list_alt_outlined),

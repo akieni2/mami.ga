@@ -13,8 +13,8 @@ class MunicipalityModuleController extends Controller
         return ApiResponse::success([
             'module' => 'municipality',
             'status' => 'active',
-            'version' => 'v1-signalements',
-            'message' => 'Signalements citoyens géolocalisés — Owendo V1',
+            'version' => 'v2.5-economic-foundation',
+            'message' => 'Recensement économique + fondations V3 fiscalité (QR, visites, quittances)',
         ], 'Municipality module status');
     }
 }

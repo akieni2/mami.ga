@@ -18,4 +18,8 @@ return [
   ],
 
   'quartier_max_distance_m' => 3000,
+
+  'gps_max_accuracy_m' => 20,
+
+  'economic_zone_max_distance_m' => 5000,
 ];

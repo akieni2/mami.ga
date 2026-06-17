@@ -34,7 +34,7 @@ class AuthController extends Controller
     public function login(LoginRequest $request): JsonResponse
     {
         $user = User::query()
-            ->with('driver.vehicle')
+            ->with(['driver.vehicle', 'roles.permissions'])
             ->where('email', $request->string('email')->toString())
             ->first();
 
@@ -61,7 +61,7 @@ class AuthController extends Controller
 
     public function me(Request $request): JsonResponse
     {
-        $user = $request->user()->load('driver.vehicle');
+        $user = $request->user()->load(['driver.vehicle', 'roles.permissions']);
 
         return ApiResponse::success([
             'user' => $this->userPayload($user),
@@ -70,12 +70,27 @@ class AuthController extends Controller
 
     private function userPayload(User $user): array
     {
+        $roles = $user->relationLoaded('roles')
+            ? $user->roles->pluck('slug')->values()->all()
+            : [];
+
+        $permissions = $user->relationLoaded('roles')
+            ? $user->roles
+                ->flatMap(fn ($role) => $role->permissions)
+                ->pluck('slug')
+                ->unique()
+                ->values()
+                ->all()
+            : [];
+
         return [
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
             'phone' => $user->phone,
             'is_driver' => $user->relationLoaded('driver') ? $user->driver !== null : $user->isDriver(),
+            'roles' => $roles,
+            'permissions' => $permissions,
             'driver' => $user->relationLoaded('driver') && $user->driver
                 ? (new \App\Http\Resources\DriverResource($user->driver))->resolve()
                 : null,

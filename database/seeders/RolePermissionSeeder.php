@@ -26,6 +26,11 @@ class RolePermissionSeeder extends Seeder
             ['slug' => 'municipality.collections.manage', 'name' => 'Gérer les recouvrements', 'module' => 'municipality'],
             ['slug' => 'municipality.reports.create', 'name' => 'Créer un signalement citoyen', 'module' => 'municipality'],
             ['slug' => 'municipality.reports.manage', 'name' => 'Gérer les signalements citoyens', 'module' => 'municipality'],
+            ['slug' => 'municipality.operators.manage', 'name' => 'Gérer le registre économique', 'module' => 'municipality'],
+            ['slug' => 'economic_operator.create', 'name' => 'Enrôler un opérateur économique', 'module' => 'municipality'],
+            ['slug' => 'economic_operator.update', 'name' => 'Modifier un opérateur économique', 'module' => 'municipality'],
+            ['slug' => 'economic_operator.view', 'name' => 'Consulter les opérateurs économiques', 'module' => 'municipality'],
+            ['slug' => 'economic_operator.inspect', 'name' => 'Effectuer un contrôle terrain', 'module' => 'municipality'],
             ['slug' => 'core.admin.access', 'name' => 'Accès administration', 'module' => 'core'],
             ['slug' => 'core.super_admin.access', 'name' => 'Accès super administration', 'module' => 'core'],
         ];
@@ -46,8 +51,21 @@ class RolePermissionSeeder extends Seeder
             MamiRole::TransportCustomer->value => ['transport.requests.create', 'commerce.merchants.view'],
             MamiRole::TransportDriver->value => ['transport.missions.manage'],
             MamiRole::Merchant->value => ['commerce.merchants.manage'],
-            MamiRole::MunicipalAgent->value => ['municipality.dashboard.view', 'municipality.collections.manage', 'municipality.reports.manage'],
-            MamiRole::Admin->value => ['core.admin.access', 'taxi.rides.manage', 'municipality.reports.manage'],
+            MamiRole::MunicipalAgent->value => [
+                'municipality.dashboard.view',
+                'municipality.collections.manage',
+                'municipality.reports.manage',
+                'economic_operator.create',
+                'economic_operator.update',
+                'economic_operator.view',
+                'economic_operator.inspect',
+            ],
+            MamiRole::Admin->value => [
+                'core.admin.access',
+                'taxi.rides.manage',
+                'municipality.reports.manage',
+                'municipality.operators.manage',
+            ],
             MamiRole::SuperAdmin->value => Permission::query()->pluck('slug')->all(),
         ];
 
