@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../domain/models/ride_model.dart';
 import '../providers/active_ride_provider.dart';
 
 class RideSearchingScreen extends ConsumerStatefulWidget {
@@ -18,6 +19,7 @@ class RideSearchingScreen extends ConsumerStatefulWidget {
 class _RideSearchingScreenState extends ConsumerState<RideSearchingScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _pulse;
+  bool _navigatedToActive = false;
 
   @override
   void initState() {
@@ -28,7 +30,21 @@ class _RideSearchingScreenState extends ConsumerState<RideSearchingScreen>
     )..repeat(reverse: true);
 
     ref.read(activeRideProvider.notifier).startHybridTracking(widget.rideId);
-    ref.read(activeRideProvider.notifier).refresh(widget.rideId);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final ride =
+          await ref.read(activeRideProvider.notifier).refresh(widget.rideId);
+      if (mounted) _goToActiveIfAccepted(ride);
+    });
+  }
+
+  /// ref.listen ne se déclenche pas si le statut est déjà accepted
+  /// au moment où l'écran s'affiche (course Reverb/poll avant le 1er build).
+  void _goToActiveIfAccepted(RideModel? ride) {
+    if (_navigatedToActive || ride == null || !ride.isAccepted || !mounted) {
+      return;
+    }
+    _navigatedToActive = true;
+    context.go('/ride/active/${ride.id}');
   }
 
   @override
@@ -83,12 +99,15 @@ class _RideSearchingScreenState extends ConsumerState<RideSearchingScreen>
         return;
       }
 
-      if (ride.isAccepted) {
-        context.go('/ride/active/${ride.id}');
-      }
+      _goToActiveIfAccepted(ride);
     });
 
     final ride = rideAsync.valueOrNull;
+    if (ride != null && ride.isAccepted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _goToActiveIfAccepted(ref.read(activeRideProvider).valueOrNull);
+      });
+    }
     final statusLabel = ride?.status ?? 'searching';
 
     return Scaffold(

@@ -115,6 +115,32 @@ class RideModel {
           ? '${destinationLatitude!.toStringAsFixed(4)}, ${destinationLongitude!.toStringAsFixed(4)}'
           : '—');
 
+  bool get canShowTrackingMap => hasPickupCoordinates;
+
+  RideModel copyWith({
+    String? status,
+    RideDriverInfo? driver,
+  }) {
+    return RideModel(
+      id: id,
+      status: status ?? this.status,
+      pickupLabel: pickupLabel,
+      destinationLabel: destinationLabel,
+      pickupSource: pickupSource,
+      destinationSource: destinationSource,
+      pickupLatitude: pickupLatitude,
+      pickupLongitude: pickupLongitude,
+      destinationLatitude: destinationLatitude,
+      destinationLongitude: destinationLongitude,
+      estimatedPrice: estimatedPrice,
+      suggestedPrice: suggestedPrice,
+      proposedPrice: proposedPrice,
+      paymentMethod: paymentMethod,
+      driver: driver ?? this.driver,
+      createdAt: createdAt,
+    );
+  }
+
   factory RideModel.fromJson(Map<String, dynamic> json) {
     final paymentRaw = json['payment_method'] as String?;
 

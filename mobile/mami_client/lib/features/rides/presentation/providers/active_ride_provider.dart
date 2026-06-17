@@ -73,7 +73,10 @@ class ActiveRideNotifier extends StateNotifier<AsyncValue<RideModel?>> {
     final userId = _ref.read(authStateProvider).valueOrNull?.id;
     final reverb = _ref.read(reverbServiceProvider);
 
-    void onEvent(String event, Map<String, dynamic> _) {
+    void onEvent(String event, Map<String, dynamic> payload) {
+      if (event == 'RideOfferAccepted' || event == 'RideAccepted') {
+        _applyAcceptedFromPayload(rideId, payload);
+      }
       if (ReverbService.rideEvents.contains(event)) {
         refresh(rideId);
       }
@@ -85,6 +88,17 @@ class ActiveRideNotifier extends StateNotifier<AsyncValue<RideModel?>> {
     }
 
     _realtimeRideId = rideId;
+  }
+
+  void _applyAcceptedFromPayload(int rideId, Map<String, dynamic> payload) {
+    final payloadRideId = payload['ride_id'] as int?;
+    if (payloadRideId != null && payloadRideId != rideId) return;
+
+    final current = state.valueOrNull;
+    if (current == null || current.id != rideId) return;
+
+    final status = payload['status'] as String? ?? 'accepted';
+    state = AsyncValue.data(current.copyWith(status: status));
   }
 
   void _stopRealtime() {
