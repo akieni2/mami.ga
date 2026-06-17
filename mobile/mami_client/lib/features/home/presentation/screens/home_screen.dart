@@ -34,6 +34,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     if (module == MamiServiceModule.taxi) {
       context.push('/book');
+    } else if (module == MamiServiceModule.municipality) {
+      context.push('/municipality');
     }
   }
 

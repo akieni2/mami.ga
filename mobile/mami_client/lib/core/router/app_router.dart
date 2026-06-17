@@ -6,6 +6,9 @@ import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
+import '../../features/municipality/presentation/screens/create_municipality_report_screen.dart';
+import '../../features/municipality/presentation/screens/municipality_home_screen.dart';
+import '../../features/municipality/presentation/screens/my_municipality_reports_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/rides/presentation/screens/active_ride_screen.dart';
 import '../../features/rides/presentation/screens/ride_booking_gate.dart';
@@ -101,6 +104,18 @@ final routerProvider = Provider<GoRouter>((ref) {
           final id = int.parse(state.pathParameters['id']!);
           return ActiveRideScreen(rideId: id);
         },
+      ),
+      GoRoute(
+        path: '/municipality',
+        builder: (context, state) => const MunicipalityHomeScreen(),
+      ),
+      GoRoute(
+        path: '/municipality/report/new',
+        builder: (context, state) => const CreateMunicipalityReportScreen(),
+      ),
+      GoRoute(
+        path: '/municipality/reports',
+        builder: (context, state) => const MyMunicipalityReportsScreen(),
       ),
     ],
   );

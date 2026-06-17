@@ -2,6 +2,12 @@
 
 namespace App\Modules\Municipality;
 
+use App\Modules\Municipality\Events\MunicipalityReportStatusChanged;
+use App\Modules\Municipality\Listeners\NotifyCitizenOnReportStatusChange;
+use App\Modules\Municipality\Models\MunicipalityReport;
+use App\Modules\Municipality\Policies\MunicipalityReportPolicy;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
@@ -12,5 +18,16 @@ class MunicipalityModuleServiceProvider extends ServiceProvider
         Route::prefix('api/municipality')
             ->middleware('api')
             ->group(base_path('app/Modules/Municipality/Routes/api.php'));
+
+        Gate::policy(MunicipalityReport::class, MunicipalityReportPolicy::class);
+
+        \Illuminate\Support\Facades\Route::bind('report', function (string $value): MunicipalityReport {
+            return MunicipalityReport::query()->findOrFail($value);
+        });
+
+        Event::listen(
+            MunicipalityReportStatusChanged::class,
+            NotifyCitizenOnReportStatusChange::class,
+        );
     }
 }

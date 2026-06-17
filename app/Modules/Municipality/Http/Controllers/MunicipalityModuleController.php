@@ -12,8 +12,9 @@ class MunicipalityModuleController extends Controller
     {
         return ApiResponse::success([
             'module' => 'municipality',
-            'status' => 'scaffold',
-            'message' => 'Module Municipalité — activation via MAMI_MODULE_MUNICIPALITY.',
+            'status' => 'active',
+            'version' => 'v1-signalements',
+            'message' => 'Signalements citoyens géolocalisés — Owendo V1',
         ], 'Municipality module status');
     }
 }

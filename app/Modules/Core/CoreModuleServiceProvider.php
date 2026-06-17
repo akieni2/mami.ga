@@ -29,6 +29,7 @@ class CoreModuleServiceProvider extends ServiceProvider
             'user' => \App\Models\User::class,
             'address' => \App\Modules\Core\Models\Address::class,
             'payment' => \App\Modules\Core\Models\Payment::class,
+            'municipality_report' => \App\Modules\Municipality\Models\MunicipalityReport::class,
         ]);
     }
 }

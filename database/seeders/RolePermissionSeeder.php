@@ -24,6 +24,8 @@ class RolePermissionSeeder extends Seeder
             ['slug' => 'commerce.merchants.view', 'name' => 'Consulter les commerces', 'module' => 'commerce'],
             ['slug' => 'municipality.dashboard.view', 'name' => 'Voir le tableau de bord municipal', 'module' => 'municipality'],
             ['slug' => 'municipality.collections.manage', 'name' => 'Gérer les recouvrements', 'module' => 'municipality'],
+            ['slug' => 'municipality.reports.create', 'name' => 'Créer un signalement citoyen', 'module' => 'municipality'],
+            ['slug' => 'municipality.reports.manage', 'name' => 'Gérer les signalements citoyens', 'module' => 'municipality'],
             ['slug' => 'core.admin.access', 'name' => 'Accès administration', 'module' => 'core'],
             ['slug' => 'core.super_admin.access', 'name' => 'Accès super administration', 'module' => 'core'],
         ];
@@ -36,16 +38,16 @@ class RolePermissionSeeder extends Seeder
         }
 
         $rolePermissions = [
-            MamiRole::Citizen->value => ['commerce.merchants.view'],
-            MamiRole::TaxiCustomer->value => ['taxi.rides.request', 'commerce.merchants.view'],
+            MamiRole::Citizen->value => ['commerce.merchants.view', 'municipality.reports.create'],
+            MamiRole::TaxiCustomer->value => ['taxi.rides.request', 'commerce.merchants.view', 'municipality.reports.create'],
             MamiRole::TaxiDriver->value => ['taxi.rides.dispatch'],
             MamiRole::CarpoolDriver->value => ['carpool.trips.publish'],
             MamiRole::CarpoolPassenger->value => ['carpool.trips.book', 'commerce.merchants.view'],
             MamiRole::TransportCustomer->value => ['transport.requests.create', 'commerce.merchants.view'],
             MamiRole::TransportDriver->value => ['transport.missions.manage'],
             MamiRole::Merchant->value => ['commerce.merchants.manage'],
-            MamiRole::MunicipalAgent->value => ['municipality.dashboard.view', 'municipality.collections.manage'],
-            MamiRole::Admin->value => ['core.admin.access', 'taxi.rides.manage'],
+            MamiRole::MunicipalAgent->value => ['municipality.dashboard.view', 'municipality.collections.manage', 'municipality.reports.manage'],
+            MamiRole::Admin->value => ['core.admin.access', 'taxi.rides.manage', 'municipality.reports.manage'],
             MamiRole::SuperAdmin->value => Permission::query()->pluck('slug')->all(),
         ];
 

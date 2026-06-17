@@ -21,6 +21,8 @@
             ['route' => 'admin.clients.index', 'label' => 'Clients', 'match' => 'admin.clients.*'],
             ['route' => 'admin.map.index', 'label' => 'Carte opérationnelle', 'match' => 'admin.map.*'],
             ['route' => 'admin.reports.index', 'label' => 'Rapports', 'match' => 'admin.reports.*'],
+            ['route' => 'admin.municipality.reports.index', 'label' => 'Signalements Owendo', 'match' => 'admin.municipality.reports.*'],
+            ['route' => 'admin.municipality.map.index', 'label' => 'Carte municipale', 'match' => 'admin.municipality.map.*'],
         ] as $item)
             <a href="{{ route($item['route']) }}"
                class="{{ request()->routeIs($item['match']) ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }} block rounded-lg px-3 py-2 text-sm font-medium transition">
