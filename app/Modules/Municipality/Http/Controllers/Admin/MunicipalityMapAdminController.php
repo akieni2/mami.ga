@@ -23,7 +23,7 @@ class MunicipalityMapAdminController extends Controller
         return response()->json([
             'type' => 'FeatureCollection',
             'features' => $this->layerSignalements->toGeoJson(request()->only([
-                'status', 'category', 'sector_id', 'date_from', 'date_to', 'bbox',
+                'status', 'category', 'sector_id', 'quartier', 'date_from', 'date_to', 'bbox',
             ]))['features'],
         ]);
     }

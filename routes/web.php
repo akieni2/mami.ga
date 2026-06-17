@@ -34,7 +34,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/map', [LiveMapController::class, 'index'])->name('map.index');
     Route::get('/reports', [ReportsController::class, 'index'])->name('reports.index');
 
-    Route::prefix('municipality')->name('municipality.')->group(function (): void {
+    Route::prefix('municipality')->name('municipality.')->middleware('module:municipality')->group(function (): void {
         Route::get('/reports', [\App\Modules\Municipality\Http\Controllers\Admin\MunicipalityReportAdminController::class, 'index'])->name('reports.index');
         Route::get('/reports/{report}', [\App\Modules\Municipality\Http\Controllers\Admin\MunicipalityReportAdminController::class, 'show'])->name('reports.show');
         Route::post('/reports/{report}/assign', [\App\Modules\Municipality\Http\Controllers\Admin\MunicipalityReportAdminController::class, 'assign'])->name('reports.assign');

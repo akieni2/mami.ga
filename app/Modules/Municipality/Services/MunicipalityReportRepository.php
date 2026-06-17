@@ -62,6 +62,12 @@ class MunicipalityReportRepository
             $query->where('sector_id', $filters['sector_id']);
         }
 
+        if (! empty($filters['quartier'])) {
+            $query->whereHas('sector', function (Builder $sectorQuery) use ($filters): void {
+                $sectorQuery->where('slug', $filters['quartier']);
+            });
+        }
+
         if (! empty($filters['date_from'])) {
             $query->whereDate('created_at', '>=', $filters['date_from']);
         }

@@ -26,9 +26,12 @@ class MunicipalityReportController extends Controller
 
     public function store(StoreMunicipalityReportRequest $request): JsonResponse
     {
+        $validated = $request->validated();
+        unset($validated['photo']);
+
         $report = $this->reportService->create(
             $request->user(),
-            $request->safe()->except('photo')->all(),
+            $validated,
             $request->file('photo'),
         );
 
@@ -44,7 +47,7 @@ class MunicipalityReportController extends Controller
         $this->authorize('viewAny', MunicipalityReport::class);
 
         $user = $request->user();
-        $filters = $request->only(['status', 'category', 'sector_id', 'date_from', 'date_to', 'bbox']);
+        $filters = $request->only(['status', 'category', 'sector_id', 'quartier', 'date_from', 'date_to', 'bbox']);
         $citizenOnly = $request->boolean('mine') || ! $user->isAdmin() && ! $user->hasPermission('municipality.reports.manage') && ! $user->hasRole('municipal_agent');
 
         if ($citizenOnly) {
@@ -100,7 +103,7 @@ class MunicipalityReportController extends Controller
     {
         $this->authorize('viewAny', MunicipalityReport::class);
 
-        $filters = $request->only(['status', 'category', 'sector_id', 'date_from', 'date_to', 'bbox']);
+        $filters = $request->only(['status', 'category', 'sector_id', 'quartier', 'date_from', 'date_to', 'bbox']);
 
         return ApiResponse::success([
             'layer' => 'signalements',

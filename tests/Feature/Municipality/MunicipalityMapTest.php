@@ -46,4 +46,36 @@ class MunicipalityMapTest extends MunicipalityTestCase
 
         $this->assertSame('#E53935', $color);
     }
+
+    public function test_map_filters_by_category_status_and_quartier(): void
+    {
+        Sanctum::actingAs($this->municipalAgent());
+
+        $this->postJson('/api/municipality/reports', $this->validReportPayload());
+
+        $this->postJson('/api/municipality/reports', array_merge(
+            $this->validReportPayload(),
+            ['category' => 'dechets', 'title' => 'Poubelle renversée'],
+        ));
+
+        $this->getJson('/api/municipality/reports/map?category=voirie')
+            ->assertOk()
+            ->assertJsonCount(1, 'data.geojson.features');
+
+        $this->getJson('/api/municipality/reports/map?status=new')
+            ->assertOk()
+            ->assertJsonCount(2, 'data.geojson.features');
+
+        $this->getJson('/api/municipality/reports/map?quartier=cite-sni')
+            ->assertOk()
+            ->assertJsonCount(2, 'data.geojson.features');
+
+        $sectorId = \App\Modules\Municipality\Models\MunicipalSector::query()
+            ->where('slug', 'cite-sni')
+            ->value('id');
+
+        $this->getJson('/api/municipality/reports/map?sector_id='.$sectorId)
+            ->assertOk()
+            ->assertJsonCount(2, 'data.geojson.features');
+    }
 }

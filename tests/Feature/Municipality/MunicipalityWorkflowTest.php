@@ -46,7 +46,13 @@ class MunicipalityWorkflowTest extends MunicipalityTestCase
 
         $this->assertDatabaseCount('municipality_report_updates', 5);
 
-        Notification::assertSentTo($citizen, MunicipalityReportStatusNotification::class);
+        Notification::assertSentToTimes($citizen, MunicipalityReportStatusNotification::class, 4);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'subject_type' => 'municipality_report',
+            'subject_id' => $reportId,
+            'action' => 'report.status_changed',
+        ]);
     }
 
     public function test_invalid_status_transition_rejected(): void
