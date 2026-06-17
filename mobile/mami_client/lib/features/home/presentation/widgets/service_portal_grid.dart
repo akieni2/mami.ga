@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../theme/app_theme.dart';
-import '../config/mami_service_module.dart';
+import '../../../../core/config/mami_service_module.dart';
+import '../../../../core/theme/app_theme.dart';
 
 class ServicePortalGrid extends StatelessWidget {
   const ServicePortalGrid({
