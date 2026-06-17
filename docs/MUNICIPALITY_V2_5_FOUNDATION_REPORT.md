@@ -58,6 +58,16 @@ Relations ajoutées sur `EconomicOperator` : `qrcodes`, `activeQrcode`, `fieldVi
 | `FieldVisitService` | Enregistrement visites terrain + audit |
 | `MunicipalReceiptReferenceGenerator` | Numérotation `OWE-RCP-YYYY-NNNNNN` + QR quittance |
 
+### Seeders
+
+| Seeder | Rôle |
+|--------|------|
+| `MunicipalityDatabaseSeeder` | **Orchestrateur** — installe tout le module en une commande |
+| `RolePermissionSeeder` | Rôles et permissions (`municipal_agent`, `economic_operator.*`) |
+| `OwendoTerritorySeeder` | Territoire Owendo, quartiers, ZOP |
+| `EconomicOperatorCategorySeeder` | 10 catégories d'activité |
+| `EconomicZoneSeeder` | 8 zones `OWE-ZEC-*` — lève `RuntimeException` si territoire absent |
+
 **Hook enrôlement** : `QRCodeManagement::generateForOperator()` crée un **UUID v4** (`scan_token`) encodé dans le QR, et un libellé affiché `OWE-COM-000001`. La référence publique seule n'est **pas** acceptée au scan.
 
 ### Sécurité QR commerce
@@ -135,6 +145,7 @@ L'écran d'enrôlement V2 (GPS auto, carte, photos, validation précision) reste
 | `FieldVisitTest` | CRUD visite, historique scan, KPI dashboard |
 | `MunicipalReceiptTest` | Numérotation quittance, table, placeholders KPI |
 | `EconomicOperatorIntegrityTest` | Contraintes UNIQUE/FK, soft delete, blocage hard delete |
+| `MunicipalityDatabaseSeederTest` | Orchestrateur seeders + échec explicite `EconomicZoneSeeder` |
 
 **Résultat** : `37` tests Municipality — **tous passants**.
 
@@ -206,12 +217,37 @@ Tests automatisés : `tests/Feature/Municipality/EconomicOperatorIntegrityTest.p
 
 ## 11. Déploiement
 
+### Installation complète du module (VPS vierge ou réinitialisation référentiels)
+
+Après les migrations :
+
 ```bash
 php artisan migrate --force
-php artisan db:seed --class=RolePermissionSeeder --force
-php artisan db:seed --class=EconomicOperatorCategorySeeder --force
-php artisan db:seed --class=EconomicZoneSeeder --force
+php artisan db:seed --class=MunicipalityDatabaseSeeder --force
 php artisan config:cache && php artisan route:cache
+```
+
+`MunicipalityDatabaseSeeder` exécute dans l'ordre :
+
+1. `RolePermissionSeeder` — rôles et permissions (`municipal_agent`, `economic_operator.*`, etc.)
+2. `OwendoTerritorySeeder` — territoire Owendo, quartiers, ZOP
+3. `EconomicOperatorCategorySeeder` — catégories d'activité
+4. `EconomicZoneSeeder` — 8 zones économiques `OWE-ZEC-*`
+
+> **Important** : `EconomicZoneSeeder` lève une `RuntimeException` si `OwendoTerritorySeeder` n'a pas été exécuté avant (plus d'échec silencieux).
+
+### Prérequis `.env`
+
+```env
+MAMI_MODULE_MUNICIPALITY=true
+```
+
+### Seeders individuels (maintenance ciblée)
+
+```bash
+php artisan db:seed --class=OwendoTerritorySeeder --force
+php artisan db:seed --class=EconomicOperatorCategorySeeder --force
+php artisan db:seed --class=EconomicZoneSeeder --force   # requiert OwendoTerritorySeeder
 ```
 
 ---

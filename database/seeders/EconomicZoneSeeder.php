@@ -7,6 +7,7 @@ use App\Modules\Municipality\Models\EconomicZone;
 use App\Modules\Municipality\Models\MunicipalSector;
 use App\Modules\Municipality\Models\MunicipalTerritory;
 use Illuminate\Database\Seeder;
+use RuntimeException;
 
 class EconomicZoneSeeder extends Seeder
 {
@@ -14,7 +15,9 @@ class EconomicZoneSeeder extends Seeder
     {
         $territory = MunicipalTerritory::query()->where('code', 'OWE')->first();
         if ($territory === null) {
-            return;
+            throw new RuntimeException(
+                'OwendoTerritorySeeder must be executed before EconomicZoneSeeder.',
+            );
         }
 
         $zop = fn (string $slug): ?int => MunicipalSector::query()
