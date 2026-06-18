@@ -9,6 +9,7 @@ use App\Modules\Municipality\Http\Resources\MunicipalPaymentCollectionResource;
 use App\Modules\Municipality\Models\EconomicOperator;
 use App\Modules\Municipality\Models\MunicipalPayment;
 use App\Modules\Municipality\Services\FiscalCollectionService;
+use App\Modules\Municipality\Services\FiscalSupervisorDashboardService;
 use App\Modules\Municipality\Services\OperatorFiscalSummaryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,6 +22,7 @@ class FiscalCollectionController extends Controller
     public function __construct(
         private readonly FiscalCollectionService $collectionService,
         private readonly OperatorFiscalSummaryService $summaryService,
+        private readonly FiscalSupervisorDashboardService $dashboardService,
     ) {}
 
     public function operatorSummary(Request $request, EconomicOperator $operator): JsonResponse
@@ -43,9 +45,9 @@ class FiscalCollectionController extends Controller
             'operator_id' => ['required', 'integer', 'exists:economic_operators,id'],
             'amount_xaf' => ['required', 'numeric', 'min:1'],
             'cash_session_id' => ['required', 'integer', 'exists:cash_sessions,id'],
-            'latitude' => ['required', 'numeric'],
-            'longitude' => ['required', 'numeric'],
-            'gps_accuracy_m' => ['required', 'numeric', 'min:0'],
+            'latitude' => ['nullable', 'numeric'],
+            'longitude' => ['nullable', 'numeric'],
+            'gps_accuracy_m' => ['nullable', 'numeric', 'min:0'],
             'device_id' => ['nullable', 'string', 'max:100'],
             'notes' => ['nullable', 'string'],
             'client_operation_id' => ['nullable', 'uuid'],
@@ -75,35 +77,27 @@ class FiscalCollectionController extends Controller
     {
         $this->authorizeFiscalView($request->user());
 
-        $today = now()->toDateString();
-
-        $openSessions = \App\Modules\Municipality\Models\CashSession::query()
-            ->with('agent')
-            ->where('status', 'open')
-            ->get();
-
-        $collectedToday = MunicipalPayment::query()
-            ->whereDate('collected_at', $today)
-            ->where('status', 'completed')
-            ->sum('amount');
-
-        $byAgent = MunicipalPayment::query()
-            ->selectRaw('agent_id, SUM(amount) as total, COUNT(*) as count')
-            ->whereDate('collected_at', $today)
-            ->where('status', 'completed')
-            ->groupBy('agent_id')
-            ->with('agent:id,name')
-            ->get();
+        $data = $this->dashboardService->build($request->query('date'));
 
         return response()->json([
             'success' => true,
             'data' => [
-                'open_sessions_count' => $openSessions->count(),
-                'open_sessions' => CashSessionResource::collection($openSessions),
-                'collected_today_xaf' => (string) $collectedToday,
-                'collections_by_agent' => $byAgent->map(fn ($row) => [
+                'open_sessions_count' => $data['open_sessions_count'],
+                'open_sessions' => CashSessionResource::collection($data['open_sessions']),
+                'collected_today_xaf' => $data['collected_today_xaf'],
+                'collections_by_agent' => $data['collections_by_agent']->map(fn ($row) => [
                     'agent_id' => $row->agent_id,
                     'agent_name' => $row->agent?->name,
+                    'total_xaf' => (string) $row->total,
+                    'count' => $row->count,
+                ]),
+                'collections_by_day' => $data['collections_by_day']->map(fn ($row) => [
+                    'day' => $row->day,
+                    'total_xaf' => (string) $row->total,
+                    'count' => $row->count,
+                ]),
+                'collections_by_quartier' => $data['collections_by_quartier']->map(fn ($row) => [
+                    'quartier' => $row->quartier,
                     'total_xaf' => (string) $row->total,
                     'count' => $row->count,
                 ]),

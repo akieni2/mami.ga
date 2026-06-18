@@ -127,15 +127,16 @@ class FiscalCollectionTest extends MunicipalityTestCase
 
     public function test_rejects_collection_without_gps(): void
     {
-        $user = $this->fiscalManager();
-        $taxType = $this->createTaxType($user);
-        $this->createTaxRate($user, $taxType);
-        $operator = $this->createOperator($user);
-        $this->assignTax($user, $operator, $taxType);
-        $this->generateObligations($user);
-        $session = $this->openCashSession($user);
+        $manager = $this->fiscalManager();
+        $agent = $this->municipalAgentUser();
+        $taxType = $this->createTaxType($manager);
+        $this->createTaxRate($manager, $taxType);
+        $operator = $this->createOperator($manager);
+        $this->assignTax($manager, $operator, $taxType);
+        $this->generateObligations($manager);
+        $session = $this->openCashSession($agent);
 
-        Sanctum::actingAs($user);
+        Sanctum::actingAs($agent);
 
         $payload = $this->validCollectionPayload($operator, $session);
         unset($payload['latitude'], $payload['longitude']);
@@ -146,15 +147,16 @@ class FiscalCollectionTest extends MunicipalityTestCase
 
     public function test_rejects_collection_with_poor_gps_accuracy(): void
     {
-        $user = $this->fiscalManager();
-        $taxType = $this->createTaxType($user);
-        $this->createTaxRate($user, $taxType);
-        $operator = $this->createOperator($user);
-        $this->assignTax($user, $operator, $taxType);
-        $this->generateObligations($user);
-        $session = $this->openCashSession($user);
+        $manager = $this->fiscalManager();
+        $agent = $this->municipalAgentUser();
+        $taxType = $this->createTaxType($manager);
+        $this->createTaxRate($manager, $taxType);
+        $operator = $this->createOperator($manager);
+        $this->assignTax($manager, $operator, $taxType);
+        $this->generateObligations($manager);
+        $session = $this->openCashSession($agent);
 
-        Sanctum::actingAs($user);
+        Sanctum::actingAs($agent);
 
         $payload = $this->validCollectionPayload($operator, $session);
         $payload['gps_accuracy_m'] = 200;

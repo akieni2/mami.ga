@@ -110,6 +110,32 @@
                 </table>
             </div>
         </div>
+
+        <div class="rounded-lg border bg-white shadow-sm">
+            <div class="border-b px-4 py-3 font-semibold">Par quartier ({{ $date }})</div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-sm">
+                    <thead class="bg-slate-50 text-left">
+                        <tr>
+                            <th class="px-4 py-2">Quartier</th>
+                            <th class="px-4 py-2">Opérations</th>
+                            <th class="px-4 py-2">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($byQuartier as $row)
+                            <tr class="border-t">
+                                <td class="px-4 py-2">{{ $row->quartier }}</td>
+                                <td class="px-4 py-2">{{ $row->count }}</td>
+                                <td class="px-4 py-2">{{ number_format($row->total, 0, ',', ' ') }} XAF</td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="3" class="px-4 py-6 text-center text-slate-500">Aucune donnée</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
 @endsection

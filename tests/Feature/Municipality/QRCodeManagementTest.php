@@ -174,13 +174,4 @@ class QRCodeManagementTest extends MunicipalityTestCase
             ->with('activeQrcode')
             ->firstOrFail();
     }
-
-    private function municipalAgentUser(): User
-    {
-        $user = User::factory()->create();
-        $role = Role::query()->where('slug', MamiRole::MunicipalAgent->value)->firstOrFail();
-        $user->roles()->attach($role->id, ['assigned_at' => now()]);
-
-        return $user;
-    }
 }

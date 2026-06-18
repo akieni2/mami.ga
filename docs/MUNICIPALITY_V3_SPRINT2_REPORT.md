@@ -2,103 +2,99 @@
 
 **Sprint :** Encaissement terrain & sessions de caisse  
 **Date :** 18 juin 2026  
-**Statut :** Livré (backend, API, admin, Flutter agent, tests)
+**Statut :** Validé — prêt pour push
 
 ---
 
 ## Objectif
 
-Transformer l'application Android Agent Municipal en terminal de recouvrement terrain : sessions de caisse, consultation fiscale après scan QR, encaissement espèces avec allocation automatique FIFO, traçabilité complète (field_visits + audit_logs).
+Transformer l'application Android Agent Municipal en terminal de recouvrement terrain : sessions de caisse, consultation fiscale après scan QR, encaissement espèces avec allocation automatique FIFO, quittances `OWE-RCP-*`, traçabilité complète.
 
-**Hors périmètre Sprint 2 :** Mobile Money, impression Bluetooth, quittance PDF avancée (prévus Sprint 3).
+**Hors périmètre Sprint 2 :** Mobile Money, impression Bluetooth, PDF avancé (Sprint 3).
+
+---
+
+## Validation finale (18 juin 2026)
+
+| Domaine | Statut | Détail |
+|---------|--------|--------|
+| Intégrité financière | ✅ | Session obligatoire, une session/agent, fermeture idempotente, commerce actif, obligations requises |
+| Allocation FIFO | ✅ | Scénario A=5000, B=7000, C=8000, paiement 20000 → allocations exactes |
+| Traçabilité | ✅ | `audit_logs` pour ouverture/fermeture caisse, scan, consultation, paiement, quittance |
+| GPS | ✅ | Obligatoire agents terrain ; bypass superviseur (`municipal.payment.collect_without_gps`) si coordonnées absentes |
+| QR sécurisé | ✅ | UUID et suffixe acceptés ; `OWE-COM-*` seul refusé |
+| Quittances | ✅ | Émission auto `OWE-RCP-YYYY-NNNNNN` à chaque encaissement |
+| Sessions caisse | ✅ | `OWE-CS-*`, `expected_amount_xaf` = fonds + Σ paiements |
+| Dashboard superviseur | ✅ | Par agent, jour, quartier — requêtes agrégées, pas de N+1 |
+| Sécurité | ✅ | Citoyen → 403 sur tous les endpoints recouvrement |
+| Performance | ✅ | Dashboard < 30 requêtes / < 3 s avec 200 commerces et 500 paiements |
+| Tests | ✅ | **134 tests Municipality verts** |
+| Régression Taxi | ✅ | Tests ride échantillon verts |
 
 ---
 
 ## Backend livré
 
-### Migrations
+### Tables & migrations
 
-- `cash_sessions` — référence `OWE-CS-YYYY-NNNNNN`, montants, statuts, GPS, device_id
-- `municipal_payment_allocations` — lien paiement ↔ obligation
-- Extensions `municipal_payments` : session, core_payment, GPS, idempotence `client_operation_id`
-- Extensions `field_visits` : `cash_session_id`, `municipal_payment_id`, `operator_id` nullable (sessions)
+- `cash_sessions`, `municipal_payment_allocations`
+- Extensions `municipal_payments`, `field_visits`
+- Index performance `(status, collected_at)`, `sector_id`
 
 ### Services
 
 | Service | Rôle |
 |---------|------|
 | `CashSessionService` | Ouverture / fermeture, une session ouverte par agent |
-| `CashSessionReferenceGenerator` | Références `OWE-CS-*` |
-| `OperatorFiscalSummaryService` | Consultation fiscale + visites scan/consultation |
-| `ObligationAllocationService` | Allocation FIFO (due_date, id) |
-| `FiscalCollectionService` | Orchestration encaissement + contrôles GPS |
-| `PaymentOrchestratorService` | Création `payments` + `transactions` Core |
+| `FiscalCollectionService` | Encaissement, GPS, allocation, quittance |
+| `ObligationAllocationService` | Allocation FIFO |
+| `MunicipalReceiptEmissionService` | Quittances `OWE-RCP-*` |
+| `FiscalSupervisorDashboardService` | KPIs agrégés |
+| `OperatorFiscalSummaryService` | Consultation fiscale |
+| `PaymentOrchestratorService` | Core `payments` + `transactions` |
 
-### API (`/api/municipality/fiscal/...`)
+### API (`/api/municipality/fiscal/`)
 
 | Méthode | Route | Description |
 |---------|-------|-------------|
-| GET | `/cash-sessions/current` | Session ouverte de l'agent |
+| GET | `/cash-sessions/current` | Session ouverte |
 | POST | `/cash-sessions/open` | Ouvrir caisse |
 | POST | `/cash-sessions/{id}/close` | Fermer caisse |
-| GET | `/cash-sessions` | Liste (superviseur) |
-| GET | `/operator/{id}/summary` | Situation fiscale commerce |
+| GET | `/operator/{id}/summary` | Situation fiscale |
 | POST | `/collections` | Encaissement espèces |
 | GET | `/collections` | Mes encaissements |
-| GET | `/supervisor/dashboard` | KPIs superviseur |
-
-Scan QR existant : `GET /operators/by-qr/{value}` enregistre désormais une visite `scan` + audit.
+| GET | `/supervisor/dashboard` | KPIs (agent, jour, quartier) |
 
 ### Permissions
 
 - `municipal.cash_session.open` / `close`
 - `municipal.payment.collect`
+- `municipal.payment.collect_without_gps` (superviseur)
 - `municipal.fiscal.view`
 
-Attribuées au rôle `MunicipalAgent` et `Admin`.
+### Admin
 
-### Contrôles obligatoires
-
-- Session ouverte et appartenant à l'agent
-- GPS présent, précision ≤ `mami.municipality_collection_max_gps_accuracy_m` (défaut 50 m)
-- Commerce actif
-- Montant ≤ solde dû (pas de surpaiement)
-
-### Admin superviseur
-
-- Route : `/admin/municipality/collection`
-- Vue : sessions ouvertes, collecte du jour, par agent, par jour (14 jours)
+- `/admin/municipality/collection` — tableau de bord superviseur
 
 ---
 
 ## Flutter Agent
 
-Menu **Recouvrement** activé depuis l'accueil agent (`/municipality/recovery`) :
+Menu **Recouvrement** (`/municipality/recovery`) : ouverture caisse, scan QR, situation fiscale, encaissement, historique, fermeture caisse.
 
-- Ouvrir caisse
-- Scanner QR commerce (saisie UUID)
-- Situation fiscale
-- Encaisser
-- Mes encaissements
-- Fermer caisse
-
-Repository : `fiscal_collection_repository.dart`
+**Test manuel recommandé sur appareil :** Ouvrir caisse → Scanner QR → Consulter → Encaisser → Historique → Fermer caisse.
 
 ---
 
 ## Tests
 
-| Fichier | Tests |
+| Fichier | Focus |
 |---------|-------|
-| `CashSessionTest` | 12 |
-| `FiscalCollectionTest` | 11 |
-| `PaymentAllocationTest` | 10 |
-| `OperatorFiscalSummaryTest` | 12 |
-
-**Total Municipality :** 115 tests verts (45 nouveaux Sprint 2).  
-**Régression Taxi :** non impactée (module isolé).
-
-Commande :
+| `CashSessionTest` | Sessions de caisse |
+| `FiscalCollectionTest` | Encaissement |
+| `PaymentAllocationTest` | Allocation FIFO |
+| `OperatorFiscalSummaryTest` | Consultation & dashboard |
+| `Sprint2FinalValidationTest` | Validation intégrale pré-push |
 
 ```bash
 php artisan test tests/Feature/Municipality
@@ -106,21 +102,10 @@ php artisan test tests/Feature/Municipality
 
 ---
 
-## Flux métier
+## Sprint 3 — prochaines étapes
 
-```
-Agent → Ouvrir caisse → Scanner QR → Consultation fiscale
-     → Encaissement espèces → Allocation FIFO obligations
-     → Fermer caisse
-```
-
-Chaque étape crée `field_visits` et `audit_logs`.
-
----
-
-## Prochaines étapes (Sprint 3)
-
+- Impression Bluetooth 58 mm
+- Quittances PDF officielles + signature numérique
+- Vérification publique des quittances
 - Airtel Money / Moov Money
-- Impression Bluetooth
-- Quittance PDF avancée
-- Scan caméra natif (actuellement saisie UUID)
+- Mode offline complet

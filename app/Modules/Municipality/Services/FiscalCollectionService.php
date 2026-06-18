@@ -19,6 +19,7 @@ class FiscalCollectionService
         private readonly CashSessionService $cashSessionService,
         private readonly ObligationAllocationService $allocationService,
         private readonly PaymentOrchestratorService $paymentOrchestrator,
+        private readonly MunicipalReceiptEmissionService $receiptEmission,
         private readonly FiscalAuditService $audit,
     ) {}
 
@@ -28,7 +29,7 @@ class FiscalCollectionService
      */
     public function collectCash(User $agent, array $data): array
     {
-        $this->validateGps($data);
+        $this->validateGps($agent, $data);
 
         $operator = EconomicOperator::query()->findOrFail($data['operator_id']);
 
@@ -74,8 +75,8 @@ class FiscalCollectionService
                 'payment_method' => PaymentMethod::Cash,
                 'payment_period' => now()->format('Y-m'),
                 'status' => PaymentStatus::Completed,
-                'latitude' => $data['latitude'],
-                'longitude' => $data['longitude'],
+                'latitude' => $data['latitude'] ?? null,
+                'longitude' => $data['longitude'] ?? null,
                 'gps_accuracy_m' => $data['gps_accuracy_m'] ?? null,
                 'device_id' => $data['device_id'] ?? null,
                 'notes' => $data['notes'] ?? null,
@@ -84,16 +85,18 @@ class FiscalCollectionService
             ]);
 
             $corePayment = $this->paymentOrchestrator->createCorePayment($agent, $municipalPayment, [
-                'gps' => [
-                    'latitude' => $data['latitude'],
-                    'longitude' => $data['longitude'],
+                'gps' => array_filter([
+                    'latitude' => $data['latitude'] ?? null,
+                    'longitude' => $data['longitude'] ?? null,
                     'accuracy_m' => $data['gps_accuracy_m'] ?? null,
-                ],
+                ], fn ($value) => $value !== null),
             ]);
 
             $municipalPayment->update(['core_payment_id' => $corePayment->id]);
 
             $this->allocationService->apply($municipalPayment, $allocations);
+
+            $this->receiptEmission->emit($agent, $municipalPayment);
 
             $session->update([
                 'expected_amount_xaf' => $this->cashSessionService->calculateExpectedAmount($session),
@@ -106,8 +109,8 @@ class FiscalCollectionService
                 'municipal_payment_id' => $municipalPayment->id,
                 'visit_type' => VisitType::Payment,
                 'visit_date' => now()->toDateString(),
-                'latitude' => $data['latitude'],
-                'longitude' => $data['longitude'],
+                'latitude' => $data['latitude'] ?? null,
+                'longitude' => $data['longitude'] ?? null,
                 'notes' => $data['notes'] ?? null,
             ]);
 
@@ -123,6 +126,7 @@ class FiscalCollectionService
                     'corePayment',
                     'operator',
                     'cashSession',
+                    'receipt',
                 ]),
                 'allocations' => $municipalPayment->allocations,
             ];
@@ -132,9 +136,18 @@ class FiscalCollectionService
     /**
      * @param  array<string, mixed>  $data
      */
-    private function validateGps(array $data): void
+    private function validateGps(User $agent, array $data): void
     {
-        if (! isset($data['latitude'], $data['longitude'])) {
+        $canSkipGps = $agent->isAdmin()
+            || $agent->hasPermission('municipal.payment.collect_without_gps');
+
+        $hasCoordinates = isset($data['latitude'], $data['longitude']);
+
+        if (! $hasCoordinates) {
+            if ($canSkipGps) {
+                return;
+            }
+
             throw ValidationException::withMessages([
                 'gps' => ['La position GPS est obligatoire.'],
             ]);

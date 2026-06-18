@@ -159,7 +159,7 @@ class OperatorFiscalSummaryTest extends MunicipalityTestCase
 
         $this->getJson('/api/municipality/fiscal/supervisor/dashboard')
             ->assertOk()
-            ->assertJsonPath('data.collected_today_xaf', '15000.00');
+            ->assertJsonPath('data.collected_today_xaf', '15000');
     }
 
     public function test_citizen_cannot_view_fiscal_summary(): void
