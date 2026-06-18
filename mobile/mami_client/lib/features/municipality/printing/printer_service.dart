@@ -1,8 +1,8 @@
-import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/models/municipal_receipt_model.dart';
 import 'bluetooth_printer_adapter.dart';
+import 'esc_pos_command_builder.dart';
 
 class PrinterService {
   PrinterService(this._adapter);
@@ -49,33 +49,29 @@ class PrinterService {
       return false;
     }
 
-    final profile = await CapabilityProfile.load();
-    final generator = Generator(PaperSize.mm58, profile);
-    final bytes = <int>[];
-
-    bytes.addAll(generator.text(payload.commune,
-        styles: const PosStyles(align: PosAlign.center, bold: true)));
-    bytes.addAll(generator.text('QUITTANCE OFFICIELLE',
-        styles: const PosStyles(align: PosAlign.center, bold: true)));
-    bytes.addAll(generator.hr());
-    bytes.addAll(generator.text('Ref: ${payload.receiptNumber}'));
-    bytes.addAll(generator.text('Commerce: ${payload.commercialName}'));
-    bytes.addAll(generator.text('ID: ${payload.publicId}'));
-    bytes.addAll(generator.text('Montant: ${payload.amountXaf} XAF',
-        styles: const PosStyles(bold: true)));
-    bytes.addAll(generator.text('Date: ${_formatDate(payload.issuedAt)}'));
-    bytes.addAll(generator.text('Agent: ${payload.agentName}'));
-    bytes.addAll(generator.text('Hash: ${payload.documentHashShort}'));
-    bytes.addAll(generator.feed(1));
+    final esc = EscPosCommandBuilder()..initialize();
+    esc.textLine(payload.commune, bold: true, center: true);
+    esc.textLine('QUITTANCE OFFICIELLE', bold: true, center: true);
+    esc.hr();
+    esc.textLine('Ref: ${payload.receiptNumber}');
+    esc.textLine('Commerce: ${payload.commercialName}');
+    esc.textLine('ID: ${payload.publicId}');
+    esc.textLine('Montant: ${payload.amountXaf} XAF', bold: true);
+    esc.textLine('Date: ${_formatDate(payload.issuedAt)}');
+    esc.textLine('Agent: ${payload.agentName}');
+    esc.textLine('Hash: ${payload.documentHashShort}');
+    esc.feed(1);
 
     if (payload.verificationUrl.isNotEmpty) {
-      bytes.addAll(generator.qrcode(payload.verificationUrl));
+      esc.alignCenter();
+      esc.qrCode(payload.verificationUrl);
+      esc.alignLeft();
     }
 
-    bytes.addAll(generator.feed(2));
-    bytes.addAll(generator.cut());
+    esc.feed(2);
+    esc.cut();
 
-    return _adapter.printBytes(bytes);
+    return _adapter.printBytes(esc.build());
   }
 
   String _formatDate(String iso) {
