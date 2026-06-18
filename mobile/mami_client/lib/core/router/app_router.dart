@@ -6,11 +6,18 @@ import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
+import '../../features/municipality/presentation/screens/collect_cash_screen.dart';
+import '../../features/municipality/presentation/screens/close_cash_session_screen.dart';
 import '../../features/municipality/presentation/screens/create_municipality_report_screen.dart';
 import '../../features/municipality/presentation/screens/enroll_economic_operator_screen.dart';
+import '../../features/municipality/presentation/screens/fiscal_summary_screen.dart';
 import '../../features/municipality/presentation/screens/municipality_agent_home_screen.dart';
 import '../../features/municipality/presentation/screens/municipality_home_screen.dart';
+import '../../features/municipality/presentation/screens/my_collections_screen.dart';
 import '../../features/municipality/presentation/screens/my_municipality_reports_screen.dart';
+import '../../features/municipality/presentation/screens/open_cash_session_screen.dart';
+import '../../features/municipality/presentation/screens/recovery_hub_screen.dart';
+import '../../features/municipality/presentation/screens/scan_operator_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/rides/presentation/screens/active_ride_screen.dart';
 import '../../features/rides/presentation/screens/ride_booking_gate.dart';
@@ -126,6 +133,48 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/municipality/reports',
         builder: (context, state) => const MyMunicipalityReportsScreen(),
+      ),
+      GoRoute(
+        path: '/municipality/recovery',
+        builder: (context, state) => const RecoveryHubScreen(),
+      ),
+      GoRoute(
+        path: '/municipality/recovery/open-session',
+        builder: (context, state) => const OpenCashSessionScreen(),
+      ),
+      GoRoute(
+        path: '/municipality/recovery/close-session',
+        builder: (context, state) => const CloseCashSessionScreen(),
+      ),
+      GoRoute(
+        path: '/municipality/recovery/scan',
+        builder: (context, state) => const ScanOperatorScreen(),
+      ),
+      GoRoute(
+        path: '/municipality/recovery/fiscal-summary',
+        builder: (context, state) => const FiscalSummaryScreen(),
+      ),
+      GoRoute(
+        path: '/municipality/recovery/fiscal-summary/:operatorId',
+        builder: (context, state) {
+          final operatorId = int.parse(state.pathParameters['operatorId']!);
+          return FiscalSummaryScreen(operatorId: operatorId);
+        },
+      ),
+      GoRoute(
+        path: '/municipality/recovery/collect',
+        builder: (context, state) {
+          final operatorId = int.tryParse(state.uri.queryParameters['operatorId'] ?? '');
+          final balance = state.uri.queryParameters['balance'];
+          return CollectCashScreen(
+            operatorId: operatorId,
+            suggestedAmount: balance,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/municipality/recovery/my-collections',
+        builder: (context, state) => const MyCollectionsScreen(),
       ),
     ],
   );

@@ -36,6 +36,8 @@ class CoreModuleServiceProvider extends ServiceProvider
             'municipal_collection_target' => \App\Modules\Municipality\Models\MunicipalCollectionTarget::class,
             'operator_tax_assignment' => \App\Modules\Municipality\Models\OperatorTaxAssignment::class,
             'fiscal_obligation' => \App\Modules\Municipality\Models\FiscalObligation::class,
+            'municipal_payment' => \App\Modules\Municipality\Models\MunicipalPayment::class,
+            'cash_session' => \App\Modules\Municipality\Models\CashSession::class,
         ]);
     }
 }

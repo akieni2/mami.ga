@@ -61,9 +61,9 @@ class MunicipalityAgentHomeScreen extends ConsumerWidget {
           _AgentMenuTile(
             icon: Icons.qr_code_scanner,
             title: 'Scanner QR Commerce',
-            subtitle: 'Bientôt disponible',
-            enabled: false,
-            onTap: () => _showSoon(context),
+            subtitle: 'Identification commerce',
+            enabled: true,
+            onTap: () => context.push('/municipality/recovery/scan'),
           ),
           _AgentMenuTile(
             icon: Icons.fact_check_outlined,
@@ -75,9 +75,9 @@ class MunicipalityAgentHomeScreen extends ConsumerWidget {
           _AgentMenuTile(
             icon: Icons.payments_outlined,
             title: 'Recouvrement',
-            subtitle: 'Bientôt disponible',
-            enabled: false,
-            onTap: () => _showSoon(context),
+            subtitle: 'Caisse, consultation, encaissement',
+            enabled: true,
+            onTap: () => context.push('/municipality/recovery'),
           ),
           _AgentMenuTile(
             icon: Icons.history,

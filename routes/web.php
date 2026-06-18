@@ -57,6 +57,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
             Route::get('/obligations', [\App\Modules\Municipality\Http\Controllers\Admin\FiscalAdminController::class, 'obligations'])->name('obligations');
             Route::post('/obligations/generate', [\App\Modules\Municipality\Http\Controllers\Admin\FiscalAdminController::class, 'generateObligations'])->name('obligations.generate');
         });
+
+        Route::get('/collection', [\App\Modules\Municipality\Http\Controllers\Admin\CashCollectionAdminController::class, 'dashboard'])->name('collection.dashboard');
     });
 
     Route::prefix('live')->name('live.')->group(function (): void {

@@ -8,6 +8,11 @@ enum VisitType: string
     case Verification = 'verification';
     case Collection = 'collection';
     case Awareness = 'awareness';
+    case Scan = 'scan';
+    case Consultation = 'consultation';
+    case Payment = 'payment';
+    case SessionOpen = 'session_open';
+    case SessionClose = 'session_close';
 
     public function label(): string
     {
@@ -16,6 +21,11 @@ enum VisitType: string
             self::Verification => 'Vérification',
             self::Collection => 'Recouvrement',
             self::Awareness => 'Sensibilisation',
+            self::Scan => 'Scan QR',
+            self::Consultation => 'Consultation fiscale',
+            self::Payment => 'Encaissement',
+            self::SessionOpen => 'Ouverture caisse',
+            self::SessionClose => 'Fermeture caisse',
         };
     }
 

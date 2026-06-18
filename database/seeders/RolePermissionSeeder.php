@@ -34,6 +34,10 @@ class RolePermissionSeeder extends Seeder
             ['slug' => 'municipal.tax.view', 'name' => 'Consulter le moteur fiscal', 'module' => 'municipality'],
             ['slug' => 'municipal.tax.manage', 'name' => 'Gérer taxes et objectifs', 'module' => 'municipality'],
             ['slug' => 'municipal.tax.assign', 'name' => 'Affecter les taxes aux opérateurs', 'module' => 'municipality'],
+            ['slug' => 'municipal.cash_session.open', 'name' => 'Ouvrir une session de caisse', 'module' => 'municipality'],
+            ['slug' => 'municipal.cash_session.close', 'name' => 'Fermer une session de caisse', 'module' => 'municipality'],
+            ['slug' => 'municipal.payment.collect', 'name' => 'Encaisser des taxes terrain', 'module' => 'municipality'],
+            ['slug' => 'municipal.fiscal.view', 'name' => 'Consulter la situation fiscale', 'module' => 'municipality'],
             ['slug' => 'core.admin.access', 'name' => 'Accès administration', 'module' => 'core'],
             ['slug' => 'core.super_admin.access', 'name' => 'Accès super administration', 'module' => 'core'],
         ];
@@ -62,6 +66,10 @@ class RolePermissionSeeder extends Seeder
                 'economic_operator.update',
                 'economic_operator.view',
                 'economic_operator.inspect',
+                'municipal.cash_session.open',
+                'municipal.cash_session.close',
+                'municipal.payment.collect',
+                'municipal.fiscal.view',
             ],
             MamiRole::Admin->value => [
                 'core.admin.access',
@@ -71,6 +79,10 @@ class RolePermissionSeeder extends Seeder
                 'municipal.tax.view',
                 'municipal.tax.manage',
                 'municipal.tax.assign',
+                'municipal.cash_session.open',
+                'municipal.cash_session.close',
+                'municipal.payment.collect',
+                'municipal.fiscal.view',
             ],
             MamiRole::SuperAdmin->value => Permission::query()->pluck('slug')->all(),
         ];

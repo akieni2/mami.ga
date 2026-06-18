@@ -1,8 +1,10 @@
 <?php
 
+use App\Modules\Municipality\Http\Controllers\CashSessionController;
 use App\Modules\Municipality\Http\Controllers\EconomicOperatorController;
 use App\Modules\Municipality\Http\Controllers\EconomicOperatorQrController;
 use App\Modules\Municipality\Http\Controllers\FiscalAssignmentController;
+use App\Modules\Municipality\Http\Controllers\FiscalCollectionController;
 use App\Modules\Municipality\Http\Controllers\FiscalObligationController;
 use App\Modules\Municipality\Http\Controllers\FiscalTargetController;
 use App\Modules\Municipality\Http\Controllers\FiscalTaxRateController;
@@ -63,5 +65,15 @@ Route::middleware(['auth:sanctum', 'module:municipality'])->group(function (): v
         Route::post('/obligations/generate', [FiscalObligationController::class, 'generate']);
         Route::get('/obligations/{obligation}', [FiscalObligationController::class, 'show']);
         Route::post('/obligations/{obligation}/cancel', [FiscalObligationController::class, 'cancel']);
+
+        Route::get('/operator/{operator}/summary', [FiscalCollectionController::class, 'operatorSummary']);
+        Route::post('/collections', [FiscalCollectionController::class, 'store']);
+        Route::get('/collections', [FiscalCollectionController::class, 'index']);
+        Route::get('/supervisor/dashboard', [FiscalCollectionController::class, 'supervisorDashboard']);
+
+        Route::get('/cash-sessions/current', [CashSessionController::class, 'current']);
+        Route::post('/cash-sessions/open', [CashSessionController::class, 'open']);
+        Route::post('/cash-sessions/{cashSession}/close', [CashSessionController::class, 'close']);
+        Route::get('/cash-sessions', [CashSessionController::class, 'index']);
     });
 });

@@ -69,4 +69,11 @@ return [
     'scheduled_ride_lock_buffer_minutes' => (int) env('MAMI_SCHEDULED_LOCK_BUFFER_MINUTES', 30),
     'no_show_client_grace_minutes' => (int) env('MAMI_NO_SHOW_CLIENT_GRACE_MINUTES', 10),
     'no_show_driver_grace_minutes' => (int) env('MAMI_NO_SHOW_DRIVER_GRACE_MINUTES', 15),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Municipality V3 — recouvrement terrain
+    |--------------------------------------------------------------------------
+    */
+    'municipality_collection_max_gps_accuracy_m' => (float) env('MAMI_MUNICIPALITY_COLLECTION_MAX_GPS_ACCURACY_M', 50),
 ];

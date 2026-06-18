@@ -8,6 +8,7 @@ use App\Modules\Municipality\Http\Resources\OperatorQrScanResource;
 use App\Modules\Municipality\Models\EconomicOperator;
 use App\Modules\Municipality\Services\FieldVisitService;
 use App\Modules\Municipality\Services\MunicipalBusinessCardService;
+use App\Modules\Municipality\Services\OperatorFiscalSummaryService;
 use App\Modules\Municipality\Services\QRCodeManagement;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -20,15 +21,22 @@ class EconomicOperatorQrController extends Controller
         private readonly QRCodeManagement $qrCodeManagement,
         private readonly MunicipalBusinessCardService $businessCardService,
         private readonly FieldVisitService $fieldVisitService,
+        private readonly OperatorFiscalSummaryService $fiscalSummaryService,
     ) {}
 
-    public function showByQr(string $value): JsonResponse
+    public function showByQr(\Illuminate\Http\Request $request, string $value): JsonResponse
     {
         $this->authorize('viewAny', EconomicOperator::class);
 
         $qrcode = $this->qrCodeManagement->findByValue($value);
         if ($qrcode === null) {
             return ApiResponse::error('QR commerce introuvable ou inactif.', 404);
+        }
+
+        if ($request->user() !== null) {
+            $this->fiscalSummaryService->recordScan($request->user(), $qrcode->operator, $request->only([
+                'latitude', 'longitude', 'gps_accuracy_m',
+            ]));
         }
 
         return ApiResponse::success(

@@ -23,7 +23,7 @@ return new class extends Migration
 
         Schema::create('field_visits', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('operator_id')->constrained('economic_operators')->restrictOnDelete();
+            $table->foreignId('operator_id')->nullable()->constrained('economic_operators')->restrictOnDelete();
             $table->foreignId('agent_id')->constrained('users')->restrictOnDelete();
             $table->string('visit_type', 30);
             $table->date('visit_date');

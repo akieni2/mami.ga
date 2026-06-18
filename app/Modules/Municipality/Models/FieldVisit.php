@@ -12,6 +12,8 @@ class FieldVisit extends Model
     protected $fillable = [
         'operator_id',
         'agent_id',
+        'cash_session_id',
+        'municipal_payment_id',
         'visit_type',
         'visit_date',
         'notes',
@@ -37,5 +39,15 @@ class FieldVisit extends Model
     public function agent(): BelongsTo
     {
         return $this->belongsTo(User::class, 'agent_id');
+    }
+
+    public function cashSession(): BelongsTo
+    {
+        return $this->belongsTo(CashSession::class, 'cash_session_id');
+    }
+
+    public function municipalPayment(): BelongsTo
+    {
+        return $this->belongsTo(MunicipalPayment::class, 'municipal_payment_id');
     }
 }
