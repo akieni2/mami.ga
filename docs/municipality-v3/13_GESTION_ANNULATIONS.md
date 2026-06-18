@@ -24,7 +24,7 @@ Pas de suppression physique — statut `voided` + piste audit.
 1. Seuls paiements `status=completed` annulables
 2. Paiement déjà `refunded` → void interdit (flux refund)
 3. Si quittance émise → marquée voided / watermark ANNULÉ
-4. **Obligations** : montants alloués restaurés (`amount_paid` décrémenté)
+4. **Obligations** : montants alloués restaurés via `municipal_payment_allocations` (`amount_paid` décrémenté par taxe)
 5. **Compte fiscal** : `balance_due` recalculé
 6. **Core payment** : statut `cancelled` + transaction contre-passation
 7. **Caisse espèces** : `expected_cash` ajusté si session non `approved`

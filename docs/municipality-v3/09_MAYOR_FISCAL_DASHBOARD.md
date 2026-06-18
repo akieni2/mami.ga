@@ -20,16 +20,18 @@ Permission : `municipal.dashboard.fiscal`
 
 ```mermaid
 flowchart LR
+    TAX[municipal_tax_types] --> RATES[municipal_tax_rates]
+    TAX --> TARGETS[municipal_collection_targets]
+    OTA[operator_tax_assignments] --> OBL[fiscal_obligations]
     MP[municipal_payments] --> AGG[Agregats journaliers]
     OFA[operator_fiscal_accounts] --> AGG
     CS[cash_sessions] --> AGG
     AGG --> CACHE[Redis cache 5min]
     CACHE --> API[MayorFiscalDashboardController]
     API --> WEB[Dashboard Web]
-    API --> WS[Reverb optional]
 ```
 
-**V3.0** : requêtes SQL directes + cache Redis  
+**V3.0** : dashboard inclut **gestion fiscale** (CRUD taxes) + KPI simples  
 **V3.3** : table matérialisée `fiscal_daily_snapshots` (job nightly + refresh hourly)
 
 ## 9.4 Écrans
@@ -75,6 +77,26 @@ Sessions ouvertes, montants espèces en circulation terrain, écarts en attente 
 - Chute encaissements > 30 % vs moyenne 7 jours
 - Pic annulations
 
+### 9.4.7 Gestion fiscale (V3.0 — prioritaire)
+
+| Écran | Actions Maire / Finance |
+|-------|-------------------------|
+| Types de taxes | Créer, modifier, archiver `municipal_tax_types` |
+| Taux | Ajouter versions (`municipal_tax_rates`) : montant, périodicité, validité |
+| Objectifs annuels | Saisir `municipal_collection_targets` par taxe |
+| Affectations | Assigner taxes aux opérateurs (unitaire, masse, par catégorie) |
+| Génération | Lancer `GenerateFiscalObligationsJob` |
+
+Voir [19_MOTEUR_FISCAL_CONFIGURABLE.md](19_MOTEUR_FISCAL_CONFIGURABLE.md).
+
+### 9.4.8 Suivi objectifs
+
+| Widget | Formule |
+|--------|---------|
+| Objectif vs réalisé (taxe) | `SUM(payments) / target_amount` par `tax_type_id` |
+| Objectif global Owendo | SUM targets vs SUM collections année |
+| Projection fin d'année | linéaire sur encaissements YTD |
+
 ## 9.5 API
 
 | Méthode | Route | Description |
@@ -85,6 +107,11 @@ Sessions ouvertes, montants espèces en circulation terrain, écarts en attente 
 | GET | `/dashboard/fiscal/by-agent` | Par agent |
 | GET | `/dashboard/fiscal/alerts` | Alertes actives |
 | GET | `/dashboard/fiscal/export` | CSV / Excel |
+| GET/POST | `/tax-types` | CRUD taxes |
+| GET/POST | `/tax-types/{id}/rates` | Versions tarifaires |
+| GET/POST | `/collection-targets` | Objectifs annuels |
+| GET/POST | `/operators/{id}/tax-assignments` | Affectations |
+| POST | `/fiscal-obligations/generate` | Génération manuelle |
 
 Extension endpoint existant V2.5 `v3_preparatory` → remplacé par endpoints ci-dessus.
 

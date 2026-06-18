@@ -21,7 +21,10 @@ Garantir une **piste d'audit complète** pour chaque opération financière muni
 | `MunicipalReceipt` | issued, printed, reprinted, voided |
 | `CashSession` | opened, closed, approved, rejected |
 | `MunicipalRefund` | requested, approved, completed |
-| `FiscalObligation` | created, allocated, deallocated |
+| `FiscalObligation` | created (job), allocated, deallocated |
+| `MunicipalTaxType` | created, updated, archived |
+| `MunicipalTaxRate` | created, superseded |
+| `OperatorTaxAssignment` | created, suspended, ended |
 | `OfflineSyncBatch` | received, processed, rejected |
 
 ## 16.4 Schéma `audit_logs` (Core existant)
@@ -52,7 +55,10 @@ Chaque entrée :
 ```
 QR scan (qr_uuid)
   → operator_id
+  → operator_tax_assignments (taxes actives)
+  → fiscal_obligations (par taxe / période)
   → municipal_payment (collected_by, collected_at, gps)
+  → municipal_payment_allocations
   → payment Core (payment_id)
   → transaction Core
   → municipal_receipt (receipt_number)

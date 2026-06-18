@@ -49,7 +49,8 @@ Format : `OWE-RCP-{YYYY}-{6 digits zero-padded}`
 |-------|--------|
 | Opérateur | `business_name`, `public_id` |
 | Adresse / zone | `economic_zone.name`, quartier |
-| Période couverte | obligations allouées |
+| Période couverte | `fiscal_obligations.period_label` par allocation |
+| Détail taxes | `tax_lines_json` : code taxe, libellé, montant |
 | Montant payé | `municipal_payments.amount` |
 | Mode paiement | cash / Airtel / Moov |
 | Référence MM | si applicable |
@@ -57,8 +58,8 @@ Format : `OWE-RCP-{YYYY}-{6 digits zero-padded}`
 
 ### Pied
 - QR vérification : URL `https://mami.ga/v/r/{qr_verification_token}`
+- **Signature numérique** : `document_hash` = SHA256(receipt_number | operator_id | amount | tax_lines | collected_at)
 - Mention légale : « Document officiel — falsification punie »
-- Hash document (optionnel V3.1) : SHA256 des champs critiques
 
 ## 4.6 PDF
 
@@ -96,6 +97,7 @@ Zone: Marché Central
 Montant: 15 000 XAF
 Mode: ESPECES
 Periode: Juin 2026
+Taxe: TAX-BOUTIQUE
 ------------------------
 Agent: Jean ONDO
 ------------------------

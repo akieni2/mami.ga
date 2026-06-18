@@ -42,7 +42,7 @@ stateDiagram-v2
 
 1. Permission `municipal.payment.refund` (finance)
 2. Montant remboursement ≤ `original.amount - SUM(refunds completed)`
-3. Obligations : réouverture proportionnelle (`amount_paid` décrémenté)
+3. Obligations : réouverture proportionnelle par taxe (`amount_paid` décrémenté sur chaque `fiscal_obligation` allouée)
 4. `balance_due` augmenté en conséquence
 5. Core : transaction débit wallet municipal
 

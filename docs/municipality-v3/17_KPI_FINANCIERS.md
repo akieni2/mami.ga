@@ -12,6 +12,8 @@ Indicateurs pour **Maire**, **finance** et **superviseurs** — calculés server
 | **Encaissements MTD** | SUM mois courant | Quotidien |
 | **Encaissements YTD** | SUM année fiscale | Quotidien |
 | **Taux recouvrement global** | `collected_MTD / assessed_MTD * 100` | Quotidien |
+| **Objectif annuel (taxe)** | `collected_YTD / municipal_collection_targets.target_amount * 100` | Mensuel |
+| **Objectif global Owendo** | SUM collections / SUM targets fiscal_year | Mensuel |
 | **Solde impayé total** | `SUM(balance_due) WHERE status IN (overdue, partial)` | Temps réel |
 | **Opérateurs à jour** | `COUNT status=current / COUNT active` | Quotidien |
 | **Répartition canaux** | % cash, airtel, moov | Quotidien |
@@ -29,7 +31,19 @@ Indicateurs pour **Maire**, **finance** et **superviseurs** — calculés server
 | Taux annulation | voided_amount / collected_amount |
 | Taux remboursement | refund_amount / collected_amount |
 
-## 17.4 KPI par zone économique
+## 17.4 KPI par type de taxe
+
+```
+recovery_rate_tax = collected_tax_YTD / target_amount * 100
+  WHERE tax_type_id = T AND fiscal_year = Y
+
+assessed_tax_MTD = SUM(fiscal_obligations.amount_due)
+  WHERE tax_type_id = T AND period overlaps month
+```
+
+Alimente widgets dashboard Maire (doc 9) et suivi objectifs `municipal_collection_targets`.
+
+## 17.5 KPI par zone économique
 
 ```
 recovery_rate_zone = collected_zone_MTD / due_zone_MTD * 100
@@ -39,7 +53,7 @@ density_impayes = overdue_count / area_km2
 
 Alimente carte choroplèthe (doc 10).
 
-## 17.5 KPI brigade (V3.4)
+## 17.6 KPI brigade (V3.4)
 
 | KPI | Formule |
 |-----|---------|
@@ -47,7 +61,7 @@ Alimente carte choroplèthe (doc 10).
 | Couverture cibles | visited / total_targets |
 | Yield visite | paid_visits / total_visits |
 
-## 17.6 KPI qualité données
+## 17.7 KPI qualité données
 
 | KPI | Seuil alerte |
 |-----|--------------|
@@ -56,18 +70,16 @@ Alimente carte choroplèthe (doc 10).
 | QR scan rejetés | pic > 10/h (formation) |
 | MM pending > 1 h | COUNT > 0 |
 
-## 17.7 Implémentation technique
+## 17.8 Implémentation technique
 
 ### V3.0 — Requêtes live + cache Redis
 
 ```sql
--- Exemple taux recouvrement MTD
-SELECT
-  COALESCE(SUM(mp.amount), 0) AS collected,
-  COALESCE(SUM(fo.amount_due - fo.amount_paid), 0) AS remaining
+-- assessed_MTD depuis obligations générées par moteur fiscal
+SELECT COALESCE(SUM(fo.amount_due), 0) AS assessed
 FROM fiscal_obligations fo
-LEFT JOIN municipal_payments mp ON ...
 WHERE fo.period_start >= start_of_month
+  AND fo.obligation_type = 'periodic_tax'
 ```
 
 ### V3.3 — Table `fiscal_daily_snapshots`
@@ -84,7 +96,7 @@ WHERE fo.period_start >= start_of_month
 
 Job `BuildFiscalDailySnapshotJob` à 00:30 Libreville.
 
-## 17.8 Exports
+## 17.9 Exports
 
 | Format | Contenu |
 |--------|---------|
@@ -92,7 +104,7 @@ Job `BuildFiscalDailySnapshotJob` à 00:30 Libreville.
 | Excel | Détail par agent + zone |
 | PDF | Rapport mensuel Maire (V3.3) |
 
-## 17.9 Objectifs Owendo (indicatifs déploiement)
+## 17.10 Objectifs Owendo (indicatifs déploiement)
 
 | Phase | Objectif taux recouvrement |
 |-------|---------------------------|
@@ -100,14 +112,14 @@ Job `BuildFiscalDailySnapshotJob` à 00:30 Libreville.
 | V3.2 (3 zones) | +15 % vs baseline |
 | V3.5 (Owendo complet) | +30 % vs baseline |
 
-## 17.10 Non double-comptage
+## 17.11 Non double-comptage
 
 - Paiements `voided` exclus des encaissements
 - Remboursements `completed` déduits
 - Pas de comptage `pending` ou `pending_sync` dans encaissements officiels
 - MM : uniquement `completed`
 
-## 17.11 Lien V2.5
+## 17.12 Lien V2.5
 
 Endpoint `v3_preparatory` remplacé progressivement ; mapping KPI :
 

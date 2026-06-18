@@ -1,6 +1,6 @@
 # MAMI Municipality V3 — Dossier d'architecture Fiscalité & Recouvrement
 
-**Version** : 1.0 (document d'architecture — **aucun code**)  
+**Version** : 1.1 (moteur fiscal configurable)  
 **Date** : juin 2026  
 **Statut** : conception validable avant implémentation  
 **Branche cible** : `feature/mami-taxi-v2-p2` → release `municipality-v3`
@@ -24,7 +24,7 @@
 Transformer l'application Android **Agent Municipal** en **terminal mobile de recouvrement fiscal** :
 
 1. Scanner le QR sécurisé d'un commerce (UUID)
-2. Afficher la situation fiscale et le montant dû
+2. Afficher la situation fiscale (multi-taxes) et le montant dû
 3. Encaisser (espèces, Mobile Money)
 4. Émettre une quittance officielle (`OWE-RCP-YYYY-NNNNNN`)
 5. Synchroniser hors ligne si nécessaire
@@ -54,6 +54,14 @@ Transformer l'application Android **Agent Municipal** en **terminal mobile de re
 | 16 | [Audit et traçabilité](16_AUDIT_TRACABILITE.md) | Journal, conformité |
 | 17 | [KPI financiers](17_KPI_FINANCIERS.md) | Indicateurs et formules |
 | 18 | [Plan de déploiement V3.0 → V3.5](18_PLAN_DEPLOIEMENT.md) | Jalons, risques, rollback |
+| 19 | [Moteur fiscal configurable](19_MOTEUR_FISCAL_CONFIGURABLE.md) | Taxes, taux, affectations, obligations |
+
+---
+
+## Principe fiscal V3
+
+> **Aucun montant n'est codé en dur.**  
+> Taxes (`municipal_tax_types`), taux (`municipal_tax_rates`), objectifs (`municipal_collection_targets`) et affectations (`operator_tax_assignments`) sont gérés depuis le **dashboard Maire**. Les obligations sont générées automatiquement.
 
 ---
 

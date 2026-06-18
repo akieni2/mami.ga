@@ -2,6 +2,11 @@
 
 use App\Modules\Municipality\Http\Controllers\EconomicOperatorController;
 use App\Modules\Municipality\Http\Controllers\EconomicOperatorQrController;
+use App\Modules\Municipality\Http\Controllers\FiscalAssignmentController;
+use App\Modules\Municipality\Http\Controllers\FiscalObligationController;
+use App\Modules\Municipality\Http\Controllers\FiscalTargetController;
+use App\Modules\Municipality\Http\Controllers\FiscalTaxRateController;
+use App\Modules\Municipality\Http\Controllers\FiscalTaxTypeController;
 use App\Modules\Municipality\Http\Controllers\MunicipalityModuleController;
 use App\Modules\Municipality\Http\Controllers\MunicipalityReportController;
 use Illuminate\Support\Facades\Route;
@@ -30,4 +35,33 @@ Route::middleware(['auth:sanctum', 'module:municipality'])->group(function (): v
     Route::get('/operators/{operator}', [EconomicOperatorController::class, 'show']);
     Route::put('/operators/{operator}', [EconomicOperatorController::class, 'update']);
     Route::post('/operators/{operator}/inspect', [EconomicOperatorController::class, 'inspect']);
+
+    Route::prefix('fiscal')->group(function (): void {
+        Route::get('/taxes', [FiscalTaxTypeController::class, 'index']);
+        Route::post('/taxes', [FiscalTaxTypeController::class, 'store']);
+        Route::get('/taxes/{taxType}', [FiscalTaxTypeController::class, 'show']);
+        Route::put('/taxes/{taxType}', [FiscalTaxTypeController::class, 'update']);
+        Route::post('/taxes/{taxType}/activate', [FiscalTaxTypeController::class, 'activate']);
+        Route::post('/taxes/{taxType}/deactivate', [FiscalTaxTypeController::class, 'deactivate']);
+
+        Route::get('/rates', [FiscalTaxRateController::class, 'index']);
+        Route::post('/rates', [FiscalTaxRateController::class, 'store']);
+        Route::get('/rates/{rate}', [FiscalTaxRateController::class, 'show']);
+        Route::post('/rates/{rate}/deactivate', [FiscalTaxRateController::class, 'deactivate']);
+
+        Route::get('/targets', [FiscalTargetController::class, 'index']);
+        Route::post('/targets', [FiscalTargetController::class, 'store']);
+        Route::get('/targets/{target}', [FiscalTargetController::class, 'show']);
+
+        Route::get('/assignments', [FiscalAssignmentController::class, 'index']);
+        Route::post('/assignments', [FiscalAssignmentController::class, 'store']);
+        Route::get('/assignments/{assignment}', [FiscalAssignmentController::class, 'show']);
+        Route::post('/assignments/{assignment}/activate', [FiscalAssignmentController::class, 'activate']);
+        Route::post('/assignments/{assignment}/deactivate', [FiscalAssignmentController::class, 'deactivate']);
+
+        Route::get('/obligations', [FiscalObligationController::class, 'index']);
+        Route::post('/obligations/generate', [FiscalObligationController::class, 'generate']);
+        Route::get('/obligations/{obligation}', [FiscalObligationController::class, 'show']);
+        Route::post('/obligations/{obligation}/cancel', [FiscalObligationController::class, 'cancel']);
+    });
 });

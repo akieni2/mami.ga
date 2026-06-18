@@ -128,6 +128,22 @@ class EconomicOperator extends Model
         return $this->hasMany(MunicipalPayment::class, 'operator_id');
     }
 
+    public function taxAssignments(): HasMany
+    {
+        return $this->hasMany(OperatorTaxAssignment::class, 'operator_id');
+    }
+
+    public function activeTaxAssignments(): HasMany
+    {
+        return $this->hasMany(OperatorTaxAssignment::class, 'operator_id')
+            ->where('is_active', true);
+    }
+
+    public function fiscalObligations(): HasMany
+    {
+        return $this->hasMany(FiscalObligation::class, 'operator_id');
+    }
+
     public function attachments(): MorphMany
     {
         return $this->morphMany(Attachment::class, 'attachable');

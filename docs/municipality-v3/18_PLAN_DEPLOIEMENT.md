@@ -7,12 +7,12 @@ Déploiement **incrémental** par capacités, zone géographique croissante, san
 ```mermaid
 timeline
     title Jalons Municipality V3
-    V3.0 : Espèces + QR + quittance PDF + offline
+    V3.0 : Espèces + QR + moteur fiscal + quittance BT + offline
     V3.1 : Airtel sandbox + détail coupures + assignation zones
     V3.2 : Airtel prod + Moov sandbox + void + rapport clôture
-    V3.3 : Moov prod + dashboard Maire + snapshots KPI
+    V3.3 : Moov prod + dashboard Maire avancé + snapshots KPI
     V3.4 : Brigade + carte campagne
-    V3.5 : Tarification zone + remise trésorerie + exports avancés
+    V3.5 : Tarification zone/surface + trésorerie + exports avancés
 ```
 
 ## 18.2 V3.0 — Terminal recouvrement MVP
@@ -20,13 +20,15 @@ timeline
 **Durée estimée** : 6–8 semaines dev + 2 semaines pilote
 
 ### Backend
-- [ ] Migrations : `cash_sessions`, extensions payments/receipts, `operator_fiscal_accounts`, `fiscal_obligations`
+- [ ] Migrations moteur fiscal : `municipal_tax_types`, `municipal_tax_rates`, `municipal_collection_targets`, `operator_tax_assignments`
+- [ ] Migrations : `fiscal_obligations` enrichi, `municipal_payment_allocations`, `cash_sessions`, extensions payments/receipts
+- [ ] `FiscalEngineService` + `GenerateFiscalObligationsJob`
 - [ ] `FiscalCollectionService`, `CashSessionService`, `MunicipalReceiptService`
+- [ ] Dashboard web : CRUD taxes + affectations (pas de montants en seed)
 - [ ] Lien Core `payments` / `transactions`
-- [ ] `SyncController` push/pull
-- [ ] Seed obligations mensuelles (montant fixe catégorie)
-- [ ] Permissions Spatie
-- [ ] Tests Feature Municipality (objectif +25 tests)
+- [ ] `SyncController` push/pull (taux + obligations)
+- [ ] Permissions Spatie (`municipal.tax.manage`, `municipal.tax.assign`)
+- [ ] Tests Feature Municipality (objectif +30 tests)
 
 ### Mobile
 - [ ] Écrans : scan, encaissement espèces, caisse, quittance, sync queue
@@ -39,12 +41,21 @@ timeline
 - [ ] Redis cache dashboard léger
 - [ ] Stockage PDF `storage/app/municipality/receipts`
 
+### Pré-requis pilote (mairie)
+- [ ] Saisie dashboard : types de taxes (Boutique, Restaurant, Garage, PME, Marché)
+- [ ] Saisie taux : montant + périodicité + validité par taxe
+- [ ] Saisie objectifs annuels 2026
+- [ ] Affectation taxes aux ~50 opérateurs pilotes
+- [ ] Lancement génération obligations période courante
+
 ### Pilote
 - **1 zone économique** Owendo (ex. Marché Central)
 - **3 agents** + 1 superviseur
-- **50 opérateurs** avec obligations seed
+- **~50 opérateurs** avec taxes affectées (aucun montant en code)
 
 ### Critères go-live V3.0
+- Taxes créées et modifiables depuis dashboard sans déploiement
+- Obligations générées depuis affectations
 - 100 encaissements espèces sans perte sync
 - 0 régression tests Taxi CI
 - Quittances PDF vérifiables
@@ -114,11 +125,11 @@ timeline
 
 ---
 
-## 18.7 V3.5 — Maturité fiscale
+## 18.7 V3.5 — Maturité fiscale avancée
 
 **Durée** : 6 semaines
 
-- [ ] Moteur tarifaire par zone + catégorie
+- [ ] Tarification par zone économique / surface (extension moteur, pas remplacement)
 - [ ] Remise trésorerie (`cash_deposit`)
 - [ ] Rapport mensuel PDF conseil municipal
 - [ ] Archive froide audit
@@ -180,11 +191,11 @@ php artisan queue:restart
 
 ```mermaid
 flowchart LR
-    V30[V3.0 MVP] --> V31[V3.1 Airtel SB]
+    V30[V3.0 MVP + moteur fiscal] --> V31[V3.1 Airtel SB]
     V31 --> V32[V3.2 Airtel Prod]
     V32 --> V33[V3.3 Moov + Dashboard]
     V33 --> V34[V3.4 Brigade]
-    V34 --> V35[V3.5 Tarifs]
+    V34 --> V35[V3.5 Zone/Surface]
 ```
 
 V3.0 est **bloquant** pour toutes les suites. Dashboard (V3.3) peut démarrer en parallèle partiel dès V3.0 avec KPI simples.
@@ -193,7 +204,8 @@ V3.0 est **bloquant** pour toutes les suites. Dashboard (V3.3) peut démarrer en
 
 | # | Document | Statut |
 |---|----------|--------|
-| 1–18 | `docs/municipality-v3/*.md` | ✅ Architecture |
+| 1–18 | `docs/municipality-v3/*.md` | ✅ Architecture v1.1 |
+| 19 | Moteur fiscal configurable | ✅ |
 | — | Implémentation code | ⏳ Après validation |
 
 **Prochaine étape recommandée** : revue architecture par équipe Owendo + validation Maire → ordre de développement V3.0.

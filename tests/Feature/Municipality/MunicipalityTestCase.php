@@ -42,6 +42,11 @@ abstract class MunicipalityTestCase extends TestCase
         return $user;
     }
 
+    protected function fiscalManager(): User
+    {
+        return $this->municipalAgent();
+    }
+
     /**
      * @return array<string, mixed>
      */

@@ -65,6 +65,7 @@ Densité impayés par zone — agrégation côté serveur (GeoJSON polygons zone
     "business_name": "Boulangerie XYZ",
     "fiscal_status": "overdue",
     "balance_due": 15000,
+    "taxes": ["TAX-BOUTIQUE"],
     "last_payment_at": "2026-05-10T11:00:00Z",
     "economic_zone": "Marché Central"
   }

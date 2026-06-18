@@ -31,6 +31,11 @@ class CoreModuleServiceProvider extends ServiceProvider
             'payment' => \App\Modules\Core\Models\Payment::class,
             'municipality_report' => \App\Modules\Municipality\Models\MunicipalityReport::class,
             'economic_operator' => \App\Modules\Municipality\Models\EconomicOperator::class,
+            'municipal_tax_type' => \App\Modules\Municipality\Models\MunicipalTaxType::class,
+            'municipal_tax_rate' => \App\Modules\Municipality\Models\MunicipalTaxRate::class,
+            'municipal_collection_target' => \App\Modules\Municipality\Models\MunicipalCollectionTarget::class,
+            'operator_tax_assignment' => \App\Modules\Municipality\Models\OperatorTaxAssignment::class,
+            'fiscal_obligation' => \App\Modules\Municipality\Models\FiscalObligation::class,
         ]);
     }
 }

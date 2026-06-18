@@ -9,7 +9,7 @@ Orchestrer l'**encaissement fiscal terrain** : résolution opérateur, calcul du
 | In scope | Out of scope |
 |----------|--------------|
 | Scan QR → opérateur | Édition registre économique (V2) |
-| Affichage solde / obligations ouvertes | Paramétrage tarifs avancé (V3.5) |
+| Affichage solde / obligations (multi-taxes) | Paramétrage taxes (dashboard Maire) |
 | Encaissement multi-méthode | Comptabilité générale municipale |
 | Idempotence offline | Règlement bancaire hors MM |
 
@@ -17,19 +17,22 @@ Orchestrer l'**encaissement fiscal terrain** : résolution opérateur, calcul du
 
 ```
 FiscalCollectionService
+├── FiscalEngineService             # lecture taux, obligations (pas d'écriture taxes)
 ├── OperatorFiscalAccountService    # balance_due, statut
-├── ObligationAllocationService     # FIFO sur obligations ouvertes
+├── ObligationAllocationService     # FIFO multi-taxes sur obligations ouvertes
 ├── PaymentOrchestrator             # municipal + Core payment
 ├── GpsValidationService            # ≤20m opérateur (configurable)
 └── CollectionPolicy                # plafonds, permissions
 ```
+
+> Paramétrage taxes : [19_MOTEUR_FISCAL_CONFIGURABLE.md](19_MOTEUR_FISCAL_CONFIGURABLE.md)
 
 ## 3.4 API REST (prévue)
 
 | Méthode | Route | Description |
 |---------|-------|-------------|
 | GET | `/operators/by-qr/{uuid}` | Existant V2.5 — enrichir avec `fiscal_account` |
-| GET | `/operators/{id}/fiscal-summary` | Solde, obligations, dernier paiement |
+| GET | `/operators/{id}/fiscal-summary` | Solde, obligations par taxe, dernier paiement |
 | POST | `/collections` | Encaissement |
 | GET | `/collections/{id}` | Détail |
 | POST | `/collections/preview` | Simulation sans écriture |
@@ -61,6 +64,9 @@ FiscalCollectionService
   "receipt_pdf_url": "/api/v1/municipality/receipts/1001/pdf",
   "amount_allocated": 15000,
   "remaining_balance": 0,
+  "allocations": [
+    { "obligation_id": 101, "tax_code": "TAX-BOUTIQUE", "period_label": "Juin 2026", "amount": 15000 }
+  ],
   "sync_status": "synced"
 }
 ```
@@ -75,19 +81,20 @@ FiscalCollectionService
 4. Session caisse `open` (obligatoire pour espèces)
 5. GPS : distance opérateur ≤ `config('mami.municipality.collection_max_gps_distance_m', 20)` sauf override superviseur
 
-### 3.5.2 Allocation montant
+### 3.5.2 Allocation montant (multi-taxes)
 
-Ordre **FIFO** par `due_date` sur obligations `open` puis `partial` :
+Ordre **FIFO** par `due_date`, puis `tax_type_id` sur obligations `open` puis `partial` :
 
 ```
 amount_remaining = payment.amount
-foreach obligation in obligations.open.orderBy(due_date):
+foreach obligation in obligations.open.orderBy(due_date, tax_type_id):
     pay = min(obligation.amount_due - obligation.amount_paid, amount_remaining)
-    allocate(pay)
+    insert municipal_payment_allocations(obligation_id, pay)
     amount_remaining -= pay
 ```
 
-Surpaiement : refusé en V3.0 ; option « avance » en V3.5 (`obligation_type = advance`).
+Un paiement peut couvrir plusieurs obligations (ex. taxe commerce + taxe occupation).  
+Surpaiement : refusé en V3.0.
 
 ### 3.5.3 Orchestration transactionnelle
 
@@ -116,14 +123,18 @@ Délégation aux providers (voir doc 11). Flux :
 2. Webhook / polling provider → `completed` ou `failed`
 3. Si `completed` → émission quittance ; si `failed` → libération allocation
 
-## 3.6 Intégration obligations (V3.0 simplifié)
+## 3.6 Génération des obligations (moteur fiscal V3.0)
 
-**Phase V3.0** : seed obligations mensuelles via commande admin ou import CSV :
+Les obligations ne sont **jamais seedées avec des montants en code**. Flux :
 
-- 1 obligation `monthly_tax` par opérateur actif / mois
-- Montant fixe par catégorie économique (table `economic_operator_categories.default_monthly_tax`)
+1. Maire crée `municipal_tax_types` + `municipal_tax_rates` (dashboard)
+2. Finance affecte taxes aux opérateurs (`operator_tax_assignments`)
+3. `GenerateFiscalObligationsJob` crée `fiscal_obligations` par période
+4. Agent consulte `fiscal-summary` → liste obligations ouvertes par taxe
 
-**Phase V3.5** : moteur tarifaire par zone + surface.
+**Prérequis encaissement** : au moins une obligation `open|partial` OU solde `balance_due > 0`.
+
+Voir [19_MOTEUR_FISCAL_CONFIGURABLE.md](19_MOTEUR_FISCAL_CONFIGURABLE.md).
 
 ## 3.7 Événements domaine
 
@@ -146,7 +157,8 @@ Délégation aux providers (voir doc 11). Flux :
 
 ## 3.9 Tests d'acceptation (spec)
 
-- Encaissement espèces complet réduit `balance_due` à 0
+- Encaissement espèces complet réduit `balance_due` à 0 (opérateur multi-taxes)
+- Obligations générées depuis `operator_tax_assignments` + taux courant
 - Double POST même `client_operation_id` → 1 seul paiement
 - Paiement sans session ouverte (cash) → 422
 - Opérateur soft-deleted → 422

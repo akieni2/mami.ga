@@ -4,13 +4,20 @@
 
 ```mermaid
 erDiagram
+    economic_operators ||--o{ operator_tax_assignments : assigned
+    municipal_tax_types ||--o{ municipal_tax_rates : has
+    municipal_tax_types ||--o{ operator_tax_assignments : applies
+    municipal_tax_types ||--o{ municipal_collection_targets : targets
+    operator_tax_assignments ||--o{ fiscal_obligations : generates
+    municipal_tax_rates ||--o{ fiscal_obligations : priced_by
+
     economic_operators ||--o{ operator_fiscal_accounts : has
     economic_operators ||--o{ economic_operator_qrcodes : has
     economic_operators ||--o{ municipal_payments : receives
     economic_operators ||--o{ field_visits : visited
 
-    operator_fiscal_accounts ||--o{ fiscal_obligations : generates
-    fiscal_obligations ||--o| municipal_payments : settled_by
+    operator_fiscal_accounts ||--o{ fiscal_obligations : aggregates
+    fiscal_obligations ||--o{ municipal_payment_allocations : settled_by
 
     cash_sessions ||--o{ municipal_payments : contains
     users ||--o{ cash_sessions : operates
@@ -22,44 +29,35 @@ erDiagram
 
     payments ||--o{ transactions : records
 
-    recovery_campaigns ||--o{ recovery_campaign_operators : targets
-    recovery_campaigns ||--o{ field_teams : assigns
-    field_teams ||--o{ field_team_members : has
-
-    economic_operators {
+    municipal_tax_types {
         bigint id PK
-        string public_id UK
-        string business_name
-        point location
-        bigint economic_zone_id FK
-        timestamp deleted_at
+        string code UK
+        string name
+        bigint territory_id FK
     }
 
-    municipal_payments {
+    municipal_tax_rates {
+        bigint id PK
+        bigint tax_type_id FK
+        decimal amount
+        enum billing_period
+        date valid_from
+        date valid_to
+    }
+
+    operator_tax_assignments {
         bigint id PK
         bigint operator_id FK
-        bigint payment_id FK
-        bigint receipt_id FK
-        bigint cash_session_id FK
-        bigint obligation_id FK
-        decimal amount
-        string currency
-        string method
-        string status
-        uuid client_operation_id UK
-        json metadata
+        bigint tax_type_id FK
+        enum status
     }
 
-    cash_sessions {
+    fiscal_obligations {
         bigint id PK
-        bigint user_id FK
-        string session_number UK
-        decimal opening_float
-        decimal expected_cash
-        decimal counted_cash
-        string status
-        timestamp opened_at
-        timestamp closed_at
+        bigint tax_type_id FK
+        bigint tax_rate_id FK
+        decimal amount_due
+        enum status
     }
 ```
 
@@ -67,14 +65,19 @@ erDiagram
 
 ### `economic_operators` (V2 — inchangé structurellement)
 
-Source identité commerce. V3 ajoute uniquement des **lectures** via relations fiscales.
+Source identité commerce. V3 ajoute uniquement des **lectures** et **affectations fiscales**.
 
 | Colonne clé | Usage V3 |
 |-------------|----------|
 | `public_id` | Affichage humain `OWE-COM-000001` |
 | `location` | SIG, validation GPS encaissement |
-| `economic_zone_id` | Tarification zone (V3.5) |
+| `economic_zone_id` | Filtrage SIG / brigade (pas de tarif zone en V3.0) |
+| `category_id` | Suggestion affectation taxes (règle dashboard) |
 | `status` | `active` requis pour encaissement |
+
+### `economic_operator_categories` (V2)
+
+**Inchangé** — libellés métier (Boutique, Restaurant, etc.). **Aucune colonne de montant.** Le lien fiscal passe par `municipal_tax_types.category_id` (optionnel) et `operator_tax_assignments`.
 
 ### `economic_operator_qrcodes` (V2.5)
 
@@ -86,273 +89,226 @@ Source identité commerce. V3 ajoute uniquement des **lectures** via relations f
 
 ### `field_visits` (V2.5)
 
-Visites de contrôle sans encaissement. V3 enrichit optionnellement `visit_outcome` avec `payment_collected` (bool) pour corrélation.
+Visites de contrôle sans encaissement. V3 enrichit optionnellement `visit_outcome` avec `payment_collected` (bool).
 
 ### `municipal_payments` (V2.5 — **extensions V3**)
 
-Structure actuelle à compléter :
-
 | Colonne existante | Type | Note |
 |-------------------|------|------|
-| `id` | bigint PK | |
-| `operator_id` | FK → economic_operators | RESTRICT |
+| `operator_id` | FK | RESTRICT |
 | `amount` | decimal(12,2) | |
-| `currency` | char(3) default XAF | |
-| `payment_method` | string | → enum normalisé |
-| `status` | string | draft → completed → voided |
 | `collected_by` | FK users | Agent |
 | `collected_at` | timestamp | |
-| `metadata` | json | GPS, device_id |
+| `metadata` | json | GPS, device_id, brigade |
 
 **Colonnes à ajouter (migration V3.0)** :
 
 | Colonne | Type | Description |
 |---------|------|-------------|
-| `payment_id` | FK nullable → `payments.id` | Lien Core Super App |
-| `receipt_id` | FK nullable → `municipal_receipts.id` | Quittance émise |
-| `cash_session_id` | FK nullable → `cash_sessions.id` | Session caisse |
-| `obligation_id` | FK nullable → `fiscal_obligations.id` | Dette réglée |
+| `payment_id` | FK nullable → `payments.id` | Lien Core |
+| `receipt_id` | FK nullable → `municipal_receipts.id` | |
+| `cash_session_id` | FK nullable → `cash_sessions.id` | |
 | `client_operation_id` | uuid UNIQUE | Idempotence offline |
 | `sync_status` | enum | `synced`, `pending`, `failed` |
-| `synced_at` | timestamp nullable | |
-| `voided_at` | timestamp nullable | |
-| `voided_by` | FK users nullable | |
-| `gps_latitude` | decimal(10,7) nullable | Preuve terrain |
-| `gps_longitude` | decimal(10,7) nullable | |
-| `gps_accuracy_m` | decimal nullable | |
-| `mobile_money_reference` | string nullable | Réf opérateur MM |
-| `mobile_money_provider` | enum nullable | airtel, moov |
+| `gps_latitude` / `gps_longitude` / `gps_accuracy_m` | | Preuve terrain |
+| `mobile_money_reference` / `mobile_money_provider` | | MM V3.1+ |
 
-**Index** : `(operator_id, collected_at)`, `(cash_session_id)`, `(client_operation_id)`, `(status)`.
+**Note** : l'allocation multi-obligations utilise la table pivot `municipal_payment_allocations` (voir §2.3).
 
 ### `municipal_receipts` (V2.5 — **extensions V3**)
 
-| Colonne existante | Note |
-|-------------------|------|
-| `receipt_number` | UNIQUE `OWE-RCP-YYYY-NNNNNN` |
-| `operator_id` | |
-| `payment_id` | FK municipal_payments (existant) |
+| Colonne ajoutée | Description |
+|-----------------|-------------|
+| `pdf_path`, `pdf_generated_at` | Stockage PDF |
+| `print_count`, `last_printed_at` | Impression BT |
+| `qr_verification_token` | Vérification publique |
+| `document_hash` | Signature numérique V3.0 |
+| `tax_lines_json` | Snapshot taxes / périodes payées |
+| `issued_offline` | boolean |
 
-**Colonnes à ajouter** :
+## 2.3 Moteur fiscal configurable (V3.0)
 
-| Colonne | Type | Description |
-|---------|------|-------------|
-| `pdf_path` | string nullable | Chemin stockage |
-| `pdf_generated_at` | timestamp nullable | |
-| `print_count` | int default 0 | Réimpressions |
-| `last_printed_at` | timestamp nullable | |
-| `qr_verification_token` | uuid | Vérification publique quittance |
-| `issued_offline` | boolean default false | Émise avant sync |
-| `template_version` | string default 'v1' | Évolution modèle |
+> Détail fonctionnel : [19_MOTEUR_FISCAL_CONFIGURABLE.md](19_MOTEUR_FISCAL_CONFIGURABLE.md)
 
-## 2.3 Nouvelles tables V3
-
-### `operator_fiscal_accounts`
-
-Compte fiscal synthétique par opérateur (solde dû).
+### `municipal_tax_types`
 
 | Colonne | Type | Contraintes |
 |---------|------|-------------|
 | `id` | bigint PK | |
-| `operator_id` | FK | UNIQUE → economic_operators |
-| `balance_due` | decimal(12,2) | ≥ 0 |
+| `territory_id` | FK | Owendo |
+| `code` | string UK | `TAX-BOUTIQUE`, etc. |
+| `name` | string | |
+| `description` | text nullable | |
+| `category_id` | FK nullable | → `economic_operator_categories` |
+| `is_active` | boolean | |
+| `created_by` / `updated_by` | FK users | |
+| `timestamps`, `deleted_at` | | soft delete |
+
+### `municipal_tax_rates`
+
+| Colonne | Type | Contraintes |
+|---------|------|-------------|
+| `id` | bigint PK | |
+| `tax_type_id` | FK | RESTRICT |
+| `amount` | decimal(12,2) | **Seule source de montant** |
+| `currency` | char(3) | default XAF |
+| `billing_period` | enum | `monthly`, `quarterly`, `semi_annual`, `annual` |
+| `valid_from` | date | |
+| `valid_to` | date nullable | |
+| `due_day_of_period` | smallint | default 1 |
+| `created_by` | FK users | |
+| `timestamps` | | |
+
+Index : `(tax_type_id, valid_from, valid_to)`.
+
+### `municipal_collection_targets`
+
+| Colonne | Type | Contraintes |
+|---------|------|-------------|
+| `id` | bigint PK | |
+| `tax_type_id` | FK | |
+| `territory_id` | FK | |
+| `fiscal_year` | smallint | |
+| `target_amount` | decimal(14,2) | Objectif annuel |
+| `set_by` | FK users | |
+| `timestamps` | | |
+
+UNIQUE (`tax_type_id`, `territory_id`, `fiscal_year`).
+
+### `operator_tax_assignments`
+
+| Colonne | Type | Contraintes |
+|---------|------|-------------|
+| `id` | bigint PK | |
+| `operator_id` | FK | → `economic_operators` |
+| `tax_type_id` | FK | → `municipal_tax_types` |
+| `tax_rate_id` | FK nullable | Taux figé ou null = courant |
+| `assigned_from` / `assigned_to` | date | |
+| `status` | enum | `active`, `suspended`, `ended` |
+| `assigned_by` | FK users | |
+| `assignment_source` | enum | `manual`, `enrollment`, `bulk_import`, `category_rule` |
+| `timestamps` | | |
+
+UNIQUE partiel : (`operator_id`, `tax_type_id`) WHERE `status = active`.
+
+### `operator_fiscal_accounts`
+
+Compte fiscal synthétique par opérateur.
+
+| Colonne | Type | Contraintes |
+|---------|------|-------------|
+| `id` | bigint PK | |
+| `operator_id` | FK | UNIQUE |
+| `balance_due` | decimal(12,2) | ≥ 0, recalculé |
 | `last_payment_at` | timestamp nullable | |
 | `last_assessment_at` | timestamp nullable | |
-| `fiscal_year` | smallint | Année fiscale Owendo |
+| `fiscal_year` | smallint | |
 | `status` | enum | `current`, `overdue`, `exempt`, `disputed` |
 | `timestamps` | | |
 
 ### `fiscal_obligations`
 
-Lignes de dette (taxe mensuelle, pénalité, régularisation).
+Lignes de dette **générées par le moteur** à partir des affectations.
 
 | Colonne | Type | Contraintes |
 |---------|------|-------------|
 | `id` | bigint PK | |
 | `operator_id` | FK | |
-| `account_id` | FK | → operator_fiscal_accounts |
-| `obligation_type` | enum | `monthly_tax`, `penalty`, `regularization`, `other` |
-| `period_start` | date | |
-| `period_end` | date | |
-| `amount_due` | decimal(12,2) | |
+| `account_id` | FK | → `operator_fiscal_accounts` |
+| `tax_type_id` | FK | → `municipal_tax_types` |
+| `tax_rate_id` | FK | Snapshot taux |
+| `assignment_id` | FK | → `operator_tax_assignments` |
+| `obligation_type` | enum | `periodic_tax`, `penalty`, `regularization` |
+| `period_start` / `period_end` | date | |
+| `period_label` | string | « Juin 2026 », « T2 2026 » |
+| `amount_due` | decimal(12,2) | Copié de `tax_rate.amount` |
 | `amount_paid` | decimal(12,2) default 0 | |
 | `status` | enum | `open`, `partial`, `paid`, `waived`, `cancelled` |
 | `due_date` | date | |
-| `reference` | string nullable | Référence interne |
+| `reference` | string nullable | `OBL-2026-06-TAX-BOUTIQUE-42` |
 | `timestamps` | | |
 
-**Règle** : `SUM(amount_due - amount_paid)` des obligations `open|partial` = `balance_due` du compte.
+UNIQUE (`operator_id`, `tax_type_id`, `period_start`, `period_end`) pour `obligation_type = periodic_tax`.
+
+**Règle** : `SUM(amount_due - amount_paid)` obligations `open|partial` = `balance_due`.
+
+### `municipal_payment_allocations`
+
+Pivot paiement ↔ obligations (multi-taxes).
+
+| Colonne | Type |
+|---------|------|
+| `id` | bigint PK |
+| `municipal_payment_id` | FK |
+| `fiscal_obligation_id` | FK |
+| `amount_allocated` | decimal(12,2) |
+| `timestamps` | |
+
+## 2.4 Tables opérationnelles V3
 
 ### `cash_sessions`
 
 | Colonne | Type | Contraintes |
 |---------|------|-------------|
-| `id` | bigint PK | |
 | `session_number` | string UK | `OWE-CS-YYYYMMDD-AGENT-NN` |
 | `user_id` | FK | Agent |
-| `territory_id` | FK nullable | Owendo |
-| `opening_float` | decimal(12,2) | Fond de caisse |
-| `expected_cash` | decimal(12,2) default 0 | Calculé |
-| `counted_cash` | decimal nullable | Saisie clôture |
-| `variance` | decimal nullable | counted - expected |
+| `opening_float` | decimal(12,2) | |
+| `expected_cash` | decimal(12,2) | Calculé |
+| `counted_cash` | decimal nullable | |
 | `status` | enum | `open`, `pending_close`, `closed`, `approved` |
-| `opened_at` | timestamp | |
-| `closed_at` | timestamp nullable | |
-| `approved_by` | FK users nullable | Superviseur |
-| `approved_at` | timestamp nullable | |
-| `opening_gps` | point nullable | |
-| `closing_gps` | point nullable | |
-| `device_id` | string nullable | Terminal |
-| `notes` | text nullable | |
-| `timestamps` | | |
+| `opened_at` / `closed_at` | timestamp | |
+| `opening_gps` / `closing_gps` | point nullable | |
+| `device_id` | string nullable | |
 
-**Contrainte métier** : un seul `status=open` par `user_id` à la fois.
+### `municipal_payment_voids` / `municipal_refunds` / `offline_sync_batches`
 
-### `cash_session_denominations` (optionnel V3.0, recommandé V3.1)
+Inchangés (voir version précédente architecture).
 
-Détail billets/pièces à la clôture.
+### `recovery_campaigns` / `field_teams` (V3.4)
 
-| Colonne | Type |
-|---------|------|
-| `cash_session_id` | FK |
-| `denomination` | int (500, 1000, …) |
-| `quantity` | int |
+Préparation brigade — inchangé.
 
-### `municipal_payment_voids`
+## 2.5 Tables Core Super App
 
-| Colonne | Type |
-|---------|------|
-| `id` | bigint PK |
-| `municipal_payment_id` | FK UNIQUE |
-| `voided_by` | FK users |
-| `reason_code` | enum |
-| `reason_detail` | text nullable |
-| `supervisor_approval_id` | FK users nullable |
-| `voided_at` | timestamp |
-| `timestamps` | |
+`payments`, `transactions`, `audit_logs` — réutilisation inchangée.  
+`audit_logs` étendu aux entités : `MunicipalTaxType`, `MunicipalTaxRate`, `OperatorTaxAssignment`.
 
-### `municipal_refunds`
-
-| Colonne | Type |
-|---------|------|
-| `id` | bigint PK |
-| `original_payment_id` | FK → municipal_payments |
-| `refund_payment_id` | FK nullable → municipal_payments | Contre-passation |
-| `amount` | decimal(12,2) |
-| `method` | enum | cash, mobile_money |
-| `status` | enum | pending, completed, failed |
-| `requested_by` | FK users |
-| `approved_by` | FK users nullable |
-| `mobile_money_reference` | string nullable |
-| `timestamps` | |
-
-### `offline_sync_batches` (serveur)
-
-| Colonne | Type |
-|---------|------|
-| `id` | bigint PK |
-| `user_id` | FK |
-| `device_id` | string |
-| `batch_uuid` | uuid UK |
-| `payload_hash` | string |
-| `status` | enum | received, processed, partial, rejected |
-| `processed_at` | timestamp nullable |
-| `error_summary` | json nullable |
-| `timestamps` | |
-
-### `recovery_campaigns` (préparation Brigade V3.4)
-
-Aligné sur `FISCAL_RECOVERY_MODULE_SPEC.md` :
-
-| Colonne | Type |
-|---------|------|
-| `id` | bigint PK |
-| `name` | string |
-| `territory_id` | FK |
-| `economic_zone_id` | FK nullable |
-| `start_date` | date |
-| `end_date` | date |
-| `status` | enum | draft, active, completed |
-| `target_amount` | decimal nullable |
-| `created_by` | FK users |
-
-### `field_teams` / `field_team_members`
-
-| Table | Rôle |
-|-------|------|
-| `field_teams` | Équipe brigade (chef + agents) |
-| `field_team_members` | `team_id`, `user_id`, `role` |
-
-### `recovery_campaign_operators`
-
-Cible opérateurs d'une campagne : `campaign_id`, `operator_id`, `priority`, `assigned_team_id`.
-
-## 2.4 Tables Core Super App (réutilisation)
-
-### `payments`
-
-| Champ V3 | Valeur |
-|----------|--------|
-| `payable_type` | MunicipalPayment::class |
-| `payable_id` | municipal_payments.id |
-| `amount` | = municipal_payments.amount |
-| `currency` | XAF |
-| `method` | cash, airtel_money, moov_money |
-| `status` | pending → completed / failed |
-| `provider_reference` | Réf MM externe |
-| `metadata` | operator_public_id, receipt_number |
-
-### `transactions`
-
-Écriture comptable : crédit portefeuille municipal (`wallet_type=municipality`), débit si remboursement.
-
-### `audit_logs`
-
-`auditable_type` = MunicipalPayment, CashSession, MunicipalReceipt, etc.
-
-## 2.5 Modèle mobile (SQLite local)
+## 2.6 Modèle mobile (SQLite local)
 
 | Table locale | Rôle |
 |--------------|------|
-| `local_cash_sessions` | Miroir session ouverte |
-| `local_payments` | Paiements en attente sync |
-| `local_receipts` | PDF blob ou chemin temp |
-| `local_operators_cache` | Cache post-scan (TTL 24h) |
-| `sync_queue` | `operation_type`, `payload_json`, `retry_count`, `status` |
+| `local_tax_rates_cache` | Taux courants (TTL sync) |
+| `local_obligations_cache` | Obligations ouvertes par opérateur |
+| `local_payments` / `local_receipts` / `sync_queue` | Inchangé |
 
-**Clé idempotence** : `client_operation_id` (UUID généré côté mobile à la création).
+**Aucun montant fiscal dans l'APK.**
 
-## 2.6 Énumérations
+## 2.7 Énumérations
 
 ```
-MunicipalPaymentStatus: draft, pending_sync, completed, voided, refunded
-MunicipalPaymentMethod: cash, airtel_money, moov_money
-CashSessionStatus: open, pending_close, closed, approved
+BillingPeriod: monthly, quarterly, semi_annual, annual
+TaxAssignmentStatus: active, suspended, ended
+TaxAssignmentSource: manual, enrollment, bulk_import, category_rule
+FiscalObligationType: periodic_tax, penalty, regularization
 FiscalObligationStatus: open, partial, paid, waived, cancelled
-VoidReasonCode: duplicate, wrong_amount, wrong_operator, fraud_suspected, other
-RefundStatus: pending, completed, failed
-SyncStatus: synced, pending, failed
 ```
 
-## 2.7 Intégrité référentielle
+## 2.8 Intégrité référentielle
 
 | FK | ON DELETE |
 |----|-----------|
+| operator_tax_assignments.operator_id | RESTRICT |
+| fiscal_obligations.tax_type_id | RESTRICT |
+| municipal_tax_rates.tax_type_id | RESTRICT |
 | municipal_payments.operator_id | RESTRICT |
-| municipal_payments.payment_id | RESTRICT |
-| municipal_receipts.operator_id | RESTRICT |
-| cash_sessions.user_id | RESTRICT |
-| fiscal_obligations.operator_id | RESTRICT |
 
-**Soft delete** `economic_operators` : encaissement refusé si opérateur archivé ; obligations historiques conservées.
-
-## 2.8 Migration strategy
+## 2.9 Migration strategy
 
 | Version | Migrations |
 |---------|------------|
-| V3.0 | `cash_sessions`, extensions `municipal_payments` / `municipal_receipts`, `operator_fiscal_accounts`, `fiscal_obligations` |
+| V3.0 | Moteur fiscal (`municipal_tax_*`, `operator_tax_assignments`, `municipal_collection_targets`), `fiscal_obligations` enrichi, `municipal_payment_allocations`, `cash_sessions`, extensions payments/receipts |
 | V3.1 | `municipal_payment_voids`, `offline_sync_batches` |
 | V3.2 | `municipal_refunds`, `cash_session_denominations` |
-| V3.4 | `recovery_campaigns`, `field_teams`, `recovery_campaign_operators` |
+| V3.4 | `recovery_campaigns`, brigades |
 
 Aucune migration ne touche `rides`, `drivers`, ou tables Taxi.

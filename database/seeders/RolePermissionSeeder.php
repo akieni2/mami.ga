@@ -31,6 +31,9 @@ class RolePermissionSeeder extends Seeder
             ['slug' => 'economic_operator.update', 'name' => 'Modifier un opérateur économique', 'module' => 'municipality'],
             ['slug' => 'economic_operator.view', 'name' => 'Consulter les opérateurs économiques', 'module' => 'municipality'],
             ['slug' => 'economic_operator.inspect', 'name' => 'Effectuer un contrôle terrain', 'module' => 'municipality'],
+            ['slug' => 'municipal.tax.view', 'name' => 'Consulter le moteur fiscal', 'module' => 'municipality'],
+            ['slug' => 'municipal.tax.manage', 'name' => 'Gérer taxes et objectifs', 'module' => 'municipality'],
+            ['slug' => 'municipal.tax.assign', 'name' => 'Affecter les taxes aux opérateurs', 'module' => 'municipality'],
             ['slug' => 'core.admin.access', 'name' => 'Accès administration', 'module' => 'core'],
             ['slug' => 'core.super_admin.access', 'name' => 'Accès super administration', 'module' => 'core'],
         ];
@@ -65,6 +68,9 @@ class RolePermissionSeeder extends Seeder
                 'taxi.rides.manage',
                 'municipality.reports.manage',
                 'municipality.operators.manage',
+                'municipal.tax.view',
+                'municipal.tax.manage',
+                'municipal.tax.assign',
             ],
             MamiRole::SuperAdmin->value => Permission::query()->pluck('slug')->all(),
         ];

@@ -41,6 +41,22 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         Route::post('/reports/{report}/status', [\App\Modules\Municipality\Http\Controllers\Admin\MunicipalityReportAdminController::class, 'updateStatus'])->name('reports.status');
         Route::get('/map', [\App\Modules\Municipality\Http\Controllers\Admin\MunicipalityMapAdminController::class, 'index'])->name('map.index');
         Route::get('/map/geojson', [\App\Modules\Municipality\Http\Controllers\Admin\MunicipalityMapAdminController::class, 'geojson'])->name('map.geojson');
+
+        Route::prefix('fiscal')->name('fiscal.')->group(function (): void {
+            Route::get('/tax-types', [\App\Modules\Municipality\Http\Controllers\Admin\FiscalAdminController::class, 'taxTypes'])->name('tax-types');
+            Route::post('/tax-types', [\App\Modules\Municipality\Http\Controllers\Admin\FiscalAdminController::class, 'storeTaxType'])->name('tax-types.store');
+            Route::post('/tax-types/{taxType}/toggle', [\App\Modules\Municipality\Http\Controllers\Admin\FiscalAdminController::class, 'toggleTaxType'])->name('tax-types.toggle');
+            Route::get('/rates', [\App\Modules\Municipality\Http\Controllers\Admin\FiscalAdminController::class, 'rates'])->name('rates');
+            Route::post('/rates', [\App\Modules\Municipality\Http\Controllers\Admin\FiscalAdminController::class, 'storeRate'])->name('rates.store');
+            Route::post('/rates/{rate}/deactivate', [\App\Modules\Municipality\Http\Controllers\Admin\FiscalAdminController::class, 'deactivateRate'])->name('rates.deactivate');
+            Route::get('/targets', [\App\Modules\Municipality\Http\Controllers\Admin\FiscalAdminController::class, 'targets'])->name('targets');
+            Route::post('/targets', [\App\Modules\Municipality\Http\Controllers\Admin\FiscalAdminController::class, 'storeTarget'])->name('targets.store');
+            Route::get('/assignments', [\App\Modules\Municipality\Http\Controllers\Admin\FiscalAdminController::class, 'assignments'])->name('assignments');
+            Route::post('/assignments', [\App\Modules\Municipality\Http\Controllers\Admin\FiscalAdminController::class, 'storeAssignment'])->name('assignments.store');
+            Route::post('/assignments/{assignment}/toggle', [\App\Modules\Municipality\Http\Controllers\Admin\FiscalAdminController::class, 'toggleAssignment'])->name('assignments.toggle');
+            Route::get('/obligations', [\App\Modules\Municipality\Http\Controllers\Admin\FiscalAdminController::class, 'obligations'])->name('obligations');
+            Route::post('/obligations/generate', [\App\Modules\Municipality\Http\Controllers\Admin\FiscalAdminController::class, 'generateObligations'])->name('obligations.generate');
+        });
     });
 
     Route::prefix('live')->name('live.')->group(function (): void {

@@ -14,6 +14,7 @@ flowchart TB
     end
 
     subgraph API["Laravel — Module Municipality"]
+        FE[FiscalEngine]
         FC[FiscalCollection]
         MR[MunicipalReceipts]
         CS[CashSession]
@@ -42,6 +43,7 @@ flowchart TB
     QR --> SYNC
     OFF --> SYNC
     SYNC --> FC
+    FE --> FC
     FC --> PAY
     FC --> MP
     MR --> MRC
@@ -64,6 +66,7 @@ flowchart TB
 | **QR sécurisé** | Scan résout `qr_uuid` (UUID v4) — jamais `OWE-COM-*` seul |
 | **Offline-first** | Mobile écrit en local ; sync idempotente via `client_operation_id` |
 | **Traçabilité** | Toute mutation financière → `audit_logs` + horodatage agent/GPS |
+| **Moteur fiscal configurable** | Montants dans `municipal_tax_rates` — jamais en code ; CRUD dashboard Maire |
 | **Extensibilité Mobile Money** | Provider pattern : `cash`, `airtel_money`, `moov_money` |
 
 ## 1.3 Couches applicatives
@@ -80,7 +83,7 @@ flowchart TB
 | `ThermalPrintScreen` | Envoi ESC/POS Bluetooth |
 | `CashSessionScreen` | Ouverture / clôture caisse |
 | `OfflineQueueScreen` | File sync en attente |
-| `MayorDashboardScreen` | Web ou tablette (Phase V3.3+) |
+| `MayorDashboardScreen` | Web — KPIs + **gestion taxes** (V3.0) |
 
 **Packages Flutter prévus** : `mobile_scanner`, `sqflite`/`drift`, `printing`, `esc_pos_bluetooth`, `connectivity_plus`, `geolocator`.
 
@@ -93,8 +96,12 @@ app/Modules/Municipality/
 │   ├── MunicipalReceiptController.php      # quittances
 │   ├── CashSessionController.php           # caisse
 │   ├── SyncController.php                  # batch offline
-│   └── MayorFiscalDashboardController.php
+│   ├── MayorFiscalDashboardController.php
+│   ├── MunicipalTaxTypeController.php        # moteur fiscal
+│   ├── MunicipalTaxRateController.php
+│   └── OperatorTaxAssignmentController.php
 ├── Services/
+│   ├── FiscalEngineService.php               # taux, obligations, génération
 │   ├── FiscalCollectionService.php
 │   ├── MunicipalReceiptService.php
 │   ├── CashSessionService.php
@@ -109,6 +116,7 @@ app/Modules/Municipality/
 │   ├── AirtelMoneyProvider.php             # stub V3.1
 │   └── MoovMoneyProvider.php                 # stub V3.2
 └── Jobs/
+    ├── GenerateFiscalObligationsJob.php
     ├── GenerateReceiptPdfJob.php
     └── ReconcileMobileMoneyJob.php
 ```
@@ -153,7 +161,8 @@ sequenceDiagram
 
 | Module | Responsabilité | Hors périmètre V3 |
 |--------|----------------|-------------------|
-| **FiscalCollection** | Calcul dette, encaissement, lien Core | Tarification paramétrique avancée (V3.5) |
+| **FiscalEngine** | Taxes, taux, affectations, génération obligations | Tarification par surface / zone (V3.5+) |
+| **FiscalCollection** | Calcul dette, encaissement, lien Core | Édition taxes (dashboard) |
 | **MunicipalReceipts** | Émission, PDF, impression | Archivage légal long terme (V4) |
 | **CashSession** | Caisse agent journalière | Trésorerie municipale globale |
 | **Brigade** | Campagnes terrain groupées | Préparation V3.4 ; spec V4 `recovery_campaigns` |
@@ -172,6 +181,8 @@ sequenceDiagram
 | `municipal.cash_session.approve_close` | `municipal_supervisor` |
 | `municipal.receipt.view\|reprint` | `municipal_agent`, `mayor` |
 | `municipal.dashboard.fiscal` | `mayor`, `municipal_finance` |
+| `municipal.tax.manage` | `mayor`, `municipal_finance` |
+| `municipal.tax.assign` | `mayor`, `municipal_finance`, `municipal_supervisor` |
 | `municipal.brigade.manage` | `municipal_supervisor` |
 
 ### Contrôles transactionnels

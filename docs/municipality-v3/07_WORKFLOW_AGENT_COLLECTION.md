@@ -67,8 +67,9 @@ Comptage espèces, soumission, attente validation si écart.
 
 Télécharge pour secteur agent :
 - Opérateurs actifs + QR metadata
-- Obligations ouvertes
-- Paramètres config (seuils GPS, montants catégories)
+- **Taux courants** (`municipal_tax_rates` valid_on today)
+- **Obligations ouvertes** (générées par moteur fiscal)
+- Paramètres config (seuils GPS — **pas de montants**)
 
 ### Sync push (`POST /sync/push`)
 

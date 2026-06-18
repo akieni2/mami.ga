@@ -49,13 +49,15 @@ flowchart TD
 
 ### Étape 2 — Fiche opérateur
 - Nom, photo, `OWE-COM-*`, zone, catégorie
+- **Liste taxes affectées** (`operator_tax_assignments`)
+- **Détail obligations ouvertes** par taxe et période (`period_label`)
 - Badge statut fiscal : `À jour` / `Impayé` / `En retard`
 - Carte mini (flutter_map) position commerce + position agent
 
 ### Étape 3 — Montant
-- Montant suggéré = `balance_due`
-- Détail obligations (liste cochable)
-- Saisie manuelle partielle (V3.1+)
+- Montant suggéré = `balance_due` (somme obligations ouvertes, toutes taxes)
+- Détail par taxe : `TAX-BOUTIQUE — Juin 2026 — 15 000 XAF`
+- Sélection obligations cochables (multi-taxes)
 
 ### Étape 4 — Paiement
 - Boutons : Espèces | Airtel | Moov
@@ -86,7 +88,14 @@ Après scan réussi online :
   "operator_id": 42,
   "qr_uuid": "...",
   "cached_at": "2026-06-16T10:00:00Z",
-  "fiscal_summary": { "balance_due": 15000, "obligations": [...] }
+  "fiscal_summary": {
+    "balance_due": 40000,
+    "tax_assignments": ["TAX-BOUTIQUE", "TAX-OCCUPATION"],
+    "obligations": [
+      { "tax_code": "TAX-BOUTIQUE", "period_label": "Juin 2026", "amount_due": 15000 },
+      { "tax_code": "TAX-OCCUPATION", "period_label": "T2 2026", "amount_due": 25000 }
+    ]
+  }
 }
 ```
 
