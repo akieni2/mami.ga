@@ -6,6 +6,7 @@ use App\Modules\Municipality\Http\Controllers\EconomicOperatorQrController;
 use App\Modules\Municipality\Http\Controllers\FiscalAssignmentController;
 use App\Modules\Municipality\Http\Controllers\FiscalCollectionController;
 use App\Modules\Municipality\Http\Controllers\FiscalObligationController;
+use App\Modules\Municipality\Http\Controllers\MunicipalReceiptController;
 use App\Modules\Municipality\Http\Controllers\FiscalTargetController;
 use App\Modules\Municipality\Http\Controllers\FiscalTaxRateController;
 use App\Modules\Municipality\Http\Controllers\FiscalTaxTypeController;
@@ -75,5 +76,11 @@ Route::middleware(['auth:sanctum', 'module:municipality'])->group(function (): v
         Route::post('/cash-sessions/open', [CashSessionController::class, 'open']);
         Route::post('/cash-sessions/{cashSession}/close', [CashSessionController::class, 'close']);
         Route::get('/cash-sessions', [CashSessionController::class, 'index']);
+
+        Route::get('/receipts', [MunicipalReceiptController::class, 'index']);
+        Route::get('/receipts/{receipt}', [MunicipalReceiptController::class, 'show']);
+        Route::get('/receipts/{receipt}/pdf/{format?}', [MunicipalReceiptController::class, 'downloadPdf']);
+        Route::post('/receipts/{receipt}/reprint', [MunicipalReceiptController::class, 'reprint']);
+        Route::post('/receipts/{receipt}/annul', [MunicipalReceiptController::class, 'annul']);
     });
 });

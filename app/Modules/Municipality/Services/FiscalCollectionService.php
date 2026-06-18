@@ -126,7 +126,7 @@ class FiscalCollectionService
                     'corePayment',
                     'operator',
                     'cashSession',
-                    'receipt',
+                    'receipt.documents',
                 ]),
                 'allocations' => $municipalPayment->allocations,
             ];

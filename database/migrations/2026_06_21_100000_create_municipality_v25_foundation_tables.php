@@ -54,7 +54,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('payment_id')->constrained('municipal_payments')->cascadeOnDelete();
             $table->string('receipt_number', 30)->unique();
-            $table->string('receipt_qr_value', 50)->unique();
+            $table->string('receipt_qr_value', 255)->unique();
             $table->timestamp('generated_at');
             $table->timestamps();
 

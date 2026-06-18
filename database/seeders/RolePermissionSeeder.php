@@ -39,6 +39,7 @@ class RolePermissionSeeder extends Seeder
             ['slug' => 'municipal.payment.collect', 'name' => 'Encaisser des taxes terrain', 'module' => 'municipality'],
             ['slug' => 'municipal.payment.collect_without_gps', 'name' => 'Encaisser sans contrainte GPS (superviseur)', 'module' => 'municipality'],
             ['slug' => 'municipal.fiscal.view', 'name' => 'Consulter la situation fiscale', 'module' => 'municipality'],
+            ['slug' => 'municipal.receipt.annul', 'name' => 'Annuler ou rembourser une quittance', 'module' => 'municipality'],
             ['slug' => 'core.admin.access', 'name' => 'Accès administration', 'module' => 'core'],
             ['slug' => 'core.super_admin.access', 'name' => 'Accès super administration', 'module' => 'core'],
         ];
@@ -85,6 +86,7 @@ class RolePermissionSeeder extends Seeder
                 'municipal.payment.collect',
                 'municipal.payment.collect_without_gps',
                 'municipal.fiscal.view',
+                'municipal.receipt.annul',
             ],
             MamiRole::SuperAdmin->value => Permission::query()->pluck('slug')->all(),
         ];

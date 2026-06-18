@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
+import '../data/models/municipal_receipt_model.dart';
 
 class FiscalOperatorSummary {
   FiscalOperatorSummary({
@@ -105,11 +106,13 @@ class MunicipalCollectionModel {
     required this.collectedAt,
     required this.operatorName,
     required this.sessionReference,
+    this.receipt,
   });
 
   factory MunicipalCollectionModel.fromJson(Map<String, dynamic> json) {
     final operator = json['operator'] as Map<String, dynamic>?;
     final session = json['cash_session'] as Map<String, dynamic>?;
+    final receiptJson = json['receipt'] as Map<String, dynamic>?;
 
     return MunicipalCollectionModel(
       id: json['id'] as int,
@@ -117,6 +120,7 @@ class MunicipalCollectionModel {
       collectedAt: json['collected_at'] as String? ?? '',
       operatorName: operator?['commercial_name'] as String? ?? '',
       sessionReference: session?['reference'] as String? ?? '',
+      receipt: receiptJson != null ? MunicipalReceiptModel.fromJson(receiptJson) : null,
     );
   }
 
@@ -125,6 +129,7 @@ class MunicipalCollectionModel {
   final String collectedAt;
   final String operatorName;
   final String sessionReference;
+  final MunicipalReceiptModel? receipt;
 }
 
 class FiscalCollectionRepository {
@@ -219,6 +224,26 @@ class FiscalCollectionRepository {
     return list
         .map((e) => MunicipalCollectionModel.fromJson(e as Map<String, dynamic>))
         .toList();
+  }
+
+  Future<List<MunicipalReceiptModel>> fetchMyReceipts() async {
+    final response = await _dio.get('/municipality/fiscal/receipts');
+    final list = response.data['data'] as List<dynamic>;
+    return list
+        .map((e) => MunicipalReceiptModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<MunicipalReceiptModel> fetchReceipt(int receiptId) async {
+    final response = await _dio.get('/municipality/fiscal/receipts/$receiptId');
+    final data = response.data['data'] as Map<String, dynamic>;
+    return MunicipalReceiptModel.fromJson(data);
+  }
+
+  Future<MunicipalReceiptModel> reprintReceipt(int receiptId) async {
+    final response = await _dio.post('/municipality/fiscal/receipts/$receiptId/reprint');
+    final data = response.data['data'] as Map<String, dynamic>;
+    return MunicipalReceiptModel.fromJson(data);
   }
 }
 

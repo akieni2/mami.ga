@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Municipality\Http\Controllers\Concerns\AuthorizesFiscalAccess;
 use App\Modules\Municipality\Http\Resources\CashSessionResource;
 use App\Modules\Municipality\Http\Resources\MunicipalPaymentCollectionResource;
+use App\Modules\Municipality\Http\Resources\MunicipalReceiptResource;
 use App\Modules\Municipality\Models\EconomicOperator;
 use App\Modules\Municipality\Models\MunicipalPayment;
 use App\Modules\Municipality\Services\FiscalCollectionService;
@@ -101,6 +102,13 @@ class FiscalCollectionController extends Controller
                     'total_xaf' => (string) $row->total,
                     'count' => $row->count,
                 ]),
+                'active_agents_count' => $data['active_agents_count'],
+                'active_agents' => $data['active_agents']->map(fn ($row) => [
+                    'agent_id' => $row->agent_id,
+                    'agent_name' => $row->agent_name,
+                    'has_open_session' => $row->has_open_session,
+                ]),
+                'latest_receipts' => MunicipalReceiptResource::collection($data['latest_receipts']),
             ],
         ]);
     }

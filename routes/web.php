@@ -12,6 +12,11 @@ use Illuminate\Support\Facades\Route;
 
 require __DIR__.'/auth.php';
 
+Route::get('/public/receipts/verify/{token}', [
+    \App\Modules\Municipality\Http\Controllers\PublicReceiptVerificationController::class,
+    'show',
+])->name('public.receipts.verify');
+
 Route::get('/', function () {
     return auth()->check() && auth()->user()->isAdmin()
         ? redirect()->route('admin.dashboard')
@@ -59,6 +64,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         });
 
         Route::get('/collection', [\App\Modules\Municipality\Http\Controllers\Admin\CashCollectionAdminController::class, 'dashboard'])->name('collection.dashboard');
+        Route::get('/mayor', [\App\Modules\Municipality\Http\Controllers\Admin\MayorReceiptAdminController::class, 'dashboard'])->name('mayor.dashboard');
     });
 
     Route::prefix('live')->name('live.')->group(function (): void {

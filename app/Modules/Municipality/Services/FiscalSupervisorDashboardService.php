@@ -6,6 +6,7 @@ use App\Modules\Municipality\Enums\CashSessionStatus;
 use App\Modules\Municipality\Enums\PaymentStatus;
 use App\Modules\Municipality\Models\CashSession;
 use App\Modules\Municipality\Models\MunicipalPayment;
+use App\Modules\Municipality\Models\MunicipalReceipt;
 use Illuminate\Support\Collection;
 
 class FiscalSupervisorDashboardService
@@ -31,6 +32,8 @@ class FiscalSupervisorDashboardService
         $byAgent = $this->collectionsByAgent($date);
         $byDay = $this->collectionsByDay();
         $byQuartier = $this->collectionsByQuartier($date);
+        $activeAgents = $this->activeAgents($date);
+        $latestReceipts = $this->latestReceipts();
 
         return [
             'open_sessions_count' => $openSessions->count(),
@@ -39,6 +42,9 @@ class FiscalSupervisorDashboardService
             'collections_by_agent' => $byAgent,
             'collections_by_day' => $byDay,
             'collections_by_quartier' => $byQuartier,
+            'active_agents_count' => $activeAgents->count(),
+            'active_agents' => $activeAgents,
+            'latest_receipts' => $latestReceipts,
         ];
     }
 
@@ -88,6 +94,44 @@ class FiscalSupervisorDashboardService
             ")
             ->groupBy('economic_operators.sector_id', 'municipal_sectors.name', 'economic_operators.secteur')
             ->orderByDesc('total')
+            ->get();
+    }
+
+    /**
+     * @return Collection<int, object>
+     */
+    private function activeAgents(string $date): Collection
+    {
+        $sessionAgents = CashSession::query()
+            ->where('status', CashSessionStatus::Open)
+            ->pluck('agent_id');
+
+        $collectionAgents = MunicipalPayment::query()
+            ->whereDate('collected_at', $date)
+            ->where('status', PaymentStatus::Completed)
+            ->pluck('agent_id');
+
+        $agentIds = $sessionAgents->merge($collectionAgents)->unique()->filter();
+
+        return \App\Models\User::query()
+            ->whereIn('id', $agentIds)
+            ->get(['id', 'name'])
+            ->map(fn ($user) => (object) [
+                'agent_id' => $user->id,
+                'agent_name' => $user->name,
+                'has_open_session' => $sessionAgents->contains($user->id),
+            ]);
+    }
+
+    /**
+     * @return Collection<int, MunicipalReceipt>
+     */
+    private function latestReceipts(): Collection
+    {
+        return MunicipalReceipt::query()
+            ->with(['payment.operator', 'payment.agent'])
+            ->orderByDesc('generated_at')
+            ->limit(15)
             ->get();
     }
 }

@@ -49,6 +49,18 @@ class RecoveryHubScreen extends StatelessWidget {
           ),
           _tile(
             context,
+            icon: Icons.description_outlined,
+            title: 'Mes quittances',
+            route: '/municipality/recovery/receipts',
+          ),
+          _tile(
+            context,
+            icon: Icons.print_outlined,
+            title: 'Impression quittance',
+            route: '/municipality/recovery/receipts',
+          ),
+          _tile(
+            context,
             icon: Icons.lock_outline,
             title: 'Fermer caisse',
             route: '/municipality/recovery/close-session',

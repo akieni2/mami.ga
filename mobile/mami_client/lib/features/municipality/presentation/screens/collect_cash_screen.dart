@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../data/fiscal_collection_repository.dart';
 import '../providers/fiscal_collection_providers.dart';
@@ -74,7 +75,16 @@ class _CollectCashScreenState extends ConsumerState<CollectCashScreen> {
 
       ref.invalidate(currentCashSessionProvider);
       ref.invalidate(myCollectionsProvider);
+      ref.invalidate(myReceiptsProvider);
       setState(() => _success = 'Encaissement ${payment.amountXaf} XAF enregistré');
+
+      final receipt = payment.receipt;
+      if (receipt != null && mounted) {
+        context.push(
+          '/municipality/recovery/print-receipt/${receipt.id}',
+          extra: receipt,
+        );
+      }
     } catch (e) {
       setState(() => _error = 'Encaissement refusé');
     } finally {

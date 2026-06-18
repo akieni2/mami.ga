@@ -35,10 +35,7 @@ class MunicipalPaymentCollectionResource extends JsonResource
                 'obligation_reference' => $a->fiscalObligation?->reference,
             ])),
             'core_payment_id' => $this->core_payment_id,
-            'receipt' => $this->whenLoaded('receipt', fn () => [
-                'receipt_number' => $this->receipt?->receipt_number,
-                'receipt_qr_value' => $this->receipt?->receipt_qr_value,
-            ]),
+            'receipt' => $this->whenLoaded('receipt', fn () => new MunicipalReceiptResource($this->receipt)),
         ];
     }
 }
