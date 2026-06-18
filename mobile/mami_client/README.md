@@ -5,7 +5,7 @@ Application Flutter passager : connexion, réservation, suivi course, historique
 ## Prérequis
 
 - Flutter SDK 3.24+
-- API prod : `http://63.142.241.105/api`
+- API prod : `https://api.mami.ga/api`
 
 ## Installation
 
@@ -16,7 +16,7 @@ flutter pub get
 flutter run
 ```
 
-L'URL API par défaut est `http://63.142.241.105/api` (voir `lib/core/config/app_config.dart`).
+L'URL API par défaut est `https://api.mami.ga/api` (voir `lib/core/config/app_config.dart`).
 
 ## Compte démo
 

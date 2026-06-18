@@ -129,7 +129,7 @@ php artisan migrate --force
 
 ## 5. API `POST /api/rides/estimate`
 
-### Production (`63.142.241.105`) — backend P0/P1 déployé
+### Production (`ws.mami.ga`) — backend P0/P1 déployé
 
 | Endpoint | Statut |
 |----------|--------|
@@ -242,11 +242,11 @@ php artisan migrate --pretend
 php artisan test --filter=RideEstimateTest
 
 # API live (après déploiement)
-TOKEN=$(curl -s -X POST http://63.142.241.105/api/login \
+TOKEN=$(curl -s -X POST https://api.mami.ga/api/login \
   -H "Content-Type: application/json" \
   -d '{"email":"client@mami.ga","password":"password"}' | jq -r '.data.token')
 
-curl -s -X POST http://63.142.241.105/api/rides/estimate \
+curl -s -X POST https://api.mami.ga/api/rides/estimate \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"pickup_latitude":0.4162,"pickup_longitude":9.4673,"destination_latitude":0.3900,"destination_longitude":9.4500}'

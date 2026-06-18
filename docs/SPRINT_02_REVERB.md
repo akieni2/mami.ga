@@ -16,7 +16,7 @@ BROADCAST_CONNECTION=reverb
 REVERB_APP_ID=mami-ga
 REVERB_APP_KEY=mami-local-key
 REVERB_APP_SECRET=mami-local-secret
-REVERB_HOST=63.142.241.105
+REVERB_HOST=ws.mami.ga
 REVERB_PORT=8080
 REVERB_SCHEME=http
 ```
@@ -64,9 +64,9 @@ Package : `pusher_channels_flutter` (protocole Pusher / Reverb)
 cd mobile/mami_client   # ou mami_driver
 flutter pub get
 flutter run \
-  --dart-define=API_BASE_URL=http://63.142.241.105/api \
+  --dart-define=API_BASE_URL=https://api.mami.ga/api \
   --dart-define=REVERB_APP_KEY=mami-local-key \
-  --dart-define=REVERB_HOST=63.142.241.105 \
+  --dart-define=REVERB_HOST=ws.mami.ga \
   --dart-define=REVERB_PORT=8080
 ```
 

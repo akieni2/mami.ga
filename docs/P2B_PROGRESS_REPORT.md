@@ -158,7 +158,7 @@ php artisan test --filter=RideBooking
 1. VPS synchronisé sur `2bc3f4c` (ou plus récent sur `feature/mami-taxi-v2-p2`).
 2. Migration exécutée : `php artisan migrate --force`.
 3. APK installé : `app-release.apk` (hash `2bc3f4c7b83dc6c20a3f65c40048159f575751df`).
-4. Compte client actif, API `http://63.142.241.105/api`.
+4. Compte client actif, API `https://api.mami.ga/api`.
 5. Connexion internet stable.
 
 ### Installation APK
@@ -243,7 +243,7 @@ Ou transfert manuel + installation « sources inconnues » autorisées.
 Remplacer `TOKEN` par le token Sanctum du client :
 
 ```bash
-curl -s -X POST http://63.142.241.105/api/rides/request \
+curl -s -X POST https://api.mami.ga/api/rides/request \
   -H "Authorization: Bearer TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"pickup_label":"Carrefour STFO","destination_label":"Sni owendo","proposed_price":5000,"payment_method":"cash"}' \

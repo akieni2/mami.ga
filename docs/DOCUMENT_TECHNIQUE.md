@@ -47,7 +47,7 @@ MAMI.GA est une plateforme de mobilité urbaine type taxi, orientée villes afri
                              ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │  Serveur Ubuntu (production)                                    │
-│  IP publique : 63.142.241.105                                   │
+│  IP publique : ws.mami.ga                                   │
 │  Chemin projet : /var/www/mami.ga/                              │
 │  Propriétaire : root + www-data                                 │
 └─────────────────────────────────────────────────────────────────┘
@@ -60,33 +60,33 @@ MAMI.GA est une plateforme de mobilité urbaine type taxi, orientée villes afri
 | Paramètre | Valeur |
 |-----------|--------|
 | OS | Ubuntu |
-| IP publique | **63.142.241.105** |
+| IP publique | **ws.mami.ga** |
 | Racine projet | `/var/www/mami.ga/` |
 | Utilisateur web | `www-data` |
 | Dépôt Git | présent (`.git` à la racine) |
-| Domaine cible | `mami.ga` (si DNS → `63.142.241.105`) |
+| Domaine cible | `mami.ga` (si DNS → `ws.mami.ga`) |
 
 ### 2.3 URLs de production
 
 | Service | URL (IP directe) | URL (domaine, si DNS configuré) |
 |---------|------------------|----------------------------------|
-| API REST | `http://63.142.241.105/api` | `https://mami.ga/api` |
-| Admin web | `http://63.142.241.105/login` | `https://mami.ga/login` |
-| Dashboard | `http://63.142.241.105/dashboard` | `https://mami.ga/dashboard` |
-| Health check | `http://63.142.241.105/up` | `https://mami.ga/up` |
+| API REST | `https://api.mami.ga/api` | `https://mami.ga/api` |
+| Admin web | `https://admin.mami.ga/login` | `https://mami.ga/login` |
+| Dashboard | `https://admin.mami.ga/admin/dashboard` | `https://mami.ga/dashboard` |
+| Health check | `https://api.mami.ga/up` | `https://mami.ga/up` |
 
 **App Flutter (build prod)** :
 
 ```bash
 flutter build apk --dart-define=API_BASE_URL=https://mami.ga/api
 # ou en IP directe :
-flutter build apk --dart-define=API_BASE_URL=http://63.142.241.105/api
+flutter build apk --dart-define=API_BASE_URL=https://api.mami.ga/api
 ```
 
 ### 2.4 Mise à jour après `git push` (sur le VPS)
 
 ```bash
-ssh user@63.142.241.105
+ssh user@ws.mami.ga
 cd /var/www/mami.ga
 git pull origin main
 composer install --no-dev --optimize-autoloader
@@ -599,7 +599,7 @@ Commande : `php artisan test` (nécessite MySQL + base `mami_ga_testing`).
 
 ## 13. Déploiement production (VPS Ubuntu — checklist)
 
-**Serveur** : `63.142.241.105` — `/var/www/mami.ga/`
+**Serveur** : `ws.mami.ga` — `/var/www/mami.ga/`
 
 ```bash
 # Première installation sur le VPS

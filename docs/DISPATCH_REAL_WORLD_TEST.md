@@ -349,11 +349,11 @@ WHERE is_available = 1
 
 ```bash
 # Vérifier visibilité dispatch
-curl "http://63.142.241.105/api/drivers/nearby?latitude=0.5331&longitude=9.3730&radius_km=0.01" \
+curl "https://api.mami.ga/api/drivers/nearby?latitude=0.5331&longitude=9.3730&radius_km=0.01" \
   -H "Authorization: Bearer {token}"
 
 # Lancer dispatch
-curl -X POST "http://63.142.241.105/api/rides/request" \
+curl -X POST "https://api.mami.ga/api/rides/request" \
   -H "Authorization: Bearer {client_token}" \
   -H "Content-Type: application/json" \
   -d '{"pickup_latitude":0.5331,"pickup_longitude":9.3730,"destination_latitude":0.5400,"destination_longitude":9.3800}'

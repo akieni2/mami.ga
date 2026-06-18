@@ -99,7 +99,7 @@ b0d6fa4 feat(v2-p2a): add RideBookingTextScreen and client request flow
 |----------|--------|
 | APK client | `mobile/mami_client/build/app/outputs/flutter-apk/app-release.apk` |
 | Build | `--dart-define=MAMI_TAXI_V2=true`, ~51,5 Mo |
-| API | `http://63.142.241.105/api` |
+| API | `https://api.mami.ga/api` |
 
 ---
 

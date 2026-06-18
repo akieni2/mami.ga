@@ -113,7 +113,7 @@ flutter build apk --release
 **Exemple estimate :**
 
 ```bash
-curl -X POST http://63.142.241.105/api/rides/estimate \
+curl -X POST https://api.mami.ga/api/rides/estimate \
   -H "Authorization: Bearer {token}" \
   -H "Content-Type: application/json" \
   -d '{

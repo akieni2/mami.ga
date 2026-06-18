@@ -99,7 +99,7 @@ class ReceiptVerificationTest extends MunicipalityTestCase
         $url = app(ReceiptVerificationUrlBuilder::class)->build($receipt->verification_token);
 
         $this->assertSame($url, $receipt->receipt_qr_value);
-        $this->getJson(str_replace(config('app.url'), '', $url))
+        $this->getJson(str_replace(config('mami.urls.portal'), '', $url))
             ->assertOk();
     }
 

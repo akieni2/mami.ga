@@ -10,10 +10,10 @@
 ### URL exacte
 
 ```
-GET http://63.142.241.105/api/rides/offers/current
+GET https://api.mami.ga/api/rides/offers/current
 ```
 
-(Préfixe = `AppConfig.apiBaseUrl` dans l'app chauffeur, défaut `http://63.142.241.105/api`)
+(Préfixe = `AppConfig.apiBaseUrl` dans l'app chauffeur, défaut `https://api.mami.ga/api`)
 
 ### Authentification
 
@@ -61,7 +61,7 @@ Liste vide `data: []` si aucune offre **éligible** (voir §6).
 ### Vérification curl
 
 ```bash
-curl -s http://63.142.241.105/api/rides/offers/current \
+curl -s https://api.mami.ga/api/rides/offers/current \
   -H "Authorization: Bearer TOKEN_DRIVER_3" \
   -H "Accept: application/json" | jq .
 ```

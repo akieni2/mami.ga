@@ -2,7 +2,7 @@
 
 **Branche :** `feature/mami-taxi-v2-p1`  
 **APK :** `mobile/mami_client/build/app/outputs/flutter-apk/app-release.apk`  
-**API :** `http://63.142.241.105/api`
+**API :** `https://api.mami.ga/api`
 
 ---
 

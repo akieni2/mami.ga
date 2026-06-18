@@ -76,4 +76,16 @@ return [
     |--------------------------------------------------------------------------
     */
     'municipality_collection_max_gps_accuracy_m' => (float) env('MAMI_MUNICIPALITY_COLLECTION_MAX_GPS_ACCURACY_M', 50),
+
+    /*
+    |--------------------------------------------------------------------------
+    | URLs publiques (domaines MAMI.GA)
+    |--------------------------------------------------------------------------
+    */
+    'urls' => [
+        'api' => rtrim((string) env('MAMI_API_URL', 'https://api.mami.ga'), '/'),
+        'portal' => rtrim((string) env('MAMI_PORTAL_URL', 'https://mami.ga'), '/'),
+        'admin' => rtrim((string) env('MAMI_ADMIN_URL', 'https://admin.mami.ga'), '/'),
+        'websocket' => (string) env('MAMI_WEBSOCKET_URL', 'wss://ws.mami.ga'),
+    ],
 ];
