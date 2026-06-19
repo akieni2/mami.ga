@@ -10,6 +10,8 @@ use App\Models\Driver;
 use App\Models\DriverApplication;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Modules\Core\Enums\MamiRole;
+use App\Modules\Core\Models\Role;
 use App\Notifications\DriverApplicationApprovedNotification;
 use App\Notifications\DriverApplicationRejectedNotification;
 use Illuminate\Http\UploadedFile;
@@ -126,6 +128,8 @@ class DriverEnrollmentService
                 'rejection_reason' => null,
             ]);
 
+            $this->assignTaxiDriverRole($user, $admin);
+
             $application = $application->fresh(['user', 'reviewer']);
 
             $user->notify(new DriverApplicationApprovedNotification($application));
@@ -210,5 +214,21 @@ class DriverEnrollmentService
     private function storePhoto(UploadedFile $file, string $directory): string
     {
         return $file->store($directory, 'public');
+    }
+
+    private function assignTaxiDriverRole(User $user, User $admin): void
+    {
+        $role = Role::query()->where('slug', MamiRole::TaxiDriver->value)->first();
+
+        if ($role === null) {
+            return;
+        }
+
+        $user->roles()->syncWithoutDetaching([
+            $role->id => [
+                'assigned_at' => now(),
+                'assigned_by' => $admin->id,
+            ],
+        ]);
     }
 }

@@ -18,6 +18,12 @@ class DriverApplicationApprovalTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(\Database\Seeders\RolePermissionSeeder::class);
+    }
+
     public function test_admin_can_approve_pending_application(): void
     {
         Notification::fake();
@@ -56,6 +62,8 @@ class DriverApplicationApprovalTest extends TestCase
             'plate_number' => 'GA-222-BB',
             'brand' => $application->vehicle_brand,
         ]);
+
+        $this->assertTrue($applicant->fresh()->hasRole(\App\Modules\Core\Enums\MamiRole::TaxiDriver->value));
 
         Notification::assertSentTo($applicant, DriverApplicationApprovedNotification::class);
         Event::assertDispatched(DriverApplicationApproved::class);

@@ -194,10 +194,16 @@ class FiscalAdminController extends Controller
     {
         $result = $this->obligationService->generate($request->user());
 
-        return back()->with('success', sprintf(
+        $message = sprintf(
             '%d obligation(s) créée(s), %d ignorée(s).',
             $result['created'],
             $result['skipped'],
-        ));
+        );
+
+        if ($result['created'] === 0) {
+            $message .= ' Vérifiez qu\'il existe des affectations actives avec des taux en vigueur.';
+        }
+
+        return back()->with('success', $message);
     }
 }

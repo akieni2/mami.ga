@@ -7,25 +7,33 @@
 @section('content')
     @include('admin.municipality.fiscal.partials.nav', ['active' => 'assignments'])
 
-    @if (session('success'))
-        <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('success') }}</div>
+    @if ($operators->isEmpty())
+        <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            Aucun opérateur économique actif en base. Enrôlez d'abord des opérateurs avant d'affecter des taxes.
+        </div>
     @endif
 
     <div class="mb-6 rounded-xl border border-slate-200 bg-white p-4">
         <form method="POST" action="{{ route('admin.municipality.fiscal.assignments.store') }}" class="grid gap-3 md:grid-cols-3">
             @csrf
-            <select name="operator_id" required class="rounded-lg border-slate-200 text-sm">
-                <option value="">Opérateur</option>
-                @foreach ($operators as $operator)
-                    <option value="{{ $operator->id }}">{{ $operator->public_id }} — {{ $operator->commercial_name }}</option>
-                @endforeach
-            </select>
-            <select name="tax_type_id" required class="rounded-lg border-slate-200 text-sm">
-                <option value="">Taxe</option>
-                @foreach ($taxTypes as $type)
-                    <option value="{{ $type->id }}">{{ $type->code }}</option>
-                @endforeach
-            </select>
+            <div>
+                <select name="operator_id" required class="w-full rounded-lg border-slate-200 text-sm @error('operator_id') border-rose-400 @enderror">
+                    <option value="">Opérateur</option>
+                    @foreach ($operators as $operator)
+                        <option value="{{ $operator->id }}" @selected(old('operator_id') == $operator->id)>{{ $operator->public_id }} — {{ $operator->commercial_name }}</option>
+                    @endforeach
+                </select>
+                @include('admin.partials.field-error', ['field' => 'operator_id'])
+            </div>
+            <div>
+                <select name="tax_type_id" required class="w-full rounded-lg border-slate-200 text-sm @error('tax_type_id') border-rose-400 @enderror">
+                    <option value="">Taxe</option>
+                    @foreach ($taxTypes as $type)
+                        <option value="{{ $type->id }}" @selected(old('tax_type_id') == $type->id)>{{ $type->code }}</option>
+                    @endforeach
+                </select>
+                @include('admin.partials.field-error', ['field' => 'tax_type_id'])
+            </div>
             <button type="submit" class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white">Affecter</button>
         </form>
     </div>

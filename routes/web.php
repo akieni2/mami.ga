@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\LiveDataController;
 use App\Http\Controllers\Admin\LiveMapController;
 use App\Http\Controllers\Admin\ReportsController;
 use App\Http\Controllers\Admin\RideController;
+use App\Http\Controllers\Admin\UserAdminController;
 use Illuminate\Support\Facades\Route;
 
 require __DIR__.'/auth.php';
@@ -36,6 +37,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/driver-applications/{driverApplication}/reject', [DriverApplicationController::class, 'reject'])->name('driver-applications.reject');
     Route::get('/clients', [ClientController::class, 'index'])->name('clients.index');
     Route::get('/clients/{user}', [ClientController::class, 'show'])->name('clients.show');
+    Route::get('/users', [UserAdminController::class, 'index'])->name('users.index');
+    Route::get('/users/agents/create', [UserAdminController::class, 'createAgent'])->name('users.agents.create');
+    Route::post('/users/agents', [UserAdminController::class, 'storeAgent'])->name('users.agents.store');
+    Route::get('/users/{user}', [UserAdminController::class, 'show'])->name('users.show');
+    Route::post('/users/{user}/roles', [UserAdminController::class, 'attachRole'])->name('users.roles.attach');
+    Route::delete('/users/{user}/roles/{roleSlug}', [UserAdminController::class, 'detachRole'])->name('users.roles.detach');
     Route::get('/map', [LiveMapController::class, 'index'])->name('map.index');
     Route::get('/reports', [ReportsController::class, 'index'])->name('reports.index');
 

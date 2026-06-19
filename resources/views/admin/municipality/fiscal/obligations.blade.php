@@ -7,16 +7,15 @@
 @section('content')
     @include('admin.municipality.fiscal.partials.nav', ['active' => 'obligations'])
 
-    @if (session('success'))
-        <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('success') }}</div>
-    @endif
-
-    <form method="POST" action="{{ route('admin.municipality.fiscal.obligations.generate') }}" class="mb-6">
-        @csrf
-        <button type="submit" class="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800">
-            Générer les obligations (période courante)
-        </button>
-    </form>
+    <div class="mb-6 rounded-xl border border-slate-200 bg-white p-4">
+        <p class="mb-3 text-xs text-slate-500">Prérequis : types de taxes actifs, taux en vigueur et affectations opérateur → taxe.</p>
+        <form method="POST" action="{{ route('admin.municipality.fiscal.obligations.generate') }}">
+            @csrf
+            <button type="submit" class="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800">
+                Générer les obligations (période courante)
+            </button>
+        </form>
+    </div>
 
     <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         <table class="min-w-full divide-y divide-slate-100 text-sm">

@@ -7,17 +7,29 @@
 @section('content')
     @include('admin.municipality.fiscal.partials.nav', ['active' => 'tax-types'])
 
-    @if (session('success'))
-        <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('success') }}</div>
-    @endif
-
     <div class="mb-6 rounded-xl border border-slate-200 bg-white p-4">
-        <h2 class="mb-3 text-sm font-semibold text-slate-700">Nouveau type de taxe</h2>
+        <h2 class="mb-1 text-sm font-semibold text-slate-700">Nouveau type de taxe</h2>
+        <p class="mb-3 text-xs text-slate-500">Le code est un identifiant technique (ex. <span class="font-mono">TAX-COMMERCE</span>) : lettres, chiffres et tirets uniquement, sans espaces.</p>
         <form method="POST" action="{{ route('admin.municipality.fiscal.tax-types.store') }}" class="grid gap-3 md:grid-cols-4">
             @csrf
-            <input type="text" name="code" placeholder="TAX-COMMERCE" required class="rounded-lg border-slate-200 text-sm" value="{{ old('code') }}">
-            <input type="text" name="name" placeholder="Nom" required class="rounded-lg border-slate-200 text-sm" value="{{ old('name') }}">
-            <input type="text" name="description" placeholder="Description" class="rounded-lg border-slate-200 text-sm md:col-span-2" value="{{ old('description') }}">
+            <div>
+                <input type="text" name="code" placeholder="TAX-COMMERCE" required
+                       class="w-full rounded-lg border-slate-200 text-sm @error('code') border-rose-400 @enderror"
+                       value="{{ old('code') }}">
+                @include('admin.partials.field-error', ['field' => 'code'])
+            </div>
+            <div>
+                <input type="text" name="name" placeholder="Nom" required
+                       class="w-full rounded-lg border-slate-200 text-sm @error('name') border-rose-400 @enderror"
+                       value="{{ old('name') }}">
+                @include('admin.partials.field-error', ['field' => 'name'])
+            </div>
+            <div class="md:col-span-2">
+                <input type="text" name="description" placeholder="Description"
+                       class="w-full rounded-lg border-slate-200 text-sm @error('description') border-rose-400 @enderror"
+                       value="{{ old('description') }}">
+                @include('admin.partials.field-error', ['field' => 'description'])
+            </div>
             <button type="submit" class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white md:col-span-4 md:w-auto">Créer</button>
         </form>
     </div>

@@ -7,21 +7,29 @@
 @section('content')
     @include('admin.municipality.fiscal.partials.nav', ['active' => 'targets'])
 
-    @if (session('success'))
-        <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('success') }}</div>
-    @endif
-
     <div class="mb-6 rounded-xl border border-slate-200 bg-white p-4">
         <form method="POST" action="{{ route('admin.municipality.fiscal.targets.store') }}" class="grid gap-3 md:grid-cols-4">
             @csrf
-            <select name="tax_type_id" required class="rounded-lg border-slate-200 text-sm">
-                <option value="">Type de taxe</option>
-                @foreach ($taxTypes as $type)
-                    <option value="{{ $type->id }}">{{ $type->code }}</option>
-                @endforeach
-            </select>
-            <input type="number" name="fiscal_year" min="2000" max="2100" value="{{ now()->year }}" required class="rounded-lg border-slate-200 text-sm">
-            <input type="number" name="target_amount_xaf" min="0" step="1" placeholder="Objectif XAF" required class="rounded-lg border-slate-200 text-sm">
+            <div>
+                <select name="tax_type_id" required class="w-full rounded-lg border-slate-200 text-sm @error('tax_type_id') border-rose-400 @enderror">
+                    <option value="">Type de taxe</option>
+                    @foreach ($taxTypes as $type)
+                        <option value="{{ $type->id }}" @selected(old('tax_type_id') == $type->id)>{{ $type->code }}</option>
+                    @endforeach
+                </select>
+                @include('admin.partials.field-error', ['field' => 'tax_type_id'])
+            </div>
+            <div>
+                <input type="number" name="fiscal_year" min="2000" max="2100" value="{{ old('fiscal_year', now()->year) }}" required
+                       class="w-full rounded-lg border-slate-200 text-sm @error('fiscal_year') border-rose-400 @enderror">
+                @include('admin.partials.field-error', ['field' => 'fiscal_year'])
+            </div>
+            <div>
+                <input type="number" name="target_amount_xaf" min="0" step="1" placeholder="Objectif XAF" required
+                       class="w-full rounded-lg border-slate-200 text-sm @error('target_amount_xaf') border-rose-400 @enderror"
+                       value="{{ old('target_amount_xaf') }}">
+                @include('admin.partials.field-error', ['field' => 'target_amount_xaf'])
+            </div>
             <button type="submit" class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white">Enregistrer</button>
         </form>
     </div>
