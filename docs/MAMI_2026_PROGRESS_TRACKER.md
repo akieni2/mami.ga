@@ -57,7 +57,17 @@ La feuille de route reste figée jusqu'à l'achèvement de la Priorité 5.
 | Recette mairie / procès-verbal signé | ⏳ En attente |
 | Déclaration officielle « module clôturé » | ⏳ En attente |
 
-**Prochaine action :** exécuter la checklist de clôture P1 décrite dans [MAMI_2026_EXECUTION_PLAN.md](MAMI_2026_EXECUTION_PLAN.md#14-critères-de-validation).
+**Prochaine action :** exécuter la liasse de clôture Sprint 3 (voir ci-dessous).
+
+### Liasse de clôture Sprint 3 (en cours)
+
+| # | Document | Statut |
+|---|----------|--------|
+| 1 | [RAPPORT_VALIDATION_SPRINT3_MUNICIPALITE.md](RAPPORT_VALIDATION_SPRINT3_MUNICIPALITE.md) | ⏳ En cours |
+| 2 | [CHECKLIST_DEPLOIEMENT_VPS_SPRINT3.md](CHECKLIST_DEPLOIEMENT_VPS_SPRINT3.md) | ⏳ À exécuter |
+| 3 | [CHECKLIST_VALIDATION_TERRAIN_SPRINT3.md](CHECKLIST_VALIDATION_TERRAIN_SPRINT3.md) | ⏳ À exécuter |
+| 4 | [CHECKLIST_RECETTE_MAIRIE_SPRINT3.md](CHECKLIST_RECETTE_MAIRIE_SPRINT3.md) | ⏳ À exécuter |
+| 5 | [PROCEDURE_CLOTURE_SPRINT3.md](PROCEDURE_CLOTURE_SPRINT3.md) | ⏳ En cours |
 
 ---
 
@@ -85,6 +95,7 @@ La feuille de route reste figée jusqu'à l'achèvement de la Priorité 5.
 | Date | Modification |
 |------|--------------|
 | juin 2026 | Création du tracker — référence tag `v1.6-roadmap-2026` |
+| juin 2026 | Démarrage liasse clôture Sprint 3 (5 documents) |
 
 ---
 
