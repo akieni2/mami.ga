@@ -13,6 +13,7 @@ enum MamiRole: string
     case TransportDriver = 'transport_driver';
     case Merchant = 'merchant';
     case MunicipalAgent = 'municipal_agent';
+    case MunicipalSupervisor = 'municipal_supervisor';
     case Admin = 'admin';
     case SuperAdmin = 'super_admin';
 
@@ -28,6 +29,7 @@ enum MamiRole: string
             self::TransportDriver => 'Transporteur',
             self::Merchant => 'Commerçant',
             self::MunicipalAgent => 'Agent Municipal',
+            self::MunicipalSupervisor => 'Superviseur Municipal',
             self::Admin => 'Administrateur',
             self::SuperAdmin => 'Super Administrateur',
         };
@@ -41,7 +43,7 @@ enum MamiRole: string
             self::CarpoolDriver, self::CarpoolPassenger => 'carpool',
             self::TransportCustomer, self::TransportDriver => 'transport',
             self::Merchant => 'commerce',
-            self::MunicipalAgent => 'municipality',
+            self::MunicipalAgent, self::MunicipalSupervisor => 'municipality',
         };
     }
 

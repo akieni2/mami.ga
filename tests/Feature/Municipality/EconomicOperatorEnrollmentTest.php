@@ -43,12 +43,12 @@ class EconomicOperatorEnrollmentTest extends MunicipalityTestCase
         ]);
 
         $response->assertCreated()
-            ->assertJsonPath('data.public_id', 'OWE-COM-000001')
+            ->assertJsonPath('data.public_id', 'OWE-COM-00000001')
             ->assertJsonPath('data.quartier', 'Cité SNI')
             ->assertJsonPath('data.tax_status', 'a_jour');
 
         $this->assertDatabaseHas('economic_operators', [
-            'public_id' => 'OWE-COM-000001',
+            'public_id' => 'OWE-COM-00000001',
             'registered_by' => $agent->id,
             'sync_status' => 'synced',
         ]);

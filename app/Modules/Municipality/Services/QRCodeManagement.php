@@ -57,7 +57,7 @@ class QRCodeManagement
             return $query->where('qr_uuid', $trimmed)->first();
         }
 
-        if (preg_match('/^QR-OWE-COM-\d{6}-([0-9A-F]{8})$/i', $trimmed, $matches)) {
+        if (preg_match('/^QR-OWE-COM-\d{6,8}-([0-9A-F]{8})$/i', $trimmed, $matches)) {
             $suffix = strtoupper($matches[1]);
 
             return $query
@@ -130,7 +130,7 @@ class QRCodeManagement
             return true;
         }
 
-        return (bool) preg_match('/^QR-OWE-COM-\d{6}-[0-9A-F]{8}$/i', $value);
+        return (bool) preg_match('/^QR-OWE-COM-\d{6,8}-[0-9A-F]{8}$/i', $value);
     }
 
     private function isUuid(string $value): bool

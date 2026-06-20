@@ -45,8 +45,8 @@ class QRCodeManagementTest extends MunicipalityTestCase
         ]);
 
         $response->assertCreated()
-            ->assertJsonPath('data.qr_code.display_id', 'OWE-COM-000001')
-            ->assertJsonPath('data.qr_code.display_label', 'OWE-COM-000001');
+            ->assertJsonPath('data.qr_code.display_id', 'OWE-COM-00000001')
+            ->assertJsonPath('data.qr_code.display_label', 'OWE-COM-00000001');
 
         $scanToken = $response->json('data.qr_code.scan_token');
         $this->assertIsString($scanToken);
@@ -57,7 +57,7 @@ class QRCodeManagementTest extends MunicipalityTestCase
 
         $this->assertDatabaseHas('economic_operator_qrcodes', [
             'qr_uuid' => $scanToken,
-            'qr_value' => 'OWE-COM-000001',
+            'qr_value' => 'OWE-COM-00000001',
             'is_active' => true,
         ]);
     }
@@ -73,8 +73,8 @@ class QRCodeManagementTest extends MunicipalityTestCase
         $this->getJson('/api/municipality/operators/by-qr/'.$scanToken)
             ->assertOk()
             ->assertJsonPath('data.qr.scan_token', $scanToken)
-            ->assertJsonPath('data.qr.display_id', 'OWE-COM-000001')
-            ->assertJsonPath('data.operator.public_id', 'OWE-COM-000001')
+            ->assertJsonPath('data.qr.display_id', 'OWE-COM-00000001')
+            ->assertJsonPath('data.operator.public_id', 'OWE-COM-00000001')
             ->assertJsonPath('data.territory.quartier', 'Cité SNI')
             ->assertJsonPath('data.tax_status.current', 'a_jour');
     }
@@ -90,7 +90,7 @@ class QRCodeManagementTest extends MunicipalityTestCase
 
         $this->getJson('/api/municipality/operators/by-qr/'.$composite)
             ->assertOk()
-            ->assertJsonPath('data.operator.public_id', 'OWE-COM-000001');
+            ->assertJsonPath('data.operator.public_id', 'OWE-COM-00000001');
     }
 
     public function test_qr_lookup_rejects_predictable_public_id_only(): void
@@ -100,10 +100,10 @@ class QRCodeManagementTest extends MunicipalityTestCase
 
         $this->createOperator($agent);
 
-        $this->getJson('/api/municipality/operators/by-qr/OWE-COM-000001')
+        $this->getJson('/api/municipality/operators/by-qr/OWE-COM-00000001')
             ->assertNotFound();
 
-        $this->getJson('/api/municipality/operators/by-qr/QR-OWE-COM-000001')
+        $this->getJson('/api/municipality/operators/by-qr/QR-OWE-COM-00000001')
             ->assertNotFound();
     }
 
@@ -120,7 +120,7 @@ class QRCodeManagementTest extends MunicipalityTestCase
 
         $this->assertNotEmpty($png);
         $this->assertSame($qrcode->qr_uuid, $management->scanPayload($qrcode));
-        $this->assertNotSame('OWE-COM-000001', $management->scanPayload($qrcode));
+        $this->assertNotSame('OWE-COM-00000001', $management->scanPayload($qrcode));
     }
 
     public function test_qr_png_download_returns_image(): void
@@ -147,8 +147,8 @@ class QRCodeManagementTest extends MunicipalityTestCase
 
         $this->getJson('/api/municipality/operators/'.$operator->id.'/business-card')
             ->assertOk()
-            ->assertJsonPath('data.public_id', 'OWE-COM-000001')
-            ->assertJsonPath('data.display_id', 'OWE-COM-000001')
+            ->assertJsonPath('data.public_id', 'OWE-COM-00000001')
+            ->assertJsonPath('data.display_id', 'OWE-COM-00000001')
             ->assertJsonPath('data.scan_token', $operator->activeQrcode->qr_uuid)
             ->assertJsonPath('data.pdf_ready', false);
     }

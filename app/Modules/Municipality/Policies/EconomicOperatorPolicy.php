@@ -32,10 +32,33 @@ class EconomicOperatorPolicy
         return $this->hasOperatorPermission($user, 'economic_operator.inspect');
     }
 
+    public function export(User $user): bool
+    {
+        return $this->canAccessOperatorAdmin($user);
+    }
+
+    public function batchQr(User $user): bool
+    {
+        return $this->canAccessOperatorAdmin($user);
+    }
+
+    public function downloadQr(User $user, EconomicOperator $operator): bool
+    {
+        return $this->canAccessOperatorAdmin($user);
+    }
+
+    private function canAccessOperatorAdmin(User $user): bool
+    {
+        return $user->canAccessEconomicOperatorAdmin();
+    }
+
     private function hasOperatorPermission(User $user, string $permission): bool
     {
-        return $user->isAdmin()
-            || $user->hasPermission($permission)
+        if ($this->canAccessOperatorAdmin($user)) {
+            return true;
+        }
+
+        return $user->hasPermission($permission)
             || $user->hasPermission('municipality.operators.manage');
     }
 }

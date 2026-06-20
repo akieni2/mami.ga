@@ -73,6 +73,11 @@ class RolePermissionSeeder extends Seeder
                 'municipal.payment.collect',
                 'municipal.fiscal.view',
             ],
+            MamiRole::MunicipalSupervisor->value => [
+                'municipality.operators.manage',
+                'economic_operator.view',
+                'municipal.fiscal.view',
+            ],
             MamiRole::Admin->value => [
                 'core.admin.access',
                 'taxi.rides.manage',

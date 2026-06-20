@@ -19,7 +19,15 @@ Route::get('/public/receipts/verify/{token}', [
 ])->name('public.receipts.verify');
 
 Route::get('/', function () {
-    return auth()->check() && auth()->user()->isAdmin()
+    if (! auth()->check()) {
+        return redirect()->route('login');
+    }
+
+    if (auth()->user()->canAccessEconomicOperatorAdmin() && ! auth()->user()->isAdmin()) {
+        return redirect()->route('admin.municipality.operators.index');
+    }
+
+    return auth()->user()->isAdmin()
         ? redirect()->route('admin.dashboard')
         : redirect()->route('login');
 });
@@ -82,6 +90,22 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         Route::get('/stats', [LiveDataController::class, 'stats'])->name('stats');
     });
 });
+
+Route::middleware(['auth', 'economic_operator.admin', 'module:municipality'])
+    ->prefix('admin/municipality/operators')
+    ->name('admin.municipality.operators.')
+    ->group(function (): void {
+        Route::get('/', [\App\Modules\Municipality\Http\Controllers\Admin\EconomicOperatorAdminController::class, 'index'])->name('index');
+        Route::get('/export/csv', [\App\Modules\Municipality\Http\Controllers\Admin\EconomicOperatorAdminController::class, 'exportCsv'])->name('export.csv');
+        Route::get('/export/excel', [\App\Modules\Municipality\Http\Controllers\Admin\EconomicOperatorAdminController::class, 'exportExcel'])->name('export.excel');
+        Route::get('/export/pdf', [\App\Modules\Municipality\Http\Controllers\Admin\EconomicOperatorAdminController::class, 'exportPdf'])->name('export.pdf');
+        Route::get('/qr-batch', [\App\Modules\Municipality\Http\Controllers\Admin\EconomicOperatorAdminController::class, 'qrBatchForm'])->name('qr-batch');
+        Route::post('/qr-batch', [\App\Modules\Municipality\Http\Controllers\Admin\EconomicOperatorAdminController::class, 'qrBatchGenerate'])->name('qr-batch.generate');
+        Route::get('/{operator}', [\App\Modules\Municipality\Http\Controllers\Admin\EconomicOperatorAdminController::class, 'show'])->name('show');
+        Route::get('/{operator}/qr/png', [\App\Modules\Municipality\Http\Controllers\Admin\EconomicOperatorAdminController::class, 'downloadQrPng'])->name('qr.png');
+        Route::get('/{operator}/qr/pdf', [\App\Modules\Municipality\Http\Controllers\Admin\EconomicOperatorAdminController::class, 'downloadQrPdf'])->name('qr.pdf');
+        Route::get('/{operator}/qr/business-card', [\App\Modules\Municipality\Http\Controllers\Admin\EconomicOperatorAdminController::class, 'downloadBusinessCard'])->name('qr.business-card');
+    });
 
 // Rétrocompatibilité URLs Phase 2
 Route::middleware(['auth', 'admin'])->group(function (): void {

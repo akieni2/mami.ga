@@ -21,7 +21,7 @@ class EconomicOperatorReferenceGenerator
                 $sequence = (int) $matches[1] + 1;
             }
 
-            return sprintf('OWE-COM-%06d', $sequence);
+            return sprintf('OWE-COM-%08d', $sequence);
         });
     }
 }

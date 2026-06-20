@@ -20,7 +20,7 @@ void main() {
     test('parses enrollment response with string decimals', () {
       final operator = EconomicOperatorModel.fromJson({
         'id': 1,
-        'public_id': 'OWE-COM-000001',
+        'public_id': 'OWE-COM-00000001',
         'commercial_name': 'Boutique SNI',
         'activity_label': 'Alimentation générale',
         'category_label': 'Boutique',
@@ -39,7 +39,7 @@ void main() {
         'created_at': '2026-06-16T10:00:00+00:00',
       });
 
-      expect(operator.publicId, 'OWE-COM-000001');
+      expect(operator.publicId, 'OWE-COM-00000001');
       expect(operator.latitude, 0.338);
       expect(operator.longitude, 9.471);
       expect(operator.commercialName, 'Boutique SNI');

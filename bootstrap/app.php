@@ -20,11 +20,20 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
+            'economic_operator.admin' => \App\Http\Middleware\EnsureEconomicOperatorAdminAccess::class,
             'module' => \App\Http\Middleware\EnsureModuleEnabled::class,
         ]);
 
         $middleware->redirectGuestsTo(fn () => route('login'));
-        $middleware->redirectUsersTo(fn () => route('admin.dashboard'));
+        $middleware->redirectUsersTo(function () {
+            $user = auth()->user();
+
+            if ($user?->canAccessEconomicOperatorAdmin() && ! $user->isAdmin()) {
+                return route('admin.municipality.operators.index');
+            }
+
+            return route('admin.dashboard');
+        });
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

@@ -72,6 +72,16 @@ class User extends Authenticatable
         return (bool) $this->is_admin;
     }
 
+    public function isMunicipalSupervisor(): bool
+    {
+        return $this->hasRole('municipal_supervisor');
+    }
+
+    public function canAccessEconomicOperatorAdmin(): bool
+    {
+        return $this->isAdmin() || $this->isMunicipalSupervisor();
+    }
+
     public function roles(): BelongsToMany
     {
         return $this->belongsToMany(Role::class, 'user_roles')
