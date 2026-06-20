@@ -49,7 +49,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         if (user == null && !onAuth && !onSplash) {
           target = '/login';
         } else if (user != null && (onAuth || onSplash)) {
-          target = '/';
+          target = user.postAuthRoute;
         }
       }
 

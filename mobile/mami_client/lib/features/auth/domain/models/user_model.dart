@@ -19,6 +19,10 @@ class UserModel {
 
   bool get isMunicipalAgent => roles.contains('municipal_agent');
 
+  /// Route d'accueil après authentification (agent municipal → hub terrain).
+  String get postAuthRoute =>
+      isMunicipalAgent ? '/municipality/agent' : '/';
+
   bool hasPermission(String slug) => permissions.contains(slug);
 
   bool get canEnrollEconomicOperators =>

@@ -47,7 +47,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     ref.listen(authStateProvider, (prev, next) {
       if (next.hasValue && next.value != null && !next.isLoading) {
-        context.go('/');
+        context.go(next.value!.postAuthRoute);
       }
       if (next.hasError && !next.isLoading) {
         final err = next.error;

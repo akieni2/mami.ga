@@ -52,7 +52,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       }
     } catch (_) {}
 
-    if (mounted) context.go('/');
+    if (mounted) context.go(user.postAuthRoute);
   }
 
   @override
