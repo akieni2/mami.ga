@@ -1,3 +1,5 @@
+import '../../../../core/json/json_decoders.dart';
+
 class MunicipalityReportModel {
   const MunicipalityReportModel({
     required this.id,
@@ -37,8 +39,8 @@ class MunicipalityReportModel {
       categoryLabel: json['category_label'] as String? ?? json['category'] as String,
       title: json['title'] as String,
       description: json['description'] as String,
-      latitude: (json['latitude'] as num).toDouble(),
-      longitude: (json['longitude'] as num).toDouble(),
+      latitude: readJsonDouble(json['latitude']),
+      longitude: readJsonDouble(json['longitude']),
       status: json['status'] as String,
       statusLabel: json['status_label'] as String? ?? json['status'] as String,
       statusColor: json['status_color'] as String? ?? '#E53935',

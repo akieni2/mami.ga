@@ -1,3 +1,5 @@
+import '../../../../core/json/json_decoders.dart';
+
 class EconomicOperatorModel {
   const EconomicOperatorModel({
     required this.id,
@@ -47,8 +49,8 @@ class EconomicOperatorModel {
       responsibleName: json['responsible_name'] as String,
       phone: json['phone'] as String,
       email: json['email'] as String?,
-      latitude: (json['latitude'] as num).toDouble(),
-      longitude: (json['longitude'] as num).toDouble(),
+      latitude: readJsonDouble(json['latitude']),
+      longitude: readJsonDouble(json['longitude']),
       quartier: json['quartier'] as String?,
       operationalZone: json['operational_zone'] as String?,
       economicZone: json['economic_zone'] as String?,
@@ -77,7 +79,8 @@ class EconomicOperatorDashboardModel {
     return EconomicOperatorDashboardModel(
       registeredToday: json['registered_today'] as int? ?? 0,
       totalOperators: json['total_operators'] as int? ?? 0,
-      coveragePercent: (coverage['coverage_percent'] as num?)?.toDouble() ?? 0,
+      coveragePercent:
+          readJsonDoubleOrNull(coverage['coverage_percent'], fallback: 0) ?? 0,
     );
   }
 }
