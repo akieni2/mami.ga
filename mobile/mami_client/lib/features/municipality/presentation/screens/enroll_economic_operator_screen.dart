@@ -39,6 +39,7 @@ class _EnrollEconomicOperatorScreenState
   String? _gpsMessage;
   bool _locationConfirmed = false;
   bool _submitting = false;
+  bool _gpsCaptureInProgress = false;
   Timer? _gpsTimer;
 
   File? _facadePhoto;
@@ -69,6 +70,9 @@ class _EnrollEconomicOperatorScreenState
   }
 
   Future<void> _captureGps() async {
+    if (_gpsCaptureInProgress) return;
+    _gpsCaptureInProgress = true;
+
     try {
       var permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
@@ -94,14 +98,15 @@ class _EnrollEconomicOperatorScreenState
       if (!mounted) return;
 
       setState(() {
-        _position = position;
         _loadingGps = false;
-        _gpsMessage = position.accuracy <= _maxAccuracyM
+        if (_position == null || position.accuracy < _position!.accuracy) {
+          _position = position;
+        }
+
+        final best = _position!;
+        _gpsMessage = best.accuracy <= _maxAccuracyM
             ? null
             : 'Position GPS insuffisamment précise. Veuillez patienter.';
-        if (position.accuracy > _maxAccuracyM) {
-          _locationConfirmed = false;
-        }
       });
     } catch (_) {
       if (mounted) {
@@ -110,6 +115,8 @@ class _EnrollEconomicOperatorScreenState
           _gpsMessage = 'Impossible de capturer le GPS.';
         });
       }
+    } finally {
+      _gpsCaptureInProgress = false;
     }
   }
 
@@ -388,7 +395,7 @@ class _EnrollEconomicOperatorScreenState
             const SizedBox(height: 8),
             Text('Latitude : ${p.latitude.toStringAsFixed(6)}'),
             Text('Longitude : ${p.longitude.toStringAsFixed(6)}'),
-            Text('Précision : ${p.accuracy.toStringAsFixed(0)} mètres'),
+            Text('Précision : ${p.accuracy.toStringAsFixed(1)} mètres'),
             Text('Date : ${p.timestamp.toLocal()}'),
             if (_gpsMessage != null) ...[
               const SizedBox(height: 8),
