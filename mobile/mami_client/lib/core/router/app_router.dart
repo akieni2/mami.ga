@@ -21,6 +21,7 @@ import '../../features/municipality/presentation/screens/print_receipt_screen.da
 import '../../features/municipality/presentation/screens/receipt_history_screen.dart';
 import '../../features/municipality/presentation/screens/recovery_hub_screen.dart';
 import '../../features/municipality/presentation/screens/scan_operator_screen.dart';
+import '../../features/municipality/presentation/screens/scan_qr_camera_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/rides/presentation/screens/active_ride_screen.dart';
 import '../../features/rides/presentation/screens/ride_booking_gate.dart';
@@ -152,6 +153,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/municipality/recovery/scan',
         builder: (context, state) => const ScanOperatorScreen(),
+      ),
+      GoRoute(
+        path: '/municipality/recovery/scan/camera',
+        builder: (context, state) => const ScanQrCameraScreen(),
       ),
       GoRoute(
         path: '/municipality/recovery/fiscal-summary',

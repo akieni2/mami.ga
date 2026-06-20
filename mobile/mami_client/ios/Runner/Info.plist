@@ -47,6 +47,8 @@
 			</array>
 		</dict>
 	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>MAMI.GA utilise la caméra pour scanner les QR codes des commerces lors des tournées fiscales.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>MAMI.GA utilise votre position pour afficher le point de départ de votre course.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>

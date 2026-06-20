@@ -23,6 +23,7 @@ dependencies:
   shared_preferences: ^2.3.3
   pusher_channels_flutter:
     path: ../mami_driver/packages/pusher_channels_flutter
+  mobile_scanner: ^7.2.0
 
 dev_dependencies:
   flutter_test:

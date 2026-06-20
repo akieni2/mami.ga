@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../data/fiscal_collection_repository.dart';
+import '../../domain/operator_qr_lookup.dart';
 
 class ScanOperatorScreen extends ConsumerStatefulWidget {
   const ScanOperatorScreen({super.key});
@@ -33,14 +34,17 @@ class _ScanOperatorScreenState extends ConsumerState<ScanOperatorScreen> {
 
     try {
       final repo = ref.read(fiscalCollectionRepositoryProvider);
-      final data = await repo.lookupOperatorByQr(value);
-      final operator = data['operator'] as Map<String, dynamic>? ?? data;
-      final operatorId = operator['id'] as int?;
+      final operatorId = await lookupOperatorIdByQr(
+        lookup: repo.lookupOperatorByQr,
+        rawPayload: value,
+      );
 
-      if (!mounted || operatorId == null) return;
+      if (!mounted) return;
       context.push('/municipality/recovery/fiscal-summary/$operatorId');
-    } catch (e) {
-      setState(() => _error = 'QR introuvable ou invalide');
+    } on OperatorQrLookupException catch (e) {
+      setState(() => _error = e.message);
+    } catch (_) {
+      setState(() => _error = 'Connexion réseau indisponible');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -55,10 +59,25 @@ class _ScanOperatorScreenState extends ConsumerState<ScanOperatorScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Saisissez le jeton QR (UUID) ou scannez avec l\'appareil photo.',
+            FilledButton.icon(
+              onPressed: _loading
+                  ? null
+                  : () => context.push('/municipality/recovery/scan/camera'),
+              icon: const Text('📷', style: TextStyle(fontSize: 18)),
+              label: const Text('Scanner avec la caméra'),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
+            const Row(
+              children: [
+                Expanded(child: Divider()),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  child: Text('OU'),
+                ),
+                Expanded(child: Divider()),
+              ],
+            ),
+            const SizedBox(height: 20),
             TextField(
               controller: _qrController,
               decoration: const InputDecoration(
