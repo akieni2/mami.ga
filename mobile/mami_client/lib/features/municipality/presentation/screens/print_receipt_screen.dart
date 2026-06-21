@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-import '../../data/fiscal_collection_repository.dart';
 import '../../data/models/municipal_receipt_model.dart';
-import '../../printing/bluetooth_printer_adapter.dart';
+import '../../printing/printer_exception.dart';
+import '../../printing/selected_printer.dart';
 import '../providers/fiscal_collection_providers.dart';
 
 class PrintReceiptScreen extends ConsumerStatefulWidget {
@@ -21,31 +22,26 @@ class PrintReceiptScreen extends ConsumerStatefulWidget {
 }
 
 class _PrintReceiptScreenState extends ConsumerState<PrintReceiptScreen> {
-  List<BluetoothPrinterDevice> _printers = [];
-  String? _selectedMac;
-  bool _loadingPrinters = false;
+  SelectedPrinter? _selectedPrinter;
+  bool _loadingPrinter = false;
   bool _printing = false;
   String? _message;
+  bool _success = false;
 
   @override
   void initState() {
     super.initState();
-    _loadPrinters();
+    _loadSelectedPrinter();
   }
 
-  Future<void> _loadPrinters() async {
-    setState(() => _loadingPrinters = true);
+  Future<void> _loadSelectedPrinter() async {
+    setState(() => _loadingPrinter = true);
     try {
-      final service = ref.read(printerServiceProvider);
-      final mac = await service.selectedPrinterMac();
-      final printers = await service.listPairedPrinters();
+      final printer = await ref.read(printerServiceProvider).selectedPrinter();
       if (!mounted) return;
-      setState(() {
-        _printers = printers;
-        _selectedMac = mac ?? (printers.isNotEmpty ? printers.first.macAddress : null);
-      });
+      setState(() => _selectedPrinter = printer);
     } finally {
-      if (mounted) setState(() => _loadingPrinters = false);
+      if (mounted) setState(() => _loadingPrinter = false);
     }
   }
 
@@ -53,15 +49,12 @@ class _PrintReceiptScreenState extends ConsumerState<PrintReceiptScreen> {
     setState(() {
       _printing = true;
       _message = null;
+      _success = false;
     });
 
     try {
       final repo = ref.read(fiscalCollectionRepositoryProvider);
       final service = ref.read(printerServiceProvider);
-
-      if (_selectedMac != null) {
-        await service.selectPrinter(_selectedMac!);
-      }
 
       var target = receipt;
       if (reprint) {
@@ -69,20 +62,32 @@ class _PrintReceiptScreenState extends ConsumerState<PrintReceiptScreen> {
         ref.invalidate(myReceiptsProvider);
       }
 
-      final ok = await service.printReceipt(target.printPayload);
+      await service.printReceipt(target.printPayload);
       if (!mounted) return;
       setState(() {
-        _message = ok
-            ? 'Quittance imprimée sur imprimante 58 mm'
-            : 'Échec impression — vérifiez Bluetooth et imprimante';
+        _success = true;
+        _message = 'Quittance imprimée sur imprimante 58 mm';
       });
-    } catch (_) {
-      if (mounted) {
-        setState(() => _message = 'Erreur lors de l\'impression');
-      }
+    } on PrinterException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _success = false;
+        _message = e.message;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _success = false;
+        _message = e.toString();
+      });
     } finally {
       if (mounted) setState(() => _printing = false);
     }
+  }
+
+  Future<void> _changePrinter() async {
+    await context.push('/municipality/recovery/printer');
+    await _loadSelectedPrinter();
   }
 
   @override
@@ -107,8 +112,10 @@ class _PrintReceiptScreenState extends ConsumerState<PrintReceiptScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(receipt.receiptNumber,
-                          style: Theme.of(context).textTheme.titleMedium),
+                      Text(
+                        receipt.receiptNumber,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
                       const SizedBox(height: 8),
                       Text(receipt.printPayload.commercialName),
                       Text('${receipt.printPayload.amountXaf} XAF'),
@@ -119,43 +126,43 @@ class _PrintReceiptScreenState extends ConsumerState<PrintReceiptScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              Text('Imprimante Bluetooth (58 mm)',
-                  style: Theme.of(context).textTheme.titleSmall),
+              Text('Imprimante par défaut', style: Theme.of(context).textTheme.titleSmall),
               const SizedBox(height: 8),
-              if (_loadingPrinters)
+              if (_loadingPrinter)
                 const LinearProgressIndicator()
-              else if (_printers.isEmpty)
-                const Text('Aucune imprimante appairée détectée')
+              else if (_selectedPrinter == null)
+                const Text(
+                  'Aucune imprimante sélectionnée. Choisissez une imprimante Bluetooth appairée.',
+                )
               else
-                DropdownButtonFormField<String>(
-                  value: _selectedMac,
-                  decoration: const InputDecoration(border: OutlineInputBorder()),
-                  items: _printers
-                      .map((p) => DropdownMenuItem(
-                            value: p.macAddress,
-                            child: Text(p.label),
-                          ))
-                      .toList(),
-                  onChanged: (value) => setState(() => _selectedMac = value),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.print_outlined),
+                  title: Text(
+                    _selectedPrinter!.name.isNotEmpty
+                        ? _selectedPrinter!.name
+                        : 'Imprimante Bluetooth',
+                  ),
+                  subtitle: Text(_selectedPrinter!.macAddress),
                 ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               OutlinedButton.icon(
-                onPressed: _loadingPrinters ? null : _loadPrinters,
-                icon: const Icon(Icons.bluetooth_searching),
-                label: const Text('Actualiser les imprimantes'),
+                onPressed: _changePrinter,
+                icon: const Icon(Icons.bluetooth),
+                label: const Text('Changer d\'imprimante'),
               ),
               if (_message != null) ...[
                 const SizedBox(height: 12),
                 Text(
                   _message!,
-                  style: TextStyle(
-                    color: _message!.contains('imprimée') ? Colors.green : Colors.red,
-                  ),
+                  style: TextStyle(color: _success ? Colors.green : Colors.red),
                 ),
               ],
               const Spacer(),
               FilledButton(
-                onPressed: _printing ? null : () => _print(receipt),
+                onPressed: _printing || _selectedPrinter == null
+                    ? null
+                    : () => _print(receipt),
                 child: _printing
                     ? const SizedBox(
                         height: 20,
@@ -166,7 +173,9 @@ class _PrintReceiptScreenState extends ConsumerState<PrintReceiptScreen> {
               ),
               const SizedBox(height: 8),
               OutlinedButton(
-                onPressed: _printing ? null : () => _print(receipt, reprint: true),
+                onPressed: _printing || _selectedPrinter == null
+                    ? null
+                    : () => _print(receipt, reprint: true),
                 child: const Text('Réimprimer (audit)'),
               ),
             ],

@@ -17,6 +17,7 @@ import '../../features/municipality/presentation/screens/my_collections_screen.d
 import '../../features/municipality/presentation/screens/my_municipality_reports_screen.dart';
 import '../../features/municipality/presentation/screens/open_cash_session_screen.dart';
 import '../../features/municipality/data/models/municipal_receipt_model.dart';
+import '../../features/municipality/presentation/screens/select_printer_screen.dart';
 import '../../features/municipality/presentation/screens/print_receipt_screen.dart';
 import '../../features/municipality/presentation/screens/receipt_history_screen.dart';
 import '../../features/municipality/presentation/screens/recovery_hub_screen.dart';
@@ -193,6 +194,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/municipality/recovery/receipts',
         builder: (context, state) => const ReceiptHistoryScreen(),
+      ),
+      GoRoute(
+        path: '/municipality/recovery/printer',
+        builder: (context, state) => const SelectPrinterScreen(),
       ),
       GoRoute(
         path: '/municipality/recovery/print-receipt/:receiptId',

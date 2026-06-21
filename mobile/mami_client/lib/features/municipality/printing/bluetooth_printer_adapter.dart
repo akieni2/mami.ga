@@ -1,3 +1,7 @@
+import 'dart:async';
+import 'dart:io';
+
+import 'package:permission_handler/permission_handler.dart';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 
 class BluetoothPrinterDevice {
@@ -20,9 +24,31 @@ class BluetoothPrinterDevice {
 }
 
 class BluetoothPrinterAdapter {
+  static const Duration printTimeout = Duration(seconds: 15);
+
   Future<bool> isBluetoothEnabled() => PrintBluetoothThermal.bluetoothEnabled;
 
   Future<bool> isPermissionGranted() => PrintBluetoothThermal.isPermissionBluetoothGranted;
+
+  /// Demande BLUETOOTH_SCAN / BLUETOOTH_CONNECT (Android 12+).
+  Future<bool> ensurePermissions() async {
+    if (!Platform.isAndroid) {
+      return isPermissionGranted();
+    }
+
+    final scanStatus = await Permission.bluetoothScan.request();
+    final connectStatus = await Permission.bluetoothConnect.request();
+
+    if (scanStatus.isGranted && connectStatus.isGranted) {
+      return true;
+    }
+
+    if (scanStatus.isPermanentlyDenied || connectStatus.isPermanentlyDenied) {
+      return false;
+    }
+
+    return await isPermissionGranted();
+  }
 
   Future<List<BluetoothPrinterDevice>> scanPairedDevices() async {
     final devices = await PrintBluetoothThermal.pairedBluetooths;
@@ -35,8 +61,11 @@ class BluetoothPrinterAdapter {
 
   Future<bool> disconnect() => PrintBluetoothThermal.disconnect;
 
-  Future<bool> printBytes(List<int> bytes) {
-    return PrintBluetoothThermal.writeBytes(bytes);
+  Future<bool> printBytes(List<int> bytes) async {
+    return PrintBluetoothThermal.writeBytes(bytes).timeout(
+      printTimeout,
+      onTimeout: () => false,
+    );
   }
 
   Future<bool> get isConnected => PrintBluetoothThermal.connectionStatus;

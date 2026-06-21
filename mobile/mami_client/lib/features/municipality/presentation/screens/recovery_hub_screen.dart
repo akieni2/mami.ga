@@ -49,14 +49,14 @@ class RecoveryHubScreen extends StatelessWidget {
           ),
           _tile(
             context,
-            icon: Icons.description_outlined,
-            title: 'Mes quittances',
-            route: '/municipality/recovery/receipts',
+            icon: Icons.print_outlined,
+            title: 'Imprimante Bluetooth',
+            route: '/municipality/recovery/printer',
           ),
           _tile(
             context,
-            icon: Icons.print_outlined,
-            title: 'Impression quittance',
+            icon: Icons.receipt_long_outlined,
+            title: 'Mes quittances',
             route: '/municipality/recovery/receipts',
           ),
           _tile(
