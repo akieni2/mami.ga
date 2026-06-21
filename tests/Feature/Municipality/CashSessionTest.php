@@ -145,6 +145,7 @@ class CashSessionTest extends MunicipalityTestCase
         $this->assertDatabaseHas('field_visits', [
             'cash_session_id' => $session->id,
             'visit_type' => VisitType::SessionClose->value,
+            'operator_id' => null,
         ]);
 
         $this->assertTrue(

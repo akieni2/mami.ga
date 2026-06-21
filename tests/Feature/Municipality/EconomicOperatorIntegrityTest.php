@@ -42,6 +42,15 @@ class EconomicOperatorIntegrityTest extends MunicipalityTestCase
         $this->assertTrue($this->hasForeignKey('field_visits', 'agent_id', 'users'));
     }
 
+    public function test_field_visits_operator_id_column_is_nullable(): void
+    {
+        $column = collect(Schema::getColumns('field_visits'))
+            ->firstWhere('name', 'operator_id');
+
+        $this->assertNotNull($column);
+        $this->assertTrue($column['nullable'], 'field_visits.operator_id must be nullable for session_open/session_close visits.');
+    }
+
     public function test_soft_delete_preserves_payments_visits_and_receipts(): void
     {
         $agent = $this->municipalAgentUser();
