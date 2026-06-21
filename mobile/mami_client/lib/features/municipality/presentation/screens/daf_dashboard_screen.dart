@@ -19,13 +19,21 @@ class DafDashboardScreen extends ConsumerWidget {
         data: (dashboard) => ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            _StatCard(label: 'Missions brouillon', value: '${dashboard.draftMissions}'),
-            _StatCard(label: 'Missions autorisées', value: '${dashboard.authorizedMissions}'),
+            _StatCard(label: 'Missions à valider', value: '${dashboard.pendingValidation}'),
+            _StatCard(label: 'Missions approuvées', value: '${dashboard.approvedMissions}'),
+            _StatCard(label: 'Missions rejetées', value: '${dashboard.rejectedMissions}'),
+            _StatCard(label: 'Missions clôturées', value: '${dashboard.closedMissions}'),
+            _StatCard(label: 'Montant recouvré (jour)', value: '${dashboard.collectedTodayXaf} XAF'),
+            _StatCard(label: 'Montant attente validation', value: '${dashboard.pendingValidationAmountXaf} XAF'),
             _StatCard(label: 'Caisses ouvertes', value: '${dashboard.openSessionsCount}'),
-            _StatCard(label: 'Encaissé aujourd\'hui', value: '${dashboard.collectedTodayXaf} XAF'),
             _StatCard(label: 'Reversements brouillon', value: '${dashboard.remittanceDraftCount}'),
             const SizedBox(height: 16),
             FilledButton(
+              onPressed: () => context.push('/municipality/finance/approvals'),
+              child: const Text('File de validation'),
+            ),
+            const SizedBox(height: 8),
+            FilledButton.tonal(
               onPressed: () => context.push('/municipality/finance/missions'),
               child: const Text('Missions terrain financières'),
             ),

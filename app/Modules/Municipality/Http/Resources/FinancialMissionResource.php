@@ -31,6 +31,14 @@ class FinancialMissionResource extends JsonResource
             'valid_until' => $this->valid_until?->toDateString(),
             'status' => $this->status->value,
             'status_label' => $this->status->label(),
+            'workflow_status' => $this->workflow_status->value,
+            'workflow_status_label' => $this->workflow_status->label(),
+            'submitted_at' => $this->submitted_at?->toIso8601String(),
+            'controller_reviewed_at' => $this->controller_reviewed_at?->toIso8601String(),
+            'daf_reviewed_at' => $this->daf_reviewed_at?->toIso8601String(),
+            'approved_at' => $this->approved_at?->toIso8601String(),
+            'rejected_at' => $this->rejected_at?->toIso8601String(),
+            'rejection_reason' => $this->rejection_reason,
             'authorized_at' => $this->authorized_at?->toIso8601String(),
             'closed_at' => $this->closed_at?->toIso8601String(),
             'notes' => $this->notes,
@@ -41,6 +49,14 @@ class FinancialMissionResource extends JsonResource
             'authorizer' => $this->whenLoaded('authorizer', fn () => [
                 'id' => $this->authorizer?->id,
                 'name' => $this->authorizer?->name,
+            ]),
+            'controller' => $this->whenLoaded('controller', fn () => [
+                'id' => $this->controller?->id,
+                'name' => $this->controller?->name,
+            ]),
+            'daf' => $this->whenLoaded('daf', fn () => [
+                'id' => $this->daf?->id,
+                'name' => $this->daf?->name,
             ]),
         ];
     }

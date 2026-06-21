@@ -4,6 +4,7 @@ namespace App\Modules\Municipality\Services;
 
 use App\Models\User;
 use App\Modules\Municipality\Enums\FinancialMissionStatus;
+use App\Modules\Municipality\Enums\FinancialMissionWorkflowStatus;
 use App\Modules\Municipality\Models\FinancialMission;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -22,9 +23,10 @@ class FinancialMissionService
 
         return FinancialMission::query()
             ->where('agent_id', $agent->id)
-            ->where('status', FinancialMissionStatus::Authorized)
+            ->where('workflow_status', FinancialMissionWorkflowStatus::Approved)
             ->whereDate('valid_from', '<=', $date)
             ->whereDate('valid_until', '>=', $date)
+            ->orderByDesc('approved_at')
             ->orderByDesc('authorized_at')
             ->first();
     }
@@ -43,6 +45,7 @@ class FinancialMissionService
                 'valid_from' => $data['valid_from'],
                 'valid_until' => $data['valid_until'],
                 'status' => FinancialMissionStatus::Draft,
+                'workflow_status' => FinancialMissionWorkflowStatus::Draft,
                 'created_by' => $creator->id,
                 'notes' => $data['notes'] ?? null,
             ]);
@@ -65,7 +68,7 @@ class FinancialMissionService
      */
     public function update(User $actor, FinancialMission $mission, array $data): FinancialMission
     {
-        if ($mission->status !== FinancialMissionStatus::Draft) {
+        if ($mission->workflow_status !== FinancialMissionWorkflowStatus::Draft) {
             throw ValidationException::withMessages([
                 'status' => ['Seules les missions en brouillon peuvent être modifiées.'],
             ]);
@@ -90,7 +93,13 @@ class FinancialMissionService
 
     public function authorize(User $authorizer, FinancialMission $mission): FinancialMission
     {
-        if ($mission->status !== FinancialMissionStatus::Draft) {
+        if (! config('mami.municipality_finance.legacy_mission_authorize', true)) {
+            throw ValidationException::withMessages([
+                'legacy' => ['L\'autorisation directe est désactivée. Utilisez le circuit de validation.'],
+            ]);
+        }
+
+        if ($mission->workflow_status !== FinancialMissionWorkflowStatus::Draft) {
             throw ValidationException::withMessages([
                 'status' => ['Seules les missions en brouillon peuvent être autorisées.'],
             ]);
@@ -99,12 +108,20 @@ class FinancialMissionService
         return DB::transaction(function () use ($authorizer, $mission): FinancialMission {
             $mission->update([
                 'status' => FinancialMissionStatus::Authorized,
+                'workflow_status' => FinancialMissionWorkflowStatus::Approved,
                 'authorized_by' => $authorizer->id,
                 'authorized_at' => now(),
+                'approved_at' => now(),
+                'daf_id' => $authorizer->id,
             ]);
 
             $this->journal->record('mission.authorized', $mission, $authorizer, $mission, null, [
                 'reference' => $mission->reference,
+                'legacy' => true,
+            ]);
+            $this->journal->record('mission.approved', $mission, $authorizer, $mission, null, [
+                'reference' => $mission->reference,
+                'legacy' => true,
             ]);
             $this->audit->log($authorizer, $mission, 'financial_mission', 'financial_mission.authorized');
 
@@ -114,15 +131,22 @@ class FinancialMissionService
 
     public function close(User $closer, FinancialMission $mission, ?string $notes = null): FinancialMission
     {
-        if ($mission->status === FinancialMissionStatus::Closed) {
+        if ($mission->workflow_status === FinancialMissionWorkflowStatus::Closed) {
             throw ValidationException::withMessages([
                 'status' => ['La mission est déjà clôturée.'],
+            ]);
+        }
+
+        if ($mission->workflow_status !== FinancialMissionWorkflowStatus::Approved) {
+            throw ValidationException::withMessages([
+                'status' => ['Seules les missions approuvées peuvent être clôturées.'],
             ]);
         }
 
         return DB::transaction(function () use ($closer, $mission, $notes): FinancialMission {
             $mission->update([
                 'status' => FinancialMissionStatus::Closed,
+                'workflow_status' => FinancialMissionWorkflowStatus::Closed,
                 'closed_by' => $closer->id,
                 'closed_at' => now(),
                 'notes' => trim(($mission->notes ?? '').' '.($notes ?? '')) ?: $mission->notes,

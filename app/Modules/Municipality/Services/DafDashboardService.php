@@ -3,6 +3,7 @@
 namespace App\Modules\Municipality\Services;
 
 use App\Modules\Municipality\Enums\FinancialMissionStatus;
+use App\Modules\Municipality\Enums\FinancialMissionWorkflowStatus;
 use App\Modules\Municipality\Enums\TreasuryRemittanceStatus;
 use App\Modules\Municipality\Models\CashSession;
 use App\Modules\Municipality\Models\FinancialMission;
@@ -23,18 +24,30 @@ class DafDashboardService
         $date ??= now()->toDateString();
         $supervisor = $this->supervisorDashboard->build($date);
 
-        $missions = FinancialMission::query()
-            ->selectRaw('status, COUNT(*) as total')
-            ->groupBy('status')
-            ->pluck('total', 'status');
+        $workflowCounts = FinancialMission::query()
+            ->selectRaw('workflow_status, COUNT(*) as total')
+            ->groupBy('workflow_status')
+            ->pluck('total', 'workflow_status');
+
+        $pendingValidationCount = FinancialMission::query()
+            ->whereIn('workflow_status', FinancialMissionWorkflowStatus::pendingValidationStatuses())
+            ->count();
 
         $activeMissionsToday = FinancialMission::query()
             ->with(['agent:id,name', 'operationalZone:id,name'])
-            ->where('status', FinancialMissionStatus::Authorized)
+            ->where('workflow_status', FinancialMissionWorkflowStatus::Approved)
             ->whereDate('valid_from', '<=', $date)
             ->whereDate('valid_until', '>=', $date)
             ->orderBy('valid_until')
             ->get();
+
+        $pendingMissionIds = FinancialMission::query()
+            ->whereIn('workflow_status', FinancialMissionWorkflowStatus::pendingValidationStatuses())
+            ->pluck('id');
+
+        $collectedPendingValidationXaf = CashSession::query()
+            ->whereIn('financial_mission_id', $pendingMissionIds)
+            ->sum('expected_amount_xaf');
 
         $recentJournal = MunicipalFinanceJournalEntry::query()
             ->with(['actor:id,name', 'mission:id,reference', 'cashSession:id,reference'])
@@ -63,12 +76,20 @@ class DafDashboardService
                 ->sum('amount_xaf'),
         ];
 
+        $legacyStatusCounts = FinancialMission::query()
+            ->selectRaw('status, COUNT(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
         return [
             'date' => $date,
             'missions' => [
-                'draft_count' => (int) ($missions[FinancialMissionStatus::Draft->value] ?? 0),
-                'authorized_count' => (int) ($missions[FinancialMissionStatus::Authorized->value] ?? 0),
-                'closed_count' => (int) ($missions[FinancialMissionStatus::Closed->value] ?? 0),
+                'draft_count' => (int) ($workflowCounts[FinancialMissionWorkflowStatus::Draft->value] ?? 0),
+                'pending_validation_count' => $pendingValidationCount,
+                'approved_count' => (int) ($workflowCounts[FinancialMissionWorkflowStatus::Approved->value] ?? 0),
+                'rejected_count' => (int) ($workflowCounts[FinancialMissionWorkflowStatus::Rejected->value] ?? 0),
+                'closed_count' => (int) ($workflowCounts[FinancialMissionWorkflowStatus::Closed->value] ?? 0),
+                'authorized_count' => (int) ($legacyStatusCounts[FinancialMissionStatus::Authorized->value] ?? 0),
                 'active_today' => $activeMissionsToday->map(fn (FinancialMission $mission) => [
                     'id' => $mission->id,
                     'reference' => $mission->reference,
@@ -77,7 +98,16 @@ class DafDashboardService
                     'zone_name' => $mission->operationalZone?->name,
                     'valid_from' => $mission->valid_from?->toDateString(),
                     'valid_until' => $mission->valid_until?->toDateString(),
+                    'workflow_status' => $mission->workflow_status->value,
                 ])->values()->all(),
+            ],
+            'validation' => [
+                'pending_count' => $pendingValidationCount,
+                'approved_count' => (int) ($workflowCounts[FinancialMissionWorkflowStatus::Approved->value] ?? 0),
+                'rejected_count' => (int) ($workflowCounts[FinancialMissionWorkflowStatus::Rejected->value] ?? 0),
+                'closed_count' => (int) ($workflowCounts[FinancialMissionWorkflowStatus::Closed->value] ?? 0),
+                'collected_today_xaf' => $supervisor['collected_today_xaf'],
+                'pending_validation_amount_xaf' => (string) $collectedPendingValidationXaf,
             ],
             'cash_supervision' => [
                 'open_sessions_count' => $supervisor['open_sessions_count'],

@@ -24,8 +24,9 @@ class FinancialMissionController extends Controller
         $this->authorizeMissionView($request->user());
 
         $missions = FinancialMission::query()
-            ->with(['agent:id,name', 'operationalZone:id,name', 'creator:id,name', 'authorizer:id,name'])
+            ->with(['agent:id,name', 'operationalZone:id,name', 'creator:id,name', 'authorizer:id,name', 'controller:id,name', 'daf:id,name'])
             ->when($request->query('status'), fn ($q, $status) => $q->where('status', $status))
+            ->when($request->query('workflow_status'), fn ($q, $workflowStatus) => $q->where('workflow_status', $workflowStatus))
             ->when($request->query('agent_id'), fn ($q, $agentId) => $q->where('agent_id', $agentId))
             ->orderByDesc('created_at')
             ->paginate(30);
@@ -63,7 +64,7 @@ class FinancialMissionController extends Controller
     {
         $this->authorizeMissionView($request->user());
 
-        $mission->load(['agent', 'operationalZone', 'creator', 'authorizer', 'closer']);
+        $mission->load(['agent', 'operationalZone', 'creator', 'authorizer', 'closer', 'controller', 'daf', 'approvals.performer']);
 
         return ApiResponse::success(new FinancialMissionResource($mission));
     }

@@ -10,10 +10,14 @@ class FinancialMissionModel {
     required this.title,
     required this.status,
     required this.statusLabel,
+    required this.workflowStatus,
+    required this.workflowStatusLabel,
     required this.validFrom,
     required this.validUntil,
     this.agentName,
     this.zoneName,
+    this.rejectionReason,
+    this.notes,
   });
 
   factory FinancialMissionModel.fromJson(Map<String, dynamic> json) {
@@ -26,10 +30,14 @@ class FinancialMissionModel {
       title: json['title'] as String? ?? '',
       status: json['status'] as String? ?? '',
       statusLabel: json['status_label'] as String? ?? '',
+      workflowStatus: json['workflow_status'] as String? ?? json['status'] as String? ?? '',
+      workflowStatusLabel: json['workflow_status_label'] as String? ?? json['status_label'] as String? ?? '',
       validFrom: json['valid_from'] as String? ?? '',
       validUntil: json['valid_until'] as String? ?? '',
       agentName: agent?['name'] as String?,
       zoneName: zone?['name'] as String?,
+      rejectionReason: json['rejection_reason'] as String?,
+      notes: json['notes'] as String?,
     );
   }
 
@@ -38,39 +46,94 @@ class FinancialMissionModel {
   final String title;
   final String status;
   final String statusLabel;
+  final String workflowStatus;
+  final String workflowStatusLabel;
   final String validFrom;
   final String validUntil;
   final String? agentName;
   final String? zoneName;
+  final String? rejectionReason;
+  final String? notes;
+
+  bool get isPendingController => workflowStatus == 'submitted';
+  bool get isPendingDaf => workflowStatus == 'controller_review' || workflowStatus == 'daf_review';
+  bool get isApproved => workflowStatus == 'approved';
+  bool get isRejected => workflowStatus == 'rejected';
+  bool get isDraft => workflowStatus == 'draft';
+}
+
+class FinancialMissionApprovalModel {
+  FinancialMissionApprovalModel({
+    required this.id,
+    required this.action,
+    required this.createdAt,
+    this.performerName,
+    this.comments,
+    this.missionReference,
+  });
+
+  factory FinancialMissionApprovalModel.fromJson(Map<String, dynamic> json) {
+    final performer = json['performer'] as Map<String, dynamic>?;
+    final mission = json['mission'] as Map<String, dynamic>?;
+
+    return FinancialMissionApprovalModel(
+      id: json['id'] as int,
+      action: json['action'] as String? ?? '',
+      createdAt: json['created_at'] as String? ?? '',
+      performerName: performer?['name'] as String?,
+      comments: json['comments'] as String?,
+      missionReference: mission?['reference'] as String?,
+    );
+  }
+
+  final int id;
+  final String action;
+  final String createdAt;
+  final String? performerName;
+  final String? comments;
+  final String? missionReference;
 }
 
 class DafDashboardModel {
   DafDashboardModel({
     required this.draftMissions,
-    required this.authorizedMissions,
+    required this.pendingValidation,
+    required this.approvedMissions,
+    required this.rejectedMissions,
+    required this.closedMissions,
     required this.openSessionsCount,
     required this.collectedTodayXaf,
+    required this.pendingValidationAmountXaf,
     required this.remittanceDraftCount,
   });
 
   factory DafDashboardModel.fromJson(Map<String, dynamic> json) {
-    final missions = json['missions'] as Map<String, dynamic>;
-    final cash = json['cash_supervision'] as Map<String, dynamic>;
-    final remittances = json['treasury_remittances'] as Map<String, dynamic>;
+    final missions = json['missions'] as Map<String, dynamic>? ?? {};
+    final validation = json['validation'] as Map<String, dynamic>? ?? missions;
+    final cash = json['cash_supervision'] as Map<String, dynamic>? ?? {};
+    final remittances = json['treasury_remittances'] as Map<String, dynamic>? ?? {};
 
     return DafDashboardModel(
       draftMissions: missions['draft_count'] as int? ?? 0,
-      authorizedMissions: missions['authorized_count'] as int? ?? 0,
+      pendingValidation: validation['pending_count'] as int? ?? missions['pending_validation_count'] as int? ?? 0,
+      approvedMissions: validation['approved_count'] as int? ?? missions['approved_count'] as int? ?? 0,
+      rejectedMissions: validation['rejected_count'] as int? ?? missions['rejected_count'] as int? ?? 0,
+      closedMissions: validation['closed_count'] as int? ?? missions['closed_count'] as int? ?? 0,
       openSessionsCount: cash['open_sessions_count'] as int? ?? 0,
-      collectedTodayXaf: cash['collected_today_xaf']?.toString() ?? '0',
+      collectedTodayXaf: validation['collected_today_xaf']?.toString() ?? cash['collected_today_xaf']?.toString() ?? '0',
+      pendingValidationAmountXaf: validation['pending_validation_amount_xaf']?.toString() ?? '0',
       remittanceDraftCount: remittances['draft_count'] as int? ?? 0,
     );
   }
 
   final int draftMissions;
-  final int authorizedMissions;
+  final int pendingValidation;
+  final int approvedMissions;
+  final int rejectedMissions;
+  final int closedMissions;
   final int openSessionsCount;
   final String collectedTodayXaf;
+  final String pendingValidationAmountXaf;
   final int remittanceDraftCount;
 }
 
@@ -111,15 +174,24 @@ class FinancialGovernanceRepository {
     return DafDashboardModel.fromJson(envelope['data'] as Map<String, dynamic>);
   }
 
-  Future<List<FinancialMissionModel>> fetchMissions({String? status}) async {
+  Future<List<FinancialMissionModel>> fetchMissions({String? status, String? workflowStatus}) async {
     final response = await _dio.get(
       '/municipality/finance/missions',
-      queryParameters: {if (status != null) 'status': status},
+      queryParameters: {
+        if (status != null) 'status': status,
+        if (workflowStatus != null) 'workflow_status': workflowStatus,
+      },
     );
     final list = response.data['data'] as List<dynamic>;
     return list
         .map((e) => FinancialMissionModel.fromJson(e as Map<String, dynamic>))
         .toList();
+  }
+
+  Future<FinancialMissionModel> fetchMission(int id) async {
+    final response = await _dio.get('/municipality/finance/missions/$id');
+    final envelope = parseApiData(response.data);
+    return FinancialMissionModel.fromJson(envelope['data'] as Map<String, dynamic>);
   }
 
   Future<FinancialMissionModel?> fetchCurrentMission() async {
@@ -130,8 +202,83 @@ class FinancialGovernanceRepository {
     return FinancialMissionModel.fromJson(data as Map<String, dynamic>);
   }
 
+  Future<List<FinancialMissionModel>> fetchPendingApprovals() async {
+    final response = await _dio.get('/municipality/finance/approvals/pending');
+    final envelope = parseApiData(response.data);
+    return (envelope['data'] as List<dynamic>)
+        .map((e) => FinancialMissionModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<FinancialMissionApprovalModel>> fetchApprovalHistory({int? missionId}) async {
+    final response = await _dio.get(
+      '/municipality/finance/approvals/history',
+      queryParameters: {if (missionId != null) 'mission_id': missionId},
+    );
+    final list = response.data['data'] as List<dynamic>;
+    return list
+        .map((e) => FinancialMissionApprovalModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<FinancialMissionApprovalModel>> fetchMissionWorkflowHistory(int missionId) async {
+    final response = await _dio.get('/municipality/finance/workflow/$missionId/history');
+    final envelope = parseApiData(response.data);
+    return (envelope['data'] as List<dynamic>)
+        .map((e) => FinancialMissionApprovalModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
   Future<FinancialMissionModel> authorizeMission(int missionId) async {
     final response = await _dio.post('/municipality/finance/missions/$missionId/authorize');
+    final envelope = parseApiData(response.data);
+    return FinancialMissionModel.fromJson(envelope['data'] as Map<String, dynamic>);
+  }
+
+  Future<FinancialMissionModel> submitMission(int missionId, {String? comments}) async {
+    final response = await _dio.post(
+      '/municipality/finance/workflow/$missionId/submit',
+      data: {if (comments != null) 'comments': comments},
+    );
+    final envelope = parseApiData(response.data);
+    return FinancialMissionModel.fromJson(envelope['data'] as Map<String, dynamic>);
+  }
+
+  Future<FinancialMissionModel> reviewMission(int missionId, {String? comments}) async {
+    final response = await _dio.post(
+      '/municipality/finance/workflow/$missionId/review',
+      data: {if (comments != null) 'comments': comments},
+    );
+    final envelope = parseApiData(response.data);
+    return FinancialMissionModel.fromJson(envelope['data'] as Map<String, dynamic>);
+  }
+
+  Future<FinancialMissionModel> approveMission(int missionId, {String? comments}) async {
+    final response = await _dio.post(
+      '/municipality/finance/workflow/$missionId/approve',
+      data: {if (comments != null) 'comments': comments},
+    );
+    final envelope = parseApiData(response.data);
+    return FinancialMissionModel.fromJson(envelope['data'] as Map<String, dynamic>);
+  }
+
+  Future<FinancialMissionModel> rejectMission(int missionId, {required String reason, String? comments}) async {
+    final response = await _dio.post(
+      '/municipality/finance/workflow/$missionId/reject',
+      data: {
+        'reason': reason,
+        if (comments != null) 'comments': comments,
+      },
+    );
+    final envelope = parseApiData(response.data);
+    return FinancialMissionModel.fromJson(envelope['data'] as Map<String, dynamic>);
+  }
+
+  Future<FinancialMissionModel> closeMission(int missionId, {String? notes}) async {
+    final response = await _dio.post(
+      '/municipality/finance/workflow/$missionId/close',
+      data: {if (notes != null) 'notes': notes},
+    );
     final envelope = parseApiData(response.data);
     return FinancialMissionModel.fromJson(envelope['data'] as Map<String, dynamic>);
   }

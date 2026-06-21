@@ -7,6 +7,9 @@ import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/municipality/presentation/screens/daf_dashboard_screen.dart';
+import '../../features/municipality/presentation/screens/financial_approval_queue_screen.dart';
+import '../../features/municipality/presentation/screens/financial_mission_detail_screen.dart';
+import '../../features/municipality/presentation/screens/financial_mission_history_screen.dart';
 import '../../features/municipality/presentation/screens/financial_missions_screen.dart';
 import '../../features/municipality/presentation/screens/cash_supervision_screen.dart';
 import '../../features/municipality/presentation/screens/treasury_remittance_screen.dart';
@@ -153,8 +156,26 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const DafDashboardScreen(),
       ),
       GoRoute(
+        path: '/municipality/finance/approvals',
+        builder: (context, state) => const FinancialApprovalQueueScreen(),
+      ),
+      GoRoute(
         path: '/municipality/finance/missions',
         builder: (context, state) => const FinancialMissionsScreen(),
+      ),
+      GoRoute(
+        path: '/municipality/finance/missions/:id',
+        builder: (context, state) {
+          final id = int.parse(state.pathParameters['id']!);
+          return FinancialMissionDetailScreen(missionId: id);
+        },
+      ),
+      GoRoute(
+        path: '/municipality/finance/missions/:id/history',
+        builder: (context, state) {
+          final id = int.parse(state.pathParameters['id']!);
+          return FinancialMissionHistoryScreen(missionId: id);
+        },
       ),
       GoRoute(
         path: '/municipality/finance/cash-supervision',

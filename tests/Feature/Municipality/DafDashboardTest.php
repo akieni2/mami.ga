@@ -18,7 +18,23 @@ class DafDashboardTest extends MunicipalityTestCase
             ->assertOk()
             ->assertJsonStructure([
                 'data' => [
-                    'missions' => ['draft_count', 'authorized_count', 'closed_count', 'active_today'],
+                    'missions' => [
+                        'draft_count',
+                        'pending_validation_count',
+                        'approved_count',
+                        'rejected_count',
+                        'closed_count',
+                        'authorized_count',
+                        'active_today',
+                    ],
+                    'validation' => [
+                        'pending_count',
+                        'approved_count',
+                        'rejected_count',
+                        'closed_count',
+                        'collected_today_xaf',
+                        'pending_validation_amount_xaf',
+                    ],
                     'cash_supervision' => ['open_sessions_count', 'open_sessions', 'collected_today_xaf'],
                     'recent_journal',
                     'treasury_remittances',

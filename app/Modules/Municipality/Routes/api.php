@@ -1,7 +1,9 @@
 <?php
 
 use App\Modules\Municipality\Http\Controllers\DafDashboardController;
+use App\Modules\Municipality\Http\Controllers\FinanceApprovalController;
 use App\Modules\Municipality\Http\Controllers\FinanceJournalController;
+use App\Modules\Municipality\Http\Controllers\FinanceWorkflowController;
 use App\Modules\Municipality\Http\Controllers\FinancialMissionController;
 use App\Modules\Municipality\Http\Controllers\TreasuryRemittanceController;
 use App\Modules\Municipality\Http\Controllers\CashSessionController;
@@ -57,6 +59,17 @@ Route::middleware(['auth:sanctum', 'module:municipality'])->group(function (): v
         Route::get('/journal', [FinanceJournalController::class, 'index']);
         Route::get('/remittances', [TreasuryRemittanceController::class, 'index']);
         Route::post('/remittances', [TreasuryRemittanceController::class, 'store']);
+
+        Route::middleware('finance.approvals')->group(function (): void {
+            Route::get('/approvals/pending', [FinanceApprovalController::class, 'pending']);
+            Route::get('/approvals/history', [FinanceApprovalController::class, 'history']);
+            Route::post('/workflow/{mission}/submit', [FinanceWorkflowController::class, 'submit']);
+            Route::post('/workflow/{mission}/review', [FinanceWorkflowController::class, 'review']);
+            Route::post('/workflow/{mission}/approve', [FinanceWorkflowController::class, 'approve']);
+            Route::post('/workflow/{mission}/reject', [FinanceWorkflowController::class, 'reject']);
+            Route::post('/workflow/{mission}/close', [FinanceWorkflowController::class, 'close']);
+            Route::get('/workflow/{mission}/history', [FinanceWorkflowController::class, 'history']);
+        });
     });
 
     Route::prefix('fiscal')->group(function (): void {

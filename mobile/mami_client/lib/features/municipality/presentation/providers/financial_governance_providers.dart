@@ -10,6 +10,22 @@ final financialMissionsProvider = FutureProvider.autoDispose<List<FinancialMissi
   return ref.watch(financialGovernanceRepositoryProvider).fetchMissions();
 });
 
+final pendingApprovalsProvider = FutureProvider.autoDispose<List<FinancialMissionModel>>((ref) async {
+  return ref.watch(financialGovernanceRepositoryProvider).fetchPendingApprovals();
+});
+
+final financialMissionDetailProvider = FutureProvider.autoDispose.family<FinancialMissionModel, int>((ref, id) async {
+  return ref.watch(financialGovernanceRepositoryProvider).fetchMission(id);
+});
+
+final missionWorkflowHistoryProvider = FutureProvider.autoDispose.family<List<FinancialMissionApprovalModel>, int>((ref, id) async {
+  return ref.watch(financialGovernanceRepositoryProvider).fetchMissionWorkflowHistory(id);
+});
+
+final approvalHistoryProvider = FutureProvider.autoDispose<List<FinancialMissionApprovalModel>>((ref) async {
+  return ref.watch(financialGovernanceRepositoryProvider).fetchApprovalHistory();
+});
+
 final currentFinancialMissionProvider = FutureProvider.autoDispose<FinancialMissionModel?>((ref) async {
   return ref.watch(financialGovernanceRepositoryProvider).fetchCurrentMission();
 });

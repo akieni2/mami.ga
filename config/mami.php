@@ -79,6 +79,7 @@ return [
 
     'municipality_finance' => [
         'require_mission_for_cash_session' => (bool) env('MAMI_MUNICIPALITY_REQUIRE_MISSION', false),
+        'legacy_mission_authorize' => (bool) env('MAMI_FINANCE_LEGACY_MISSION_AUTHORIZE', true),
     ],
 
     /*

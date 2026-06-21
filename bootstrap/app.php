@@ -22,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
             'economic_operator.admin' => \App\Http\Middleware\EnsureEconomicOperatorAdminAccess::class,
             'module' => \App\Http\Middleware\EnsureModuleEnabled::class,
+            'finance.approvals' => \App\Http\Middleware\EnsureFinanceApprovalsAccess::class,
         ]);
 
         $middleware->redirectGuestsTo(fn () => route('login'));

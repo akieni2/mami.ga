@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../providers/financial_governance_providers.dart';
 
@@ -34,7 +35,8 @@ class FinancialMissionsScreen extends ConsumerWidget {
                     '${mission.validFrom} → ${mission.validUntil}',
                   ),
                   isThreeLine: true,
-                  trailing: Chip(label: Text(mission.statusLabel)),
+                  trailing: Chip(label: Text(mission.workflowStatusLabel)),
+                  onTap: () => context.push('/municipality/finance/missions/${mission.id}'),
                 ),
               );
             },
