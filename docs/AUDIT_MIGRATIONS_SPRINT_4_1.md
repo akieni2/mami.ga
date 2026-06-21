@@ -72,7 +72,15 @@ Aucun changement PHP/Flutter requis. Le schéma cible reste identique ; seul l'o
 
 ---
 
-## 6. Validation
+## 6. Correctif index MySQL (1059)
+
+| Problème | Index auto Laravel `financial_mission_approvals_financial_mission_id_created_at_index` (65 car.) |
+| Correctif | Nom explicite `fma_mission_created_idx` (23 car.) |
+| Rejeu prod | Migration idempotente : table partielle + index manquant → OK |
+
+---
+
+## 7. Validation
 
 ```bash
 php artisan test tests/Unit/Migrations/FinancialMissionsMigrationOrderTest.php

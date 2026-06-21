@@ -99,6 +99,30 @@ class FinancialMissionsMigrationOrderTest extends TestCase
         );
     }
 
+    public function test_sprint41_migration_uses_mysql_safe_index_names(): void
+    {
+        $content = file_get_contents(
+            database_path('migrations/2026_06_29_100000_add_workflow_to_financial_missions_sprint41.php'),
+        );
+
+        $this->assertNotFalse($content);
+        $this->assertStringContainsString("'fma_mission_created_idx'", $content);
+
+        preg_match_all("/index\([^)]+\)/", $content, $matches);
+
+        foreach ($matches[0] as $indexDeclaration) {
+            if (! str_contains($indexDeclaration, 'financial_mission_approvals')) {
+                continue;
+            }
+
+            $this->assertStringContainsString(
+                'fma_mission_created_idx',
+                $indexDeclaration,
+                'Les index de financial_mission_approvals doivent utiliser un nom explicite ≤ 64 caractères.',
+            );
+        }
+    }
+
     /**
      * @return list<string>
      */

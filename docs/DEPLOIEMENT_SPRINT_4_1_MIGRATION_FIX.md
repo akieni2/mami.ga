@@ -65,8 +65,13 @@ La migration corrective `2026_06_29_100000` supprime automatiquement l'entrée f
 ## 4. Exécuter les migrations
 
 ```bash
+git pull origin feature/mami-taxi-v2-p2   # inclut le correctif index MySQL (fma_mission_created_idx)
 php artisan migrate --force
 ```
+
+> **Note :** si une tentative précédente a échoué sur `Identifier name ... is too long`, la table
+> `financial_mission_approvals` peut exister sans index composite. La migration corrigée est idempotente
+> et ajoute uniquement l'index manquant — **ne pas** supprimer la table manuellement.
 
 Sortie attendue (extrait) :
 

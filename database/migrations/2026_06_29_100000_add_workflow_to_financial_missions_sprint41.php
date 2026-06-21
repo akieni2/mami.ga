@@ -32,19 +32,7 @@ return new class extends Migration
 
         $this->ensureFinancialMissionsWorkflowColumns();
         $this->migrateExistingMissionStatuses();
-
-        if (! Schema::hasTable('financial_mission_approvals')) {
-            Schema::create('financial_mission_approvals', function (Blueprint $table): void {
-                $table->id();
-                $table->foreignId('financial_mission_id')->constrained('financial_missions')->cascadeOnDelete();
-                $table->string('action', 30);
-                $table->foreignId('performed_by')->constrained('users')->cascadeOnDelete();
-                $table->text('comments')->nullable();
-                $table->timestamp('created_at')->useCurrent();
-
-                $table->index(['financial_mission_id', 'created_at']);
-            });
-        }
+        $this->ensureFinancialMissionApprovalsTable();
     }
 
     public function down(): void
@@ -150,5 +138,37 @@ return new class extends Migration
                     ->orWhere('workflow_status', 'draft');
             })
             ->update(['workflow_status' => 'closed']);
+    }
+
+    private function ensureFinancialMissionApprovalsTable(): void
+    {
+        if (! Schema::hasTable('financial_mission_approvals')) {
+            Schema::create('financial_mission_approvals', function (Blueprint $table): void {
+                $table->id();
+                $table->foreignId('financial_mission_id')->constrained('financial_missions')->cascadeOnDelete();
+                $table->string('action', 30);
+                $table->foreignId('performed_by')->constrained('users')->cascadeOnDelete();
+                $table->text('comments')->nullable();
+                $table->timestamp('created_at')->useCurrent();
+
+                $table->index(['financial_mission_id', 'created_at'], 'fma_mission_created_idx');
+            });
+
+            return;
+        }
+
+        if ($this->indexExists('financial_mission_approvals', 'fma_mission_created_idx')) {
+            return;
+        }
+
+        Schema::table('financial_mission_approvals', function (Blueprint $table): void {
+            $table->index(['financial_mission_id', 'created_at'], 'fma_mission_created_idx');
+        });
+    }
+
+    private function indexExists(string $table, string $indexName): bool
+    {
+        return collect(Schema::getIndexes($table))
+            ->contains(fn (array $index): bool => ($index['name'] ?? '') === $indexName);
     }
 };
