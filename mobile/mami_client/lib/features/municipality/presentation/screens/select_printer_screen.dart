@@ -131,13 +131,17 @@ class _SelectPrinterScreenState extends ConsumerState<SelectPrinterScreen> {
                   itemCount: _printers.length,
                   itemBuilder: (context, index) {
                     final printer = _printers[index];
-                    return RadioListTile<String>(
-                      value: printer.macAddress,
-                      groupValue: _selectedMac,
-                      onChanged: (value) => setState(() => _selectedMac = value),
+                    final selected = _selectedMac == printer.macAddress;
+
+                    return ListTile(
+                      leading: Icon(
+                        selected ? Icons.radio_button_checked : Icons.radio_button_off,
+                        color: selected ? Theme.of(context).colorScheme.primary : null,
+                      ),
                       title: Text(printer.name.isNotEmpty ? printer.name : 'Imprimante'),
                       subtitle: Text(printer.macAddress),
-                      secondary: const Icon(Icons.bluetooth),
+                      trailing: const Icon(Icons.bluetooth),
+                      onTap: () => setState(() => _selectedMac = printer.macAddress),
                     );
                   },
                 ),
