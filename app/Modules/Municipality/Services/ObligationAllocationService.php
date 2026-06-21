@@ -63,30 +63,75 @@ class ObligationAllocationService
     private function ensureInitialObligations(EconomicOperator $operator, ?User $actor): void
     {
         $assignments = OperatorTaxAssignment::query()
-            ->with(['operator', 'taxType'])
             ->where('operator_id', $operator->id)
             ->where('is_active', true)
             ->whereHas('taxType', fn ($query) => $query->where('is_active', true))
-            ->get();
+            ->exists();
 
-        if ($assignments->isEmpty()) {
+        if (! $assignments) {
             throw ValidationException::withMessages([
                 'operator_id' => ['Aucune taxe n\'est affectée à ce commerce.'],
             ]);
         }
 
-        $created = 0;
+        $result = $this->obligationGenerator->ensureForOperator($operator, $actor);
 
-        foreach ($assignments as $assignment) {
-            $result = $this->obligationGenerator->generateForAssignment($assignment, now(), $actor);
-            $created += $result['created'];
-        }
-
-        if ($created === 0) {
+        if ($result['created'] === 0 && $this->loadOpenObligations($operator)->isEmpty()) {
             throw ValidationException::withMessages([
                 'operator_id' => ['Aucune taxe active applicable n\'a été trouvée pour ce commerce.'],
             ]);
         }
+    }
+
+    /**
+     * @param  list<int>  $obligationIds
+     * @return array{
+     *     allocations: Collection<int, array{obligation: FiscalObligation, amount: float}>,
+     *     amount: float
+     * }
+     */
+    public function allocateSelected(EconomicOperator $operator, array $obligationIds, ?User $actor = null): array
+    {
+        $obligationIds = array_values(array_unique(array_map('intval', $obligationIds)));
+
+        if ($obligationIds === []) {
+            throw ValidationException::withMessages([
+                'obligation_ids' => ['Sélectionnez au moins une créance à régler.'],
+            ]);
+        }
+
+        $openObligations = $this->loadOpenObligations($operator);
+
+        if ($openObligations->isEmpty()) {
+            $this->ensureInitialObligations($operator, $actor);
+            $openObligations = $this->loadOpenObligations($operator);
+        }
+
+        $selected = $openObligations->whereIn('id', $obligationIds)->values();
+
+        if ($selected->count() !== count($obligationIds)) {
+            throw ValidationException::withMessages([
+                'obligation_ids' => ['Une ou plusieurs créances sélectionnées sont invalides ou déjà soldées.'],
+            ]);
+        }
+
+        $allocations = $selected->map(fn (FiscalObligation $obligation) => [
+            'obligation' => $obligation,
+            'amount' => (float) $obligation->balance_due,
+        ]);
+
+        $amount = round((float) $allocations->sum('amount'), 2);
+
+        if ($amount <= 0) {
+            throw ValidationException::withMessages([
+                'obligation_ids' => ['Aucun montant à encaisser pour la sélection.'],
+            ]);
+        }
+
+        return [
+            'allocations' => $allocations,
+            'amount' => $amount,
+        ];
     }
 
     /**

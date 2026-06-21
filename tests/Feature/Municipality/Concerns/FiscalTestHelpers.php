@@ -4,6 +4,7 @@ namespace Tests\Feature\Municipality\Concerns;
 
 use App\Models\User;
 use App\Modules\Municipality\Enums\BillingPeriod;
+use App\Modules\Municipality\Enums\FiscalObligationType;
 use App\Modules\Municipality\Models\CashSession;
 use App\Modules\Municipality\Models\EconomicOperator;
 use App\Modules\Municipality\Models\EconomicOperatorCategory;
@@ -121,6 +122,7 @@ trait FiscalTestHelpers
             'operator_id' => $operator->id,
             'tax_type_id' => $taxType->id,
             'tax_rate_id' => $rate->id,
+            'obligation_type' => FiscalObligationType::Tax,
             'reference' => $reference,
             'period_start' => now()->startOfMonth()->toDateString(),
             'period_end' => now()->endOfMonth()->toDateString(),

@@ -34,6 +34,12 @@ final myCollectionsProvider = FutureProvider<List<MunicipalCollectionModel>>((re
   return repo.fetchMyCollections();
 });
 
+final fiscalDetailedSummaryProvider =
+    FutureProvider.family<FiscalDetailedSummary, int>((ref, operatorId) async {
+  final repo = ref.watch(fiscalCollectionRepositoryProvider);
+  return repo.fetchDetailedFiscalSummary(operatorId);
+});
+
 final fiscalSummaryProvider =
     FutureProvider.family<FiscalOperatorSummary, int>((ref, operatorId) async {
   final repo = ref.watch(fiscalCollectionRepositoryProvider);

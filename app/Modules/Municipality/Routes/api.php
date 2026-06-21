@@ -35,6 +35,7 @@ Route::middleware(['auth:sanctum', 'module:municipality'])->group(function (): v
     Route::get('/operators/{operator}/qrcode/pdf', [EconomicOperatorQrController::class, 'downloadPdf']);
     Route::get('/operators/{operator}/business-card', [EconomicOperatorQrController::class, 'businessCard']);
     Route::post('/operators/{operator}/field-visits', [EconomicOperatorQrController::class, 'storeFieldVisit']);
+    Route::get('/operators/{operator}/fiscal-summary', [FiscalCollectionController::class, 'operatorFiscalSummary']);
     Route::get('/operators/{operator}', [EconomicOperatorController::class, 'show']);
     Route::put('/operators/{operator}', [EconomicOperatorController::class, 'update']);
     Route::post('/operators/{operator}/inspect', [EconomicOperatorController::class, 'inspect']);

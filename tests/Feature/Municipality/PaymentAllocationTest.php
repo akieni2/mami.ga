@@ -234,6 +234,7 @@ class PaymentAllocationTest extends MunicipalityTestCase
             'operator_id' => $operator->id,
             'tax_type_id' => $taxB->id,
             'tax_rate_id' => $rateB->id,
+            'obligation_type' => 'tax',
             'reference' => 'OWE-FO-2026-000092',
             'period_start' => now()->subMonth()->startOfMonth()->toDateString(),
             'period_end' => now()->subMonth()->endOfMonth()->toDateString(),

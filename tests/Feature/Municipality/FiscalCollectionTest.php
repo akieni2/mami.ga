@@ -23,6 +23,30 @@ class FiscalCollectionTest extends MunicipalityTestCase
         $this->seedEconomicRegistry();
     }
 
+    public function test_collect_cash_with_selected_obligation_ids(): void
+    {
+        $user = $this->fiscalManager();
+        $taxType = $this->createTaxType($user);
+        $rate = $this->createTaxRate($user, $taxType);
+        $operator = $this->createOperator($user);
+        $this->assignTax($user, $operator, $taxType);
+        $obligation = $this->createManualObligation($operator, $taxType, $rate, 15000, '2026-06-30', 'OWE-FO-2026-000301');
+        $session = $this->openCashSession($user);
+
+        Sanctum::actingAs($user);
+
+        $payload = $this->validCollectionPayload($operator, $session);
+        unset($payload['amount_xaf']);
+        $payload['obligation_ids'] = [$obligation->id];
+
+        $this->postJson('/api/municipality/fiscal/collections', $payload)
+            ->assertCreated()
+            ->assertJsonPath('data.amount_xaf', '15000.00');
+
+        $obligation->refresh();
+        $this->assertSame(FiscalObligationStatus::Paid, $obligation->status);
+    }
+
     public function test_collect_cash_creates_payment_records(): void
     {
         $user = $this->fiscalManager();

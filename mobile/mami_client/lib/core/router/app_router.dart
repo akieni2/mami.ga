@@ -174,9 +174,15 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final operatorId = int.tryParse(state.uri.queryParameters['operatorId'] ?? '');
           final balance = state.uri.queryParameters['balance'];
+          final obligationIds = (state.uri.queryParameters['obligationIds'] ?? '')
+              .split(',')
+              .where((value) => value.isNotEmpty)
+              .map(int.parse)
+              .toList();
           return CollectCashScreen(
             operatorId: operatorId,
             suggestedAmount: balance,
+            obligationIds: obligationIds,
           );
         },
       ),

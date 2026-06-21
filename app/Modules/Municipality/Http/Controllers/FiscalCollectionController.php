@@ -38,13 +38,27 @@ class FiscalCollectionController extends Controller
         ]);
     }
 
+    public function operatorFiscalSummary(Request $request, EconomicOperator $operator): JsonResponse
+    {
+        $this->authorizeCollectionAgent($request->user());
+
+        $gps = $request->only(['latitude', 'longitude', 'gps_accuracy_m']);
+
+        return response()->json([
+            'success' => true,
+            'data' => $this->summaryService->buildDetailed($request->user(), $operator, $gps),
+        ]);
+    }
+
     public function store(Request $request): JsonResponse
     {
         $this->authorizeCollectionAgent($request->user());
 
         $data = $request->validate([
             'operator_id' => ['required', 'integer', 'exists:economic_operators,id'],
-            'amount_xaf' => ['required', 'numeric', 'min:1'],
+            'amount_xaf' => ['required_without:obligation_ids', 'nullable', 'numeric', 'min:1'],
+            'obligation_ids' => ['sometimes', 'array', 'min:1'],
+            'obligation_ids.*' => ['integer', 'exists:fiscal_obligations,id'],
             'cash_session_id' => ['required', 'integer', 'exists:cash_sessions,id'],
             'latitude' => ['nullable', 'numeric'],
             'longitude' => ['nullable', 'numeric'],

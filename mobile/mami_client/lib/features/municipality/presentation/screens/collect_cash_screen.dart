@@ -10,10 +10,16 @@ import '../providers/fiscal_collection_providers.dart';
 import '../providers/municipal_gps_provider.dart';
 
 class CollectCashScreen extends ConsumerStatefulWidget {
-  const CollectCashScreen({super.key, this.operatorId, this.suggestedAmount});
+  const CollectCashScreen({
+    super.key,
+    this.operatorId,
+    this.suggestedAmount,
+    this.obligationIds = const [],
+  });
 
   final int? operatorId;
   final String? suggestedAmount;
+  final List<int> obligationIds;
 
   @override
   ConsumerState<CollectCashScreen> createState() => _CollectCashScreenState();
@@ -25,6 +31,8 @@ class _CollectCashScreenState extends ConsumerState<CollectCashScreen> {
   bool _loading = false;
   String? _error;
   String? _success;
+
+  bool get _selectionMode => widget.obligationIds.isNotEmpty;
 
   @override
   void initState() {
@@ -46,10 +54,18 @@ class _CollectCashScreenState extends ConsumerState<CollectCashScreen> {
 
   Future<void> _collect() async {
     final operatorId = int.tryParse(_operatorController.text.trim());
-    final amount = double.tryParse(_amountController.text.trim());
-    if (operatorId == null || amount == null || amount <= 0) {
-      setState(() => _error = 'Opérateur et montant valides requis');
+    if (operatorId == null) {
+      setState(() => _error = 'Opérateur valide requis');
       return;
+    }
+
+    double? amount;
+    if (!_selectionMode) {
+      amount = double.tryParse(_amountController.text.trim());
+      if (amount == null || amount <= 0) {
+        setState(() => _error = 'Montant valide requis');
+        return;
+      }
     }
 
     setState(() {
@@ -71,6 +87,7 @@ class _CollectCashScreenState extends ConsumerState<CollectCashScreen> {
       final payment = await repo.collectCash(
         operatorId: operatorId,
         amountXaf: amount,
+        obligationIds: _selectionMode ? widget.obligationIds : null,
         cashSessionId: session.id,
         latitude: position.latitude,
         longitude: position.longitude,
@@ -80,6 +97,9 @@ class _CollectCashScreenState extends ConsumerState<CollectCashScreen> {
       ref.invalidate(currentCashSessionProvider);
       ref.invalidate(myCollectionsProvider);
       ref.invalidate(myReceiptsProvider);
+      if (widget.operatorId != null) {
+        ref.invalidate(fiscalDetailedSummaryProvider(widget.operatorId!));
+      }
       setState(() => _success = 'Encaissement ${payment.amountXaf} XAF enregistré');
 
       final receipt = payment.receipt;
@@ -103,6 +123,17 @@ class _CollectCashScreenState extends ConsumerState<CollectCashScreen> {
   @override
   Widget build(BuildContext context) {
     final sessionAsync = ref.watch(currentCashSessionProvider);
+    final summaryAsync = _selectionMode && widget.operatorId != null
+        ? ref.watch(fiscalDetailedSummaryProvider(widget.operatorId!))
+        : null;
+
+    double selectionTotal = 0;
+    if (summaryAsync?.hasValue == true) {
+      final summary = summaryAsync!.value!;
+      selectionTotal = summary.allReceivables
+          .where((item) => widget.obligationIds.contains(item.id))
+          .fold<double>(0, (sum, item) => sum + (double.tryParse(item.balanceDue) ?? 0));
+    }
 
     return Scaffold(
       appBar: AppBar(title: const Text('Encaisser')),
@@ -121,23 +152,32 @@ class _CollectCashScreenState extends ConsumerState<CollectCashScreen> {
               error: (_, __) => const SizedBox.shrink(),
             ),
             const SizedBox(height: 16),
-            TextField(
-              controller: _operatorController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'ID opérateur',
-                border: OutlineInputBorder(),
+            if (_selectionMode) ...[
+              Text(
+                'Encaissement par créances sélectionnées (${widget.obligationIds.length})',
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _amountController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Montant (XAF)',
-                border: OutlineInputBorder(),
+              const SizedBox(height: 8),
+              Text('Montant calculé : ${selectionTotal.toStringAsFixed(0)} XAF'),
+            ] else ...[
+              TextField(
+                controller: _operatorController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'ID opérateur',
+                  border: OutlineInputBorder(),
+                ),
               ),
-            ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _amountController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Montant (XAF)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
             if (_error != null) ...[
               const SizedBox(height: 12),
               Text(_error!, style: const TextStyle(color: Colors.red)),
@@ -155,7 +195,7 @@ class _CollectCashScreenState extends ConsumerState<CollectCashScreen> {
                       width: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Valider l\'encaissement espèces'),
+                  : Text(_selectionMode ? 'Confirmer l\'encaissement' : 'Valider l\'encaissement espèces'),
             ),
           ],
         ),

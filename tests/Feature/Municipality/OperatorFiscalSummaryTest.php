@@ -208,4 +208,70 @@ class OperatorFiscalSummaryTest extends MunicipalityTestCase
 
         $this->assertSame(2, $count);
     }
+
+    public function test_detailed_fiscal_summary_groups_receivables(): void
+    {
+        $user = $this->fiscalManager();
+        $taxType = $this->createTaxType($user);
+        $rate = $this->createTaxRate($user, $taxType);
+        $operator = $this->createOperator($user);
+        $this->assignTax($user, $operator, $taxType);
+        $this->createManualObligation($operator, $taxType, $rate, 15000, '2026-06-30', 'OWE-FO-2026-000201');
+
+        Sanctum::actingAs($user);
+
+        $this->getJson("/api/municipality/operators/{$operator->id}/fiscal-summary")
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.operator.commercial_name', 'Boutique Test')
+            ->assertJsonCount(1, 'data.taxes')
+            ->assertJsonCount(0, 'data.penalties')
+            ->assertJsonCount(0, 'data.fines')
+            ->assertJsonPath('data.remaining_balance', '15000.00')
+            ->assertJsonStructure([
+                'data' => [
+                    'taxes',
+                    'penalties',
+                    'fines',
+                    'total_due',
+                    'total_paid',
+                    'remaining_balance',
+                    'payment_history',
+                ],
+            ]);
+    }
+
+    public function test_detailed_fiscal_summary_includes_payment_history(): void
+    {
+        $user = $this->fiscalManager();
+        $taxType = $this->createTaxType($user);
+        $this->createTaxRate($user, $taxType);
+        $operator = $this->createOperator($user);
+        $this->assignTax($user, $operator, $taxType);
+        $this->generateObligations($user);
+        $session = $this->openCashSession($user);
+
+        Sanctum::actingAs($user);
+        $this->postJson('/api/municipality/fiscal/collections', $this->validCollectionPayload($operator, $session))
+            ->assertCreated();
+
+        $this->getJson("/api/municipality/operators/{$operator->id}/fiscal-summary")
+            ->assertOk()
+            ->assertJsonCount(1, 'data.payment_history')
+            ->assertJsonPath('data.payment_history.0.amount_xaf', '15000.00');
+    }
+
+    public function test_legacy_summary_endpoint_remains_available(): void
+    {
+        $user = $this->fiscalManager();
+        $operator = $this->createOperator($user);
+
+        Sanctum::actingAs($user);
+
+        $this->getJson("/api/municipality/fiscal/operator/{$operator->id}/summary")
+            ->assertOk()
+            ->assertJsonStructure([
+                'data' => ['operator', 'tax_assignments', 'obligations', 'totals'],
+            ]);
+    }
 }

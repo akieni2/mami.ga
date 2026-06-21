@@ -44,8 +44,15 @@ class FiscalCollectionService
             (int) $data['cash_session_id'],
         );
 
-        $amount = round((float) $data['amount_xaf'], 2);
-        if ($amount <= 0) {
+        $amount = round((float) ($data['amount_xaf'] ?? 0), 2);
+
+        if (! empty($data['obligation_ids'])) {
+            if ($amount > 0) {
+                throw ValidationException::withMessages([
+                    'amount_xaf' => ['Le montant est calculé automatiquement à partir des créances sélectionnées.'],
+                ]);
+            }
+        } elseif ($amount <= 0) {
             throw ValidationException::withMessages([
                 'amount_xaf' => ['Le montant doit être positif.'],
             ]);
@@ -65,7 +72,17 @@ class FiscalCollectionService
         }
 
         return DB::transaction(function () use ($agent, $operator, $session, $amount, $data): array {
-            $allocations = $this->allocationService->allocate($operator, $amount, $agent);
+            if (! empty($data['obligation_ids'])) {
+                $selected = $this->allocationService->allocateSelected(
+                    $operator,
+                    $data['obligation_ids'],
+                    $agent,
+                );
+                $allocations = $selected['allocations'];
+                $amount = $selected['amount'];
+            } else {
+                $allocations = $this->allocationService->allocate($operator, $amount, $agent);
+            }
 
             $municipalPayment = MunicipalPayment::query()->create([
                 'operator_id' => $operator->id,

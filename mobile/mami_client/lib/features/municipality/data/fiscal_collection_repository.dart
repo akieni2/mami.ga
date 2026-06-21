@@ -4,6 +4,131 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
 import '../data/models/municipal_receipt_model.dart';
 
+class FiscalReceivableModel {
+  FiscalReceivableModel({
+    required this.id,
+    required this.reference,
+    required this.label,
+    required this.taxCode,
+    required this.taxName,
+    required this.periodLabel,
+    required this.balanceDue,
+    required this.status,
+    required this.obligationType,
+  });
+
+  factory FiscalReceivableModel.fromJson(Map<String, dynamic> json) {
+    return FiscalReceivableModel(
+      id: json['id'] as int,
+      reference: json['reference'] as String? ?? '',
+      label: json['label'] as String? ?? '',
+      taxCode: json['tax_code'] as String? ?? '',
+      taxName: json['tax_name'] as String? ?? '',
+      periodLabel: json['period_label'] as String? ?? '',
+      balanceDue: json['balance_due']?.toString() ?? '0',
+      status: json['status'] as String? ?? '',
+      obligationType: json['obligation_type'] as String? ?? 'tax',
+    );
+  }
+
+  final int id;
+  final String reference;
+  final String label;
+  final String taxCode;
+  final String taxName;
+  final String periodLabel;
+  final String balanceDue;
+  final String status;
+  final String obligationType;
+}
+
+class FiscalPaymentHistoryModel {
+  FiscalPaymentHistoryModel({
+    required this.id,
+    required this.collectedAt,
+    required this.amountXaf,
+    required this.agentName,
+    required this.sessionReference,
+    required this.receiptNumber,
+  });
+
+  factory FiscalPaymentHistoryModel.fromJson(Map<String, dynamic> json) {
+    return FiscalPaymentHistoryModel(
+      id: json['id'] as int,
+      collectedAt: json['collected_at'] as String? ?? '',
+      amountXaf: json['amount_xaf']?.toString() ?? '0',
+      agentName: json['agent_name'] as String? ?? '',
+      sessionReference: json['cash_session_reference'] as String? ?? '',
+      receiptNumber: json['receipt_number'] as String? ?? '',
+    );
+  }
+
+  final int id;
+  final String collectedAt;
+  final String amountXaf;
+  final String agentName;
+  final String sessionReference;
+  final String receiptNumber;
+}
+
+class FiscalDetailedSummary {
+  FiscalDetailedSummary({
+    required this.operatorId,
+    required this.publicId,
+    required this.commercialName,
+    required this.activityLabel,
+    required this.quartier,
+    required this.taxes,
+    required this.penalties,
+    required this.fines,
+    required this.totalDue,
+    required this.totalPaid,
+    required this.remainingBalance,
+    required this.paymentHistory,
+  });
+
+  factory FiscalDetailedSummary.fromJson(Map<String, dynamic> json) {
+    final operator = json['operator'] as Map<String, dynamic>;
+    List<FiscalReceivableModel> parseList(String key) {
+      return (json[key] as List<dynamic>? ?? [])
+          .map((e) => FiscalReceivableModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
+
+    return FiscalDetailedSummary(
+      operatorId: operator['id'] as int,
+      publicId: operator['public_id'] as String? ?? '',
+      commercialName: operator['commercial_name'] as String? ?? '',
+      activityLabel: operator['activity_label'] as String? ?? '',
+      quartier: operator['quartier'] as String? ?? '',
+      taxes: parseList('taxes'),
+      penalties: parseList('penalties'),
+      fines: parseList('fines'),
+      totalDue: json['total_due']?.toString() ?? '0',
+      totalPaid: json['total_paid']?.toString() ?? '0',
+      remainingBalance: json['remaining_balance']?.toString() ?? '0',
+      paymentHistory: (json['payment_history'] as List<dynamic>? ?? [])
+          .map((e) => FiscalPaymentHistoryModel.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+
+  final int operatorId;
+  final String publicId;
+  final String commercialName;
+  final String activityLabel;
+  final String quartier;
+  final List<FiscalReceivableModel> taxes;
+  final List<FiscalReceivableModel> penalties;
+  final List<FiscalReceivableModel> fines;
+  final String totalDue;
+  final String totalPaid;
+  final String remainingBalance;
+  final List<FiscalPaymentHistoryModel> paymentHistory;
+
+  List<FiscalReceivableModel> get allReceivables => [...taxes, ...penalties, ...fines];
+}
+
 class FiscalOperatorSummary {
   FiscalOperatorSummary({
     required this.operatorId,
@@ -189,6 +314,12 @@ class FiscalCollectionRepository {
     return FiscalOperatorSummary.fromJson(envelope['data'] as Map<String, dynamic>);
   }
 
+  Future<FiscalDetailedSummary> fetchDetailedFiscalSummary(int operatorId) async {
+    final response = await _dio.get('/municipality/operators/$operatorId/fiscal-summary');
+    final envelope = parseApiData(response.data);
+    return FiscalDetailedSummary.fromJson(envelope['data'] as Map<String, dynamic>);
+  }
+
   Future<Map<String, dynamic>> lookupOperatorByQr(String qrValue) async {
     final response = await _dio.get('/municipality/operators/by-qr/$qrValue');
     final envelope = parseApiData(response.data);
@@ -197,16 +328,18 @@ class FiscalCollectionRepository {
 
   Future<MunicipalCollectionModel> collectCash({
     required int operatorId,
-    required double amountXaf,
     required int cashSessionId,
     required double latitude,
     required double longitude,
     required double gpsAccuracyM,
+    double? amountXaf,
+    List<int>? obligationIds,
     String? notes,
   }) async {
     final response = await _dio.post('/municipality/fiscal/collections', data: {
       'operator_id': operatorId,
-      'amount_xaf': amountXaf,
+      if (amountXaf != null) 'amount_xaf': amountXaf,
+      if (obligationIds != null && obligationIds.isNotEmpty) 'obligation_ids': obligationIds,
       'cash_session_id': cashSessionId,
       'latitude': latitude,
       'longitude': longitude,

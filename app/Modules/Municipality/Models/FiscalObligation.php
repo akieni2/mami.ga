@@ -3,6 +3,7 @@
 namespace App\Modules\Municipality\Models;
 
 use App\Modules\Municipality\Enums\FiscalObligationStatus;
+use App\Modules\Municipality\Enums\FiscalObligationType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -12,6 +13,7 @@ class FiscalObligation extends Model
         'operator_id',
         'tax_type_id',
         'tax_rate_id',
+        'obligation_type',
         'reference',
         'period_start',
         'period_end',
@@ -31,6 +33,7 @@ class FiscalObligation extends Model
             'amount_due' => 'decimal:2',
             'amount_paid' => 'decimal:2',
             'balance_due' => 'decimal:2',
+            'obligation_type' => FiscalObligationType::class,
             'status' => FiscalObligationStatus::class,
             'generated_at' => 'datetime',
             'due_date' => 'date',

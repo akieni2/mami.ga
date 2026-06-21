@@ -4,6 +4,8 @@ namespace App\Modules\Municipality\Services;
 
 use App\Models\User;
 use App\Modules\Municipality\Enums\FiscalObligationStatus;
+use App\Modules\Municipality\Enums\FiscalObligationType;
+use App\Modules\Municipality\Models\EconomicOperator;
 use App\Modules\Municipality\Models\FiscalObligation;
 use App\Modules\Municipality\Models\OperatorTaxAssignment;
 use Carbon\Carbon;
@@ -111,6 +113,7 @@ class FiscalObligationGeneratorService
                 'operator_id' => $assignment->operator_id,
                 'tax_type_id' => $assignment->tax_type_id,
                 'tax_rate_id' => $rate->id,
+                'obligation_type' => FiscalObligationType::Tax,
                 'reference' => $this->referenceGenerator->next(),
                 'period_start' => $periodStart,
                 'period_end' => $periodEnd,
@@ -133,6 +136,31 @@ class FiscalObligationGeneratorService
 
             return ['created' => 1, 'skipped' => 0];
         });
+    }
+
+    /**
+     * @return array{created: int, skipped: int}
+     */
+    public function ensureForOperator(EconomicOperator $operator, ?User $actor = null, ?Carbon $on = null): array
+    {
+        $on ??= now();
+        $created = 0;
+        $skipped = 0;
+
+        $assignments = OperatorTaxAssignment::query()
+            ->with(['operator', 'taxType'])
+            ->where('operator_id', $operator->id)
+            ->where('is_active', true)
+            ->whereHas('taxType', fn ($query) => $query->where('is_active', true))
+            ->get();
+
+        foreach ($assignments as $assignment) {
+            $result = $this->generateForAssignment($assignment, $on, $actor);
+            $created += $result['created'];
+            $skipped += $result['skipped'];
+        }
+
+        return ['created' => $created, 'skipped' => $skipped];
     }
 
     public function cancel(User $actor, FiscalObligation $obligation): FiscalObligation
