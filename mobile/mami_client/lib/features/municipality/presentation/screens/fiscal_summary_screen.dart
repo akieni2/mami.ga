@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../data/fiscal_collection_repository.dart';
 import '../providers/fiscal_collection_providers.dart';
+import '../widgets/qr_commerce_entry.dart';
 
 class FiscalSummaryScreen extends ConsumerWidget {
   const FiscalSummaryScreen({super.key, this.operatorId});
@@ -20,8 +21,8 @@ class FiscalSummaryScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('Situation fiscale')),
       body: Padding(
         padding: const EdgeInsets.all(20),
-        child: _OperatorIdLookup(
-          onFound: (id) => context.push('/municipality/recovery/fiscal-summary/$id'),
+        child: QrCommerceEntry(
+          onManualFound: (id) => context.push('/municipality/recovery/fiscal-summary/$id'),
         ),
       ),
     );
@@ -123,17 +124,31 @@ class _FiscalSummaryBodyState extends ConsumerState<_FiscalSummaryBody> {
                 child: const Text('Encaisser la sélection'),
               ),
               const Divider(height: 32),
-              const Text('Historique des règlements', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text('Historique des paiements', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
               if (summary.paymentHistory.isEmpty)
-                const ListTile(title: Text('Aucun règlement enregistré'))
+                const ListTile(title: Text('Aucun paiement enregistré'))
               else
                 ...summary.paymentHistory.map(
-                  (payment) => ListTile(
-                    title: Text('${payment.amountXaf} XAF — ${payment.receiptNumber}'),
-                    subtitle: Text(
-                      '${payment.collectedAt}\nAgent : ${payment.agentName}\nSession : ${payment.sessionReference}',
+                  (payment) => Card(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${payment.amountXaf} XAF',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          Text('Date : ${payment.collectedAt}'),
+                          Text('Réf. quittance : ${payment.receiptNumber.isEmpty ? '—' : payment.receiptNumber}'),
+                          Text('Taxe : ${payment.taxConcerned.isEmpty ? '—' : payment.taxConcerned}'),
+                          Text('Agent : ${payment.agentName.isEmpty ? '—' : payment.agentName}'),
+                          Text('Mode : ${payment.paymentMethodLabel.isEmpty ? '—' : payment.paymentMethodLabel}'),
+                        ],
+                      ),
                     ),
-                    isThreeLine: true,
                   ),
                 ),
             ],
@@ -214,48 +229,3 @@ class _ReceivableSection extends StatelessWidget {
   }
 }
 
-class _OperatorIdLookup extends StatefulWidget {
-  const _OperatorIdLookup({required this.onFound});
-
-  final ValueChanged<int> onFound;
-
-  @override
-  State<_OperatorIdLookup> createState() => _OperatorIdLookupState();
-}
-
-class _OperatorIdLookupState extends State<_OperatorIdLookup> {
-  final _controller = TextEditingController();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const Text('Identifiant interne de l\'opérateur (après scan QR)'),
-        const SizedBox(height: 12),
-        TextField(
-          controller: _controller,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'ID opérateur',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: 16),
-        FilledButton(
-          onPressed: () {
-            final id = int.tryParse(_controller.text.trim());
-            if (id != null) widget.onFound(id);
-          },
-          child: const Text('Consulter'),
-        ),
-      ],
-    );
-  }
-}

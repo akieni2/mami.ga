@@ -7,7 +7,9 @@ import '../../data/fiscal_collection_repository.dart';
 import '../../domain/operator_qr_lookup.dart';
 
 class ScanQrCameraScreen extends ConsumerStatefulWidget {
-  const ScanQrCameraScreen({super.key});
+  const ScanQrCameraScreen({super.key, this.redirect = 'fiscal-summary'});
+
+  final String redirect;
 
   @override
   ConsumerState<ScanQrCameraScreen> createState() => _ScanQrCameraScreenState();
@@ -52,7 +54,11 @@ class _ScanQrCameraScreenState extends ConsumerState<ScanQrCameraScreen> {
       if (!mounted) return;
       await _controller.stop();
       if (!mounted) return;
-      context.push('/municipality/recovery/fiscal-summary/$operatorId');
+      final target = switch (widget.redirect) {
+        'field-control' => '/municipality/field-control/$operatorId',
+        _ => '/municipality/recovery/fiscal-summary/$operatorId',
+      };
+      context.push(target);
     } on OperatorQrLookupException catch (e) {
       if (!mounted) return;
       setState(() {

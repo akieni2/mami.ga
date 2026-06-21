@@ -50,6 +50,8 @@ class FiscalPaymentHistoryModel {
     required this.agentName,
     required this.sessionReference,
     required this.receiptNumber,
+    required this.paymentMethodLabel,
+    required this.taxConcerned,
   });
 
   factory FiscalPaymentHistoryModel.fromJson(Map<String, dynamic> json) {
@@ -60,6 +62,8 @@ class FiscalPaymentHistoryModel {
       agentName: json['agent_name'] as String? ?? '',
       sessionReference: json['cash_session_reference'] as String? ?? '',
       receiptNumber: json['receipt_number'] as String? ?? '',
+      paymentMethodLabel: json['payment_method_label'] as String? ?? '',
+      taxConcerned: json['tax_concerned'] as String? ?? '',
     );
   }
 
@@ -69,6 +73,8 @@ class FiscalPaymentHistoryModel {
   final String agentName;
   final String sessionReference;
   final String receiptNumber;
+  final String paymentMethodLabel;
+  final String taxConcerned;
 }
 
 class FiscalDetailedSummary {
@@ -378,6 +384,55 @@ class FiscalCollectionRepository {
     final data = response.data['data'] as Map<String, dynamic>;
     return MunicipalReceiptModel.fromJson(data);
   }
+
+  Future<void> recordFieldVisit({
+    required int operatorId,
+    required String visitType,
+    required double latitude,
+    required double longitude,
+    String? notes,
+  }) async {
+    await _dio.post('/municipality/operators/$operatorId/field-visits', data: {
+      'visit_type': visitType,
+      'latitude': latitude,
+      'longitude': longitude,
+      if (notes != null && notes.isNotEmpty) 'notes': notes,
+    });
+  }
+
+  Future<MunicipalSyncStatusModel> fetchSyncStatus() async {
+    final response = await _dio.get('/municipality/sync/status');
+    final envelope = parseApiData(response.data);
+    return MunicipalSyncStatusModel.fromJson(envelope['data'] as Map<String, dynamic>);
+  }
+}
+
+class MunicipalSyncStatusModel {
+  MunicipalSyncStatusModel({
+    required this.serverTime,
+    required this.apiStatus,
+    required this.operatorsCount,
+    required this.paymentsCount,
+    required this.receiptsCount,
+  });
+
+  factory MunicipalSyncStatusModel.fromJson(Map<String, dynamic> json) {
+    return MunicipalSyncStatusModel(
+      serverTime: json['server_time'] as String? ?? '',
+      apiStatus: json['api_status'] as String? ?? 'unknown',
+      operatorsCount: json['operators_count'] as int? ?? 0,
+      paymentsCount: json['payments_count'] as int? ?? 0,
+      receiptsCount: json['receipts_count'] as int? ?? 0,
+    );
+  }
+
+  final String serverTime;
+  final String apiStatus;
+  final int operatorsCount;
+  final int paymentsCount;
+  final int receiptsCount;
+
+  bool get isApiOk => apiStatus == 'ok';
 }
 
 final fiscalCollectionRepositoryProvider = Provider<FiscalCollectionRepository>(

@@ -50,6 +50,20 @@ class FieldVisitTest extends MunicipalityTestCase
         $this->assertNotNull($operator->last_visit_at);
     }
 
+    public function test_agent_can_record_presence_control_visit(): void
+    {
+        $agent = $this->municipalAgentUser();
+        Sanctum::actingAs($agent);
+
+        $operator = $this->createOperator($agent);
+
+        $this->postJson('/api/municipality/operators/'.$operator->id.'/field-visits', [
+            'visit_type' => 'presence_control',
+            'notes' => 'Présence vérifiée',
+        ])->assertCreated()
+            ->assertJsonPath('data.visit_type', 'presence_control');
+    }
+
     public function test_field_visit_appears_in_qr_scan_history(): void
     {
         $agent = $this->municipalAgentUser();

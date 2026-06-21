@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth:sanctum', 'module:municipality'])->group(function (): void {
     Route::get('/status', [MunicipalityModuleController::class, 'status']);
+    Route::get('/sync/status', [MunicipalityModuleController::class, 'syncStatus']);
 
     Route::get('/reports/map', [MunicipalityReportController::class, 'map']);
     Route::get('/reports', [MunicipalityReportController::class, 'index']);

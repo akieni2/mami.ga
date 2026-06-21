@@ -271,20 +271,48 @@ class OperatorFiscalSummaryService
     private function paymentHistory(EconomicOperator $operator): array
     {
         return MunicipalPayment::query()
-            ->with(['agent', 'cashSession', 'receipt'])
+            ->with([
+                'agent',
+                'cashSession',
+                'receipt',
+                'allocations.fiscalObligation.taxType',
+            ])
             ->where('operator_id', $operator->id)
             ->orderByDesc('collected_at')
             ->limit(20)
             ->get()
-            ->map(fn (MunicipalPayment $payment) => [
-                'id' => $payment->id,
-                'collected_at' => $payment->collected_at?->toIso8601String(),
-                'amount_xaf' => (string) $payment->amount,
-                'agent_name' => $payment->agent?->name,
-                'cash_session_reference' => $payment->cashSession?->reference,
-                'receipt_number' => $payment->receipt?->receipt_number,
-                'status' => $payment->status->value,
-            ])
+            ->map(function (MunicipalPayment $payment): array {
+                $taxLabels = $payment->allocations
+                    ->map(function ($allocation) {
+                        $obligation = $allocation->fiscalObligation;
+                        if ($obligation === null) {
+                            return null;
+                        }
+
+                        $code = $obligation->taxType?->code;
+
+                        return $code !== null && $code !== ''
+                            ? $code
+                            : $obligation->reference;
+                    })
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->all();
+
+                return [
+                    'id' => $payment->id,
+                    'collected_at' => $payment->collected_at?->toIso8601String(),
+                    'amount_xaf' => (string) $payment->amount,
+                    'agent_name' => $payment->agent?->name,
+                    'cash_session_reference' => $payment->cashSession?->reference,
+                    'receipt_number' => $payment->receipt?->receipt_number,
+                    'status' => $payment->status->value,
+                    'payment_method' => $payment->payment_method->value,
+                    'payment_method_label' => $payment->payment_method->label(),
+                    'tax_concerned' => implode(', ', $taxLabels),
+                ];
+            })
             ->values()
             ->all();
     }

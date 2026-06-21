@@ -258,7 +258,20 @@ class OperatorFiscalSummaryTest extends MunicipalityTestCase
         $this->getJson("/api/municipality/operators/{$operator->id}/fiscal-summary")
             ->assertOk()
             ->assertJsonCount(1, 'data.payment_history')
-            ->assertJsonPath('data.payment_history.0.amount_xaf', '15000.00');
+            ->assertJsonPath('data.payment_history.0.amount_xaf', '15000.00')
+            ->assertJsonPath('data.payment_history.0.payment_method', 'cash')
+            ->assertJsonPath('data.payment_history.0.payment_method_label', 'Espèces')
+            ->assertJsonStructure([
+                'data' => [
+                    'payment_history' => [
+                        [
+                            'tax_concerned',
+                            'receipt_number',
+                            'agent_name',
+                        ],
+                    ],
+                ],
+            ]);
     }
 
     public function test_legacy_summary_endpoint_remains_available(): void

@@ -6,6 +6,8 @@ import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
+import '../../features/municipality/presentation/screens/field_control_screen.dart';
+import '../../features/municipality/presentation/screens/sync_status_screen.dart';
 import '../../features/municipality/presentation/screens/collect_cash_screen.dart';
 import '../../features/municipality/presentation/screens/close_cash_session_screen.dart';
 import '../../features/municipality/presentation/screens/create_municipality_report_screen.dart';
@@ -128,6 +130,21 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const MunicipalityAgentHomeScreen(),
       ),
       GoRoute(
+        path: '/municipality/field-control',
+        builder: (context, state) => const FieldControlScreen(),
+      ),
+      GoRoute(
+        path: '/municipality/field-control/:operatorId',
+        builder: (context, state) {
+          final operatorId = int.parse(state.pathParameters['operatorId']!);
+          return FieldControlScreen(operatorId: operatorId);
+        },
+      ),
+      GoRoute(
+        path: '/municipality/sync',
+        builder: (context, state) => const SyncStatusScreen(),
+      ),
+      GoRoute(
         path: '/municipality/enrollment/new',
         builder: (context, state) => const EnrollEconomicOperatorScreen(),
       ),
@@ -157,7 +174,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/municipality/recovery/scan/camera',
-        builder: (context, state) => const ScanQrCameraScreen(),
+        builder: (context, state) {
+          final redirect = state.uri.queryParameters['redirect'] ?? 'fiscal-summary';
+          return ScanQrCameraScreen(redirect: redirect);
+        },
       ),
       GoRoute(
         path: '/municipality/recovery/fiscal-summary',

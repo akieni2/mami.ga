@@ -8,6 +8,7 @@ import '../../data/fiscal_collection_repository.dart';
 import '../../domain/municipal_gps_service.dart';
 import '../providers/fiscal_collection_providers.dart';
 import '../providers/municipal_gps_provider.dart';
+import '../widgets/qr_commerce_entry.dart';
 
 class CollectCashScreen extends ConsumerStatefulWidget {
   const CollectCashScreen({
@@ -26,46 +27,18 @@ class CollectCashScreen extends ConsumerStatefulWidget {
 }
 
 class _CollectCashScreenState extends ConsumerState<CollectCashScreen> {
-  final _operatorController = TextEditingController();
-  final _amountController = TextEditingController();
   bool _loading = false;
   String? _error;
   String? _success;
 
-  bool get _selectionMode => widget.obligationIds.isNotEmpty;
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.operatorId != null) {
-      _operatorController.text = widget.operatorId.toString();
-    }
-    if (widget.suggestedAmount != null) {
-      _amountController.text = widget.suggestedAmount!;
-    }
-  }
-
-  @override
-  void dispose() {
-    _operatorController.dispose();
-    _amountController.dispose();
-    super.dispose();
-  }
+  bool get _selectionMode =>
+      widget.obligationIds.isNotEmpty && widget.operatorId != null;
 
   Future<void> _collect() async {
-    final operatorId = int.tryParse(_operatorController.text.trim());
+    final operatorId = widget.operatorId;
     if (operatorId == null) {
-      setState(() => _error = 'Opérateur valide requis');
+      setState(() => _error = 'Scannez le QR commerce pour encaisser');
       return;
-    }
-
-    double? amount;
-    if (!_selectionMode) {
-      amount = double.tryParse(_amountController.text.trim());
-      if (amount == null || amount <= 0) {
-        setState(() => _error = 'Montant valide requis');
-        return;
-      }
     }
 
     setState(() {
@@ -86,8 +59,7 @@ class _CollectCashScreenState extends ConsumerState<CollectCashScreen> {
       final repo = ref.read(fiscalCollectionRepositoryProvider);
       final payment = await repo.collectCash(
         operatorId: operatorId,
-        amountXaf: amount,
-        obligationIds: _selectionMode ? widget.obligationIds : null,
+        obligationIds: widget.obligationIds,
         cashSessionId: session.id,
         latitude: position.latitude,
         longitude: position.longitude,
@@ -122,18 +94,25 @@ class _CollectCashScreenState extends ConsumerState<CollectCashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final sessionAsync = ref.watch(currentCashSessionProvider);
-    final summaryAsync = _selectionMode && widget.operatorId != null
-        ? ref.watch(fiscalDetailedSummaryProvider(widget.operatorId!))
-        : null;
-
-    double selectionTotal = 0;
-    if (summaryAsync?.hasValue == true) {
-      final summary = summaryAsync!.value!;
-      selectionTotal = summary.allReceivables
-          .where((item) => widget.obligationIds.contains(item.id))
-          .fold<double>(0, (sum, item) => sum + (double.tryParse(item.balanceDue) ?? 0));
+    if (!_selectionMode) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Encaisser')),
+        body: const Padding(
+          padding: EdgeInsets.all(20),
+          child: QrCommerceEntry(showManualFallback: false),
+        ),
+      );
     }
+
+    final sessionAsync = ref.watch(currentCashSessionProvider);
+    final summaryAsync = ref.watch(fiscalDetailedSummaryProvider(widget.operatorId!));
+
+    final summary = summaryAsync.valueOrNull;
+    final selectionTotal = summary == null
+        ? 0.0
+        : summary.allReceivables
+            .where((item) => widget.obligationIds.contains(item.id))
+            .fold<double>(0, (sum, item) => sum + (double.tryParse(item.balanceDue) ?? 0));
 
     return Scaffold(
       appBar: AppBar(title: const Text('Encaisser')),
@@ -152,31 +131,23 @@ class _CollectCashScreenState extends ConsumerState<CollectCashScreen> {
               error: (_, __) => const SizedBox.shrink(),
             ),
             const SizedBox(height: 16),
-            if (_selectionMode) ...[
-              Text(
-                'Encaissement par créances sélectionnées (${widget.obligationIds.length})',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Text('Montant calculé : ${selectionTotal.toStringAsFixed(0)} XAF'),
-            ] else ...[
-              TextField(
-                controller: _operatorController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'ID opérateur',
-                  border: OutlineInputBorder(),
-                ),
-              ),
+            if (summary != null) ...[
+              Text(summary.commercialName, style: Theme.of(context).textTheme.titleLarge),
+              Text('Réf. ${summary.publicId}'),
               const SizedBox(height: 12),
-              TextField(
-                controller: _amountController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Montant (XAF)',
-                  border: OutlineInputBorder(),
-                ),
-              ),
+            ],
+            Text(
+              'Créances sélectionnées (${widget.obligationIds.length})',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Montant sélectionné : ${selectionTotal.toStringAsFixed(0)} XAF',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            if (summaryAsync.isLoading) ...[
+              const SizedBox(height: 12),
+              const LinearProgressIndicator(),
             ],
             if (_error != null) ...[
               const SizedBox(height: 12),
@@ -195,7 +166,7 @@ class _CollectCashScreenState extends ConsumerState<CollectCashScreen> {
                       width: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : Text(_selectionMode ? 'Confirmer l\'encaissement' : 'Valider l\'encaissement espèces'),
+                  : const Text('Encaisser'),
             ),
           ],
         ),

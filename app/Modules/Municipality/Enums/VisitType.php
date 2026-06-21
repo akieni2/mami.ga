@@ -13,6 +13,10 @@ enum VisitType: string
     case Payment = 'payment';
     case SessionOpen = 'session_open';
     case SessionClose = 'session_close';
+    case PresenceControl = 'presence_control';
+    case LicenseControl = 'license_control';
+    case PatentControl = 'patent_control';
+    case MunicipalControl = 'municipal_control';
 
     public function label(): string
     {
@@ -26,6 +30,10 @@ enum VisitType: string
             self::Payment => 'Encaissement',
             self::SessionOpen => 'Ouverture caisse',
             self::SessionClose => 'Fermeture caisse',
+            self::PresenceControl => 'Contrôle de présence',
+            self::LicenseControl => 'Contrôle licence',
+            self::PatentControl => 'Contrôle patente',
+            self::MunicipalControl => 'Contrôle municipal',
         };
     }
 

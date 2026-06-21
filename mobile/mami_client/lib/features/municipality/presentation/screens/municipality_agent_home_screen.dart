@@ -68,9 +68,9 @@ class MunicipalityAgentHomeScreen extends ConsumerWidget {
           _AgentMenuTile(
             icon: Icons.fact_check_outlined,
             title: 'Contrôles terrain',
-            subtitle: 'Bientôt disponible',
-            enabled: false,
-            onTap: () => _showSoon(context),
+            subtitle: 'Scan QR, fiche commerce, contrôle',
+            enabled: true,
+            onTap: () => context.push('/municipality/field-control'),
           ),
           _AgentMenuTile(
             icon: Icons.payments_outlined,
@@ -81,17 +81,17 @@ class MunicipalityAgentHomeScreen extends ConsumerWidget {
           ),
           _AgentMenuTile(
             icon: Icons.history,
-            title: 'Historique',
-            subtitle: 'Bientôt disponible',
-            enabled: false,
-            onTap: () => _showSoon(context),
+            title: 'Historique des paiements',
+            subtitle: 'Encaissements et quittances agent',
+            enabled: true,
+            onTap: () => context.push('/municipality/recovery/my-collections'),
           ),
           _AgentMenuTile(
             icon: Icons.cloud_sync_outlined,
             title: 'Synchronisation',
-            subtitle: 'Bientôt disponible — V2.1 offline',
-            enabled: false,
-            onTap: () => _showSoon(context),
+            subtitle: 'État API et compteurs serveur',
+            enabled: true,
+            onTap: () => context.push('/municipality/sync'),
           ),
           const SizedBox(height: 12),
           OutlinedButton.icon(
@@ -101,12 +101,6 @@ class MunicipalityAgentHomeScreen extends ConsumerWidget {
           ),
         ],
       ),
-    );
-  }
-
-  void _showSoon(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Bientôt disponible')),
     );
   }
 }

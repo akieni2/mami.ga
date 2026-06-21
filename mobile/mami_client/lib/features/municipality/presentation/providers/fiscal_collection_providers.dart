@@ -45,3 +45,8 @@ final fiscalSummaryProvider =
   final repo = ref.watch(fiscalCollectionRepositoryProvider);
   return repo.fetchOperatorSummary(operatorId);
 });
+
+final municipalSyncStatusProvider = FutureProvider<MunicipalSyncStatusModel>((ref) async {
+  final repo = ref.watch(fiscalCollectionRepositoryProvider);
+  return repo.fetchSyncStatus();
+});
