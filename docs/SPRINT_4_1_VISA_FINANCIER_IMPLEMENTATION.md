@@ -18,7 +18,7 @@ Circuit de validation hiérarchique pour les missions financières, compatible S
 
 ### Migration
 
-- `2026_06_16_200000_add_workflow_to_financial_missions_sprint41.php`
+- `2026_06_29_100000_add_workflow_to_financial_missions_sprint41.php` (après `2026_06_28_100000` Sprint 4.0)
 - Colonnes workflow sur `financial_missions`
 - Table `financial_mission_approvals`
 - Migration données : `authorized` → `approved`
