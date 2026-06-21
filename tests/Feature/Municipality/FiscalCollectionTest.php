@@ -166,6 +166,71 @@ class FiscalCollectionTest extends MunicipalityTestCase
             ->assertJsonValidationErrors(['gps_accuracy_m']);
     }
 
+    public function test_collection_with_existing_obligation_unchanged(): void
+    {
+        $user = $this->fiscalManager();
+        $taxType = $this->createTaxType($user);
+        $this->createTaxRate($user, $taxType);
+        $operator = $this->createOperator($user);
+        $this->assignTax($user, $operator, $taxType);
+        $this->generateObligations($user);
+        $session = $this->openCashSession($user);
+
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/municipality/fiscal/collections', $this->validCollectionPayload($operator, $session))
+            ->assertCreated()
+            ->assertJsonPath('data.amount_xaf', '15000.00');
+
+        $this->assertDatabaseHas('fiscal_obligations', [
+            'operator_id' => $operator->id,
+            'status' => FiscalObligationStatus::Paid->value,
+        ]);
+    }
+
+    public function test_collection_without_obligation_but_with_tax_assignment_creates_initial_obligation(): void
+    {
+        $user = $this->fiscalManager();
+        $taxType = $this->createTaxType($user);
+        $this->createTaxRate($user, $taxType);
+        $operator = $this->createOperator($user);
+        $this->assignTax($user, $operator, $taxType);
+        $session = $this->openCashSession($user);
+
+        $this->assertDatabaseCount('fiscal_obligations', 0);
+
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/municipality/fiscal/collections', $this->validCollectionPayload($operator, $session))
+            ->assertCreated()
+            ->assertJsonPath('data.amount_xaf', '15000.00');
+
+        $this->assertDatabaseHas('fiscal_obligations', [
+            'operator_id' => $operator->id,
+            'tax_type_id' => $taxType->id,
+            'status' => FiscalObligationStatus::Paid->value,
+            'balance_due' => 0,
+        ]);
+
+        $this->assertTrue(
+            AuditLog::query()->where('action', 'obligation.created')->exists()
+        );
+    }
+
+    public function test_collection_without_tax_assignment_is_rejected(): void
+    {
+        $user = $this->fiscalManager();
+        $operator = $this->createOperator($user);
+        $session = $this->openCashSession($user);
+
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/municipality/fiscal/collections', $this->validCollectionPayload($operator, $session))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['operator_id'])
+            ->assertJsonPath('errors.operator_id.0', 'Aucune taxe n\'est affectée à ce commerce.');
+    }
+
     public function test_rejects_collection_for_inactive_operator(): void
     {
         $user = $this->fiscalManager();
@@ -181,7 +246,8 @@ class FiscalCollectionTest extends MunicipalityTestCase
 
         $this->postJson('/api/municipality/fiscal/collections', $this->validCollectionPayload($operator, $session))
             ->assertStatus(422)
-            ->assertJsonValidationErrors(['operator_id']);
+            ->assertJsonValidationErrors(['operator_id'])
+            ->assertJsonPath('errors.operator_id.0', 'Commerce inactif — encaissement refusé.');
     }
 
     public function test_rejects_overpayment(): void

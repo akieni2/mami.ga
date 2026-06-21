@@ -65,7 +65,7 @@ class FiscalCollectionService
         }
 
         return DB::transaction(function () use ($agent, $operator, $session, $amount, $data): array {
-            $allocations = $this->allocationService->allocate($operator, $amount);
+            $allocations = $this->allocationService->allocate($operator, $amount, $agent);
 
             $municipalPayment = MunicipalPayment::query()->create([
                 'operator_id' => $operator->id,

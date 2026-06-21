@@ -1,7 +1,9 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/network/api_error_message.dart';
 import '../../data/fiscal_collection_repository.dart';
 import '../../domain/municipal_gps_service.dart';
 import '../providers/fiscal_collection_providers.dart';
@@ -89,8 +91,10 @@ class _CollectCashScreenState extends ConsumerState<CollectCashScreen> {
       }
     } on MunicipalGpsException catch (e) {
       setState(() => _error = e.message);
+    } on DioException catch (e) {
+      setState(() => _error = resolveApiErrorMessage(e));
     } catch (e) {
-      setState(() => _error = 'Encaissement refusé');
+      setState(() => _error = resolveApiErrorMessage(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
