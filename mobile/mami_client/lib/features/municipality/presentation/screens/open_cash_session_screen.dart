@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/network/api_error_message.dart';
 import '../../data/fiscal_collection_repository.dart';
 import '../../domain/municipal_gps_service.dart';
 import '../providers/fiscal_collection_providers.dart';
+import '../providers/financial_governance_providers.dart';
 import '../providers/municipal_gps_provider.dart';
 
 class OpenCashSessionScreen extends ConsumerStatefulWidget {
@@ -50,7 +52,7 @@ class _OpenCashSessionScreenState extends ConsumerState<OpenCashSessionScreen> {
     } on MunicipalGpsException catch (e) {
       setState(() => _error = e.message);
     } catch (e) {
-      setState(() => _error = e.toString());
+      setState(() => _error = resolveApiErrorMessage(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -58,6 +60,8 @@ class _OpenCashSessionScreenState extends ConsumerState<OpenCashSessionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final missionAsync = ref.watch(currentFinancialMissionProvider);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Ouvrir caisse')),
       body: Padding(
@@ -65,6 +69,24 @@ class _OpenCashSessionScreenState extends ConsumerState<OpenCashSessionScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            missionAsync.when(
+              data: (mission) => mission == null
+                  ? const Text(
+                      'Aucune mission financière active (ouverture libre si configuré).',
+                      style: TextStyle(color: Colors.grey),
+                    )
+                  : Card(
+                      child: ListTile(
+                        title: Text('Mission : ${mission.title}'),
+                        subtitle: Text(
+                          '${mission.reference} · ${mission.validFrom} → ${mission.validUntil}',
+                        ),
+                      ),
+                    ),
+              loading: () => const LinearProgressIndicator(),
+              error: (_, __) => const SizedBox.shrink(),
+            ),
+            const SizedBox(height: 16),
             TextField(
               controller: _amountController,
               keyboardType: TextInputType.number,

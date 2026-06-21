@@ -28,6 +28,14 @@ class CashSessionResource extends JsonResource
             'actual_amount_xaf' => $this->actual_amount_xaf !== null ? (string) $this->actual_amount_xaf : null,
             'status' => $this->status->value,
             'status_label' => $this->status->label(),
+            'closure_type' => $this->closure_type?->value,
+            'closure_type_label' => $this->closure_type?->label(),
+            'financial_mission_id' => $this->financial_mission_id,
+            'financial_mission' => $this->whenLoaded('financialMission', fn () => [
+                'id' => $this->financialMission?->id,
+                'reference' => $this->financialMission?->reference,
+                'title' => $this->financialMission?->title,
+            ]),
             'device_id' => $this->device_id,
             'notes' => $this->notes,
         ];

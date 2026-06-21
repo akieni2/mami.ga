@@ -3,6 +3,7 @@
 namespace App\Modules\Municipality\Models;
 
 use App\Models\User;
+use App\Modules\Municipality\Enums\CashSessionClosureType;
 use App\Modules\Municipality\Enums\CashSessionStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,8 +14,11 @@ class CashSession extends Model
     protected $fillable = [
         'reference',
         'agent_id',
+        'financial_mission_id',
         'opened_at',
         'closed_at',
+        'admin_closed_by',
+        'closure_type',
         'opening_amount_xaf',
         'expected_amount_xaf',
         'actual_amount_xaf',
@@ -36,6 +40,7 @@ class CashSession extends Model
             'expected_amount_xaf' => 'decimal:2',
             'actual_amount_xaf' => 'decimal:2',
             'status' => CashSessionStatus::class,
+            'closure_type' => CashSessionClosureType::class,
             'opening_latitude' => 'decimal:7',
             'opening_longitude' => 'decimal:7',
             'closing_latitude' => 'decimal:7',
@@ -46,6 +51,16 @@ class CashSession extends Model
     public function agent(): BelongsTo
     {
         return $this->belongsTo(User::class, 'agent_id');
+    }
+
+    public function financialMission(): BelongsTo
+    {
+        return $this->belongsTo(FinancialMission::class, 'financial_mission_id');
+    }
+
+    public function adminClosedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'admin_closed_by');
     }
 
     public function municipalPayments(): HasMany

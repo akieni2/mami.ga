@@ -77,6 +77,10 @@ return [
     */
     'municipality_collection_max_gps_accuracy_m' => (float) env('MAMI_MUNICIPALITY_COLLECTION_MAX_GPS_ACCURACY_M', 50),
 
+    'municipality_finance' => [
+        'require_mission_for_cash_session' => (bool) env('MAMI_MUNICIPALITY_REQUIRE_MISSION', false),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | URLs publiques (domaines MAMI.GA)

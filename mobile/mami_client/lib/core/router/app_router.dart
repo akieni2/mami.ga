@@ -6,6 +6,10 @@ import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
+import '../../features/municipality/presentation/screens/daf_dashboard_screen.dart';
+import '../../features/municipality/presentation/screens/financial_missions_screen.dart';
+import '../../features/municipality/presentation/screens/cash_supervision_screen.dart';
+import '../../features/municipality/presentation/screens/treasury_remittance_screen.dart';
 import '../../features/municipality/presentation/screens/field_control_screen.dart';
 import '../../features/municipality/presentation/screens/sync_status_screen.dart';
 import '../../features/municipality/presentation/screens/collect_cash_screen.dart';
@@ -143,6 +147,22 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/municipality/sync',
         builder: (context, state) => const SyncStatusScreen(),
+      ),
+      GoRoute(
+        path: '/municipality/finance',
+        builder: (context, state) => const DafDashboardScreen(),
+      ),
+      GoRoute(
+        path: '/municipality/finance/missions',
+        builder: (context, state) => const FinancialMissionsScreen(),
+      ),
+      GoRoute(
+        path: '/municipality/finance/cash-supervision',
+        builder: (context, state) => const CashSupervisionScreen(),
+      ),
+      GoRoute(
+        path: '/municipality/finance/remittances',
+        builder: (context, state) => const TreasuryRemittanceScreen(),
       ),
       GoRoute(
         path: '/municipality/enrollment/new',

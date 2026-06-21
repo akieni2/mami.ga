@@ -28,8 +28,12 @@ class MunicipalityModuleServiceProvider extends ServiceProvider
             return MunicipalityReport::query()->findOrFail($value);
         });
 
-        \Illuminate\Support\Facades\Route::bind('operator', function (string $value): EconomicOperator {
+        Route::bind('operator', function (string $value): EconomicOperator {
             return EconomicOperator::query()->findOrFail($value);
+        });
+
+        Route::bind('mission', function (string $value): \App\Modules\Municipality\Models\FinancialMission {
+            return \App\Modules\Municipality\Models\FinancialMission::query()->findOrFail($value);
         });
 
         Event::listen(

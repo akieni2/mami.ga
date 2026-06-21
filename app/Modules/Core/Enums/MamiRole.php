@@ -14,6 +14,11 @@ enum MamiRole: string
     case Merchant = 'merchant';
     case MunicipalAgent = 'municipal_agent';
     case MunicipalSupervisor = 'municipal_supervisor';
+    case Daf = 'daf';
+    case DafAdjoint = 'daf_adjoint';
+    case CaissierCentral = 'caissier_central';
+    case ControleurFinancier = 'controleur_financier';
+    case ReceveurMunicipal = 'receveur_municipal';
     case Admin = 'admin';
     case SuperAdmin = 'super_admin';
 
@@ -30,6 +35,11 @@ enum MamiRole: string
             self::Merchant => 'Commerçant',
             self::MunicipalAgent => 'Agent Municipal',
             self::MunicipalSupervisor => 'Superviseur Municipal',
+            self::Daf => 'Directeur des Affaires Financières',
+            self::DafAdjoint => 'DAF adjoint',
+            self::CaissierCentral => 'Caissier central',
+            self::ControleurFinancier => 'Contrôleur financier',
+            self::ReceveurMunicipal => 'Receveur municipal',
             self::Admin => 'Administrateur',
             self::SuperAdmin => 'Super Administrateur',
         };
@@ -43,7 +53,9 @@ enum MamiRole: string
             self::CarpoolDriver, self::CarpoolPassenger => 'carpool',
             self::TransportCustomer, self::TransportDriver => 'transport',
             self::Merchant => 'commerce',
-            self::MunicipalAgent, self::MunicipalSupervisor => 'municipality',
+            self::MunicipalAgent, self::MunicipalSupervisor,
+            self::Daf, self::DafAdjoint, self::CaissierCentral,
+            self::ControleurFinancier, self::ReceveurMunicipal => 'municipality',
         };
     }
 

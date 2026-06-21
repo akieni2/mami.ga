@@ -61,6 +61,12 @@ class RecoveryHubScreen extends StatelessWidget {
           ),
           _tile(
             context,
+            icon: Icons.account_balance_outlined,
+            title: 'Gouvernance financière',
+            route: '/municipality/finance',
+          ),
+          _tile(
+            context,
             icon: Icons.lock_outline,
             title: 'Fermer caisse',
             route: '/municipality/recovery/close-session',

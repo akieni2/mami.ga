@@ -3,6 +3,7 @@
 namespace App\Modules\Municipality\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Municipality\Http\Controllers\Concerns\AuthorizesFinanceAccess;
 use App\Modules\Municipality\Http\Controllers\Concerns\AuthorizesFiscalAccess;
 use App\Modules\Municipality\Http\Resources\CashSessionResource;
 use App\Modules\Municipality\Models\CashSession;
@@ -13,6 +14,7 @@ use Illuminate\Http\Request;
 class CashSessionController extends Controller
 {
     use AuthorizesFiscalAccess;
+    use AuthorizesFinanceAccess;
 
     public function __construct(
         private readonly CashSessionService $cashSessionService,
@@ -68,10 +70,14 @@ class CashSessionController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $this->authorizeFiscalView($request->user());
+        if ($request->query('status') === 'open') {
+            $this->authorizeCashSupervision($request->user());
+        } else {
+            $this->authorizeFiscalView($request->user());
+        }
 
         $sessions = CashSession::query()
-            ->with('agent')
+            ->with(['agent', 'financialMission'])
             ->when($request->query('status'), fn ($q, $status) => $q->where('status', $status))
             ->orderByDesc('opened_at')
             ->paginate(30);
@@ -79,7 +85,26 @@ class CashSessionController extends Controller
         return response()->json([
             'success' => true,
             'data' => CashSessionResource::collection($sessions),
+            'meta' => [
+                'current_page' => $sessions->currentPage(),
+                'last_page' => $sessions->lastPage(),
+                'total' => $sessions->total(),
+            ],
         ]);
+    }
+
+    public function adminClose(Request $request, CashSession $cashSession): CashSessionResource
+    {
+        $this->authorizeCashAdminClose($request->user());
+
+        $data = $request->validate([
+            'actual_amount_xaf' => ['nullable', 'numeric', 'min:0'],
+            'notes' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        return new CashSessionResource(
+            $this->cashSessionService->adminClose($request->user(), $cashSession, $data)
+        );
     }
 
     private function authorizeCollection(\App\Models\User $user): void

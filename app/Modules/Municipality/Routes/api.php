@@ -1,5 +1,9 @@
 <?php
 
+use App\Modules\Municipality\Http\Controllers\DafDashboardController;
+use App\Modules\Municipality\Http\Controllers\FinanceJournalController;
+use App\Modules\Municipality\Http\Controllers\FinancialMissionController;
+use App\Modules\Municipality\Http\Controllers\TreasuryRemittanceController;
 use App\Modules\Municipality\Http\Controllers\CashSessionController;
 use App\Modules\Municipality\Http\Controllers\EconomicOperatorController;
 use App\Modules\Municipality\Http\Controllers\EconomicOperatorQrController;
@@ -41,6 +45,20 @@ Route::middleware(['auth:sanctum', 'module:municipality'])->group(function (): v
     Route::put('/operators/{operator}', [EconomicOperatorController::class, 'update']);
     Route::post('/operators/{operator}/inspect', [EconomicOperatorController::class, 'inspect']);
 
+    Route::prefix('finance')->group(function (): void {
+        Route::get('/dashboard', DafDashboardController::class);
+        Route::get('/missions/current', [FinancialMissionController::class, 'current']);
+        Route::get('/missions', [FinancialMissionController::class, 'index']);
+        Route::post('/missions', [FinancialMissionController::class, 'store']);
+        Route::get('/missions/{mission}', [FinancialMissionController::class, 'show']);
+        Route::put('/missions/{mission}', [FinancialMissionController::class, 'update']);
+        Route::post('/missions/{mission}/authorize', [FinancialMissionController::class, 'authorizeMission']);
+        Route::post('/missions/{mission}/close', [FinancialMissionController::class, 'close']);
+        Route::get('/journal', [FinanceJournalController::class, 'index']);
+        Route::get('/remittances', [TreasuryRemittanceController::class, 'index']);
+        Route::post('/remittances', [TreasuryRemittanceController::class, 'store']);
+    });
+
     Route::prefix('fiscal')->group(function (): void {
         Route::get('/taxes', [FiscalTaxTypeController::class, 'index']);
         Route::post('/taxes', [FiscalTaxTypeController::class, 'store']);
@@ -77,6 +95,7 @@ Route::middleware(['auth:sanctum', 'module:municipality'])->group(function (): v
         Route::get('/cash-sessions/current', [CashSessionController::class, 'current']);
         Route::post('/cash-sessions/open', [CashSessionController::class, 'open']);
         Route::post('/cash-sessions/{cashSession}/close', [CashSessionController::class, 'close']);
+        Route::post('/cash-sessions/{cashSession}/admin-close', [CashSessionController::class, 'adminClose']);
         Route::get('/cash-sessions', [CashSessionController::class, 'index']);
 
         Route::get('/receipts', [MunicipalReceiptController::class, 'index']);
