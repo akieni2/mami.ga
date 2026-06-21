@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../data/fiscal_collection_repository.dart';
 import '../../data/models/municipal_receipt_model.dart';
 import '../../printing/printer_exception.dart';
 import '../../printing/selected_printer.dart';
