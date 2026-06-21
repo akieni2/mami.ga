@@ -119,8 +119,37 @@ class QRCodeManagementTest extends MunicipalityTestCase
         $png = $management->buildPngContent($qrcode);
 
         $this->assertNotEmpty($png);
+        $this->assertStringStartsWith("\x89PNG\r\n\x1a\n", $png);
+        $dimensions = getimagesizefromstring($png);
+        $this->assertNotFalse($dimensions);
+        $this->assertGreaterThanOrEqual(400, $dimensions[0]);
+        $this->assertGreaterThanOrEqual(400, $dimensions[1]);
         $this->assertSame($qrcode->qr_uuid, $management->scanPayload($qrcode));
         $this->assertNotSame('OWE-COM-00000001', $management->scanPayload($qrcode));
+    }
+
+    public function test_standard_qr_png_is_decodable_with_hello_world_payload(): void
+    {
+        $management = app(QRCodeManagement::class);
+        $qrcode = new EconomicOperatorQrcode([
+            'qr_uuid' => 'HELLO-WORLD',
+            'qr_value' => 'TEST',
+        ]);
+
+        $png = $management->buildPngContent($qrcode);
+        $this->assertStringStartsWith("\x89PNG\r\n\x1a\n", $png);
+
+        $path = tempnam(sys_get_temp_dir(), 'mami-qr-');
+        $this->assertNotFalse($path);
+        file_put_contents($path, $png);
+
+        try {
+            $decoded = (new \Zxing\QrReader($path))->text();
+        } finally {
+            @unlink($path);
+        }
+
+        $this->assertSame('HELLO-WORLD', $decoded);
     }
 
     public function test_qr_png_download_returns_image(): void

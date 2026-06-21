@@ -4,11 +4,21 @@ namespace App\Modules\Municipality\Services;
 
 use App\Modules\Municipality\Models\EconomicOperator;
 use App\Modules\Municipality\Models\EconomicOperatorQrcode;
+use Endroid\QrCode\Encoding\Encoding;
+use Endroid\QrCode\ErrorCorrectionLevel;
+use Endroid\QrCode\QrCode;
+use Endroid\QrCode\RoundBlockSizeMode;
+use Endroid\QrCode\Writer\PngWriter;
+use Endroid\QrCode\Writer\SvgWriter;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class QRCodeManagement
 {
+    private const PNG_SIZE = 400;
+
+    private const QUIET_ZONE_MARGIN = 10;
+
     /**
      * Jeton encodé dans l'image QR (UUID v4 — non devinable).
      */
@@ -77,14 +87,7 @@ class QRCodeManagement
 
     public function buildPngContent(EconomicOperatorQrcode $qrcode): string
     {
-        $payload = $this->scanPayload($qrcode);
-        $size = 280;
-
-        if (extension_loaded('gd')) {
-            return $this->renderPngWithGd($payload, $size);
-        }
-
-        return $this->renderSvg($payload, $size);
+        return $this->renderStandardQrImage($this->scanPayload($qrcode));
     }
 
     public function buildPdfPlaceholder(EconomicOperatorQrcode $qrcode): array
@@ -116,6 +119,27 @@ class QRCodeManagement
         return sprintf('QR-%s-%s', $qrcode->qr_value, $suffix);
     }
 
+    private function renderStandardQrImage(string $payload): string
+    {
+        $qrCode = $this->buildQrCode($payload);
+
+        if (extension_loaded('gd')) {
+            return (new PngWriter)->write($qrCode)->getString();
+        }
+
+        return (new SvgWriter)->write($qrCode)->getString();
+    }
+
+    private function buildQrCode(string $payload): QrCode
+    {
+        return QrCode::create($payload)
+            ->setEncoding(new Encoding('UTF-8'))
+            ->setErrorCorrectionLevel(ErrorCorrectionLevel::High)
+            ->setSize(self::PNG_SIZE)
+            ->setMargin(self::QUIET_ZONE_MARGIN)
+            ->setRoundBlockSizeMode(RoundBlockSizeMode::Margin);
+    }
+
     private function deactivateActiveCodes(EconomicOperator $operator): void
     {
         EconomicOperatorQrcode::query()
@@ -139,49 +163,5 @@ class QRCodeManagement
             '/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i',
             $value,
         );
-    }
-
-    private function renderPngWithGd(string $payload, int $size): string
-    {
-        $image = imagecreatetruecolor($size, $size);
-        $white = imagecolorallocate($image, 255, 255, 255);
-        $black = imagecolorallocate($image, 0, 0, 0);
-        imagefilledrectangle($image, 0, 0, $size, $size, $white);
-
-        $hash = hash('sha256', $payload);
-        $cell = (int) ($size / 16);
-        for ($row = 0; $row < 16; $row++) {
-            for ($col = 0; $col < 16; $col++) {
-                $index = ($row * 16 + $col) % strlen($hash);
-                if (hexdec($hash[$index]) % 2 === 0) {
-                    imagefilledrectangle(
-                        $image,
-                        $col * $cell,
-                        $row * $cell,
-                        ($col + 1) * $cell - 1,
-                        ($row + 1) * $cell - 1,
-                        $black,
-                    );
-                }
-            }
-        }
-
-        ob_start();
-        imagepng($image);
-        imagedestroy($image);
-
-        return (string) ob_get_clean();
-    }
-
-    private function renderSvg(string $payload, int $size): string
-    {
-        $escaped = htmlspecialchars($payload, ENT_XML1);
-
-        return <<<SVG
-<svg xmlns="http://www.w3.org/2000/svg" width="{$size}" height="{$size}" viewBox="0 0 {$size} {$size}">
-  <rect width="100%" height="100%" fill="#ffffff"/>
-  <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" font-family="monospace" font-size="10">{$escaped}</text>
-</svg>
-SVG;
     }
 }
