@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../domain/finance_home_access.dart';
 import '../providers/financial_governance_providers.dart';
 
 class DafDashboardScreen extends ConsumerWidget {
@@ -12,7 +13,13 @@ class DafDashboardScreen extends ConsumerWidget {
     final dashboardAsync = ref.watch(dafDashboardProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Tableau de bord DAF')),
+      appBar: AppBar(
+        title: const Text('Tableau de bord DAF'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go(FinanceHomeRoutes.home),
+        ),
+      ),
       body: dashboardAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Erreur : $e')),

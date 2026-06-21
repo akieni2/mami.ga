@@ -63,7 +63,7 @@ class RecoveryHubScreen extends StatelessWidget {
             context,
             icon: Icons.account_balance_outlined,
             title: 'Gouvernance financière',
-            route: '/municipality/finance',
+            route: '/municipality/finance/home',
           ),
           _tile(
             context,

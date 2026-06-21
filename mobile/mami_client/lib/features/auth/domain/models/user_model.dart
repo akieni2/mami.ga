@@ -1,3 +1,5 @@
+import '../../../municipality/domain/finance_home_access.dart';
+
 class UserModel {
   const UserModel({
     required this.id,
@@ -19,9 +21,14 @@ class UserModel {
 
   bool get isMunicipalAgent => roles.contains('municipal_agent');
 
-  /// Route d'accueil après authentification (agent municipal → hub terrain).
-  String get postAuthRoute =>
-      isMunicipalAgent ? '/municipality/agent' : '/';
+  bool get isFinanceUser => FinanceHomeAccess.hasFinanceRole(this);
+
+  /// Route d'accueil après authentification.
+  String get postAuthRoute {
+    if (isFinanceUser) return '/municipality/finance/home';
+    if (isMunicipalAgent) return '/municipality/agent';
+    return '/';
+  }
 
   bool hasPermission(String slug) => permissions.contains(slug);
 

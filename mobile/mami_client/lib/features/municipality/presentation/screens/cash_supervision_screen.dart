@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-import '../../data/financial_governance_repository.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../domain/finance_home_access.dart';
 import '../providers/financial_governance_providers.dart';
 
 class CashSupervisionScreen extends ConsumerStatefulWidget {
@@ -42,6 +44,8 @@ class _CashSupervisionScreenState extends ConsumerState<CashSupervisionScreen> {
   @override
   Widget build(BuildContext context) {
     final sessionsAsync = ref.watch(openCashSessionsProvider);
+    final user = ref.watch(authStateProvider).valueOrNull;
+    final canAdminClose = user != null && FinanceHomeAccess(user).canAdminCloseCashSessions;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Supervision des caisses')),
@@ -70,16 +74,18 @@ class _CashSupervisionScreenState extends ConsumerState<CashSupervisionScreen> {
                     'Ouverte : ${session.openedAt}',
                   ),
                   isThreeLine: true,
-                  trailing: closing
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : IconButton(
-                          icon: const Icon(Icons.lock_outline),
-                          onPressed: () => _adminClose(session.id),
-                        ),
+                  trailing: canAdminClose
+                      ? (closing
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : IconButton(
+                              icon: const Icon(Icons.lock_outline),
+                              onPressed: () => _adminClose(session.id),
+                            ))
+                      : null,
                 ),
               );
             },

@@ -6,6 +6,7 @@ import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
+import '../../features/municipality/presentation/screens/finance_home_screen.dart';
 import '../../features/municipality/presentation/screens/daf_dashboard_screen.dart';
 import '../../features/municipality/presentation/screens/financial_approval_queue_screen.dart';
 import '../../features/municipality/presentation/screens/financial_mission_detail_screen.dart';
@@ -152,8 +153,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const SyncStatusScreen(),
       ),
       GoRoute(
-        path: '/municipality/finance',
+        path: '/municipality/finance/home',
+        builder: (context, state) => const FinanceHomeScreen(),
+      ),
+      GoRoute(
+        path: '/municipality/finance/dashboard',
         builder: (context, state) => const DafDashboardScreen(),
+      ),
+      GoRoute(
+        path: '/municipality/finance',
+        redirect: (context, state) => '/municipality/finance/home',
       ),
       GoRoute(
         path: '/municipality/finance/approvals',
