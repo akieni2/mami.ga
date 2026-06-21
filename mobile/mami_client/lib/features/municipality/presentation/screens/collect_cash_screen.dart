@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../data/fiscal_collection_repository.dart';
+import '../../domain/municipal_gps_service.dart';
 import '../providers/fiscal_collection_providers.dart';
+import '../providers/municipal_gps_provider.dart';
 
 class CollectCashScreen extends ConsumerStatefulWidget {
   const CollectCashScreen({super.key, this.operatorId, this.suggestedAmount});
@@ -62,7 +63,8 @@ class _CollectCashScreenState extends ConsumerState<CollectCashScreen> {
         return;
       }
 
-      final position = await Geolocator.getCurrentPosition();
+      final gps = ref.read(municipalGpsServiceProvider);
+      final position = await gps.capturePosition();
       final repo = ref.read(fiscalCollectionRepositoryProvider);
       final payment = await repo.collectCash(
         operatorId: operatorId,
@@ -85,6 +87,8 @@ class _CollectCashScreenState extends ConsumerState<CollectCashScreen> {
           extra: receipt,
         );
       }
+    } on MunicipalGpsException catch (e) {
+      setState(() => _error = e.message);
     } catch (e) {
       setState(() => _error = 'Encaissement refusé');
     } finally {

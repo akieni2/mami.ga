@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:geolocator/geolocator.dart';
 
 import '../../data/fiscal_collection_repository.dart';
+import '../../domain/municipal_gps_service.dart';
 import '../providers/fiscal_collection_providers.dart';
+import '../providers/municipal_gps_provider.dart';
 
 class CloseCashSessionScreen extends ConsumerStatefulWidget {
   const CloseCashSessionScreen({super.key});
@@ -30,7 +31,8 @@ class _CloseCashSessionScreenState extends ConsumerState<CloseCashSessionScreen>
     });
 
     try {
-      final position = await Geolocator.getCurrentPosition();
+      final gps = ref.read(municipalGpsServiceProvider);
+      final position = await gps.capturePosition();
       final repo = ref.read(fiscalCollectionRepositoryProvider);
       await repo.closeSession(
         sessionId: session.id,
@@ -47,6 +49,8 @@ class _CloseCashSessionScreenState extends ConsumerState<CloseCashSessionScreen>
         );
         Navigator.of(context).pop();
       }
+    } on MunicipalGpsException catch (e) {
+      setState(() => _error = e.message);
     } catch (e) {
       setState(() => _error = e.toString());
     } finally {
