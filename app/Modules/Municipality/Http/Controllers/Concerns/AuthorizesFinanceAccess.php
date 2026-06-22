@@ -101,6 +101,65 @@ trait AuthorizesFinanceAccess
         }
     }
 
+    protected function authorizeRemittanceControl(User $user): void
+    {
+        if (! $this->hasFinancePermission($user, 'municipal.finance.remittance.control')) {
+            throw new AuthorizationException('Contrôle des reversements non autorisé.');
+        }
+    }
+
+    protected function authorizeRemittanceDafValidate(User $user): void
+    {
+        if (! $this->hasFinancePermission($user, 'municipal.finance.remittance.daf_validate')) {
+            throw new AuthorizationException('Validation DAF des reversements non autorisée.');
+        }
+    }
+
+    protected function authorizeRemittanceReceveurValidate(User $user): void
+    {
+        if (! $this->hasFinancePermission($user, 'municipal.finance.remittance.receveur_validate')) {
+            throw new AuthorizationException('Validation receveur des reversements non autorisée.');
+        }
+    }
+
+    protected function authorizeRemittanceDeposit(User $user): void
+    {
+        if (! $this->hasFinancePermission($user, 'municipal.finance.remittance.deposit')) {
+            throw new AuthorizationException('Enregistrement de dépôt non autorisé.');
+        }
+    }
+
+    protected function authorizeRemittanceConfirm(User $user): void
+    {
+        if (! $this->hasFinancePermission($user, 'municipal.finance.remittance.confirm')) {
+            throw new AuthorizationException('Confirmation Trésor non autorisée.');
+        }
+    }
+
+    protected function authorizeRemittanceReject(User $user, \App\Modules\Municipality\Models\MunicipalTreasuryRemittance $remittance): void
+    {
+        if ($user->isAdmin()) {
+            return;
+        }
+
+        $stagePermission = match ($remittance->status->value) {
+            'controlled' => 'municipal.finance.remittance.daf_validate',
+            'daf_validated' => 'municipal.finance.remittance.receveur_validate',
+            'receveur_validated' => 'municipal.finance.remittance.deposit',
+            default => null,
+        };
+
+        if ($stagePermission !== null && $this->hasFinancePermission($user, $stagePermission)) {
+            return;
+        }
+
+        if ($this->hasFinancePermission($user, 'municipal.finance.remittance.reject')) {
+            return;
+        }
+
+        throw new AuthorizationException('Rejet de reversement non autorisé.');
+    }
+
     private function hasFinancePermission(User $user, string $permission): bool
     {
         return $user->isAdmin() || $user->hasPermission($permission);

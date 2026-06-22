@@ -14,6 +14,7 @@ import '../../features/municipality/presentation/screens/financial_mission_histo
 import '../../features/municipality/presentation/screens/financial_missions_screen.dart';
 import '../../features/municipality/presentation/screens/cash_supervision_screen.dart';
 import '../../features/municipality/presentation/screens/treasury_remittance_screen.dart';
+import '../../features/municipality/presentation/screens/treasury_remittance_detail_screen.dart';
 import '../../features/municipality/presentation/screens/field_control_screen.dart';
 import '../../features/municipality/presentation/screens/sync_status_screen.dart';
 import '../../features/municipality/presentation/screens/collect_cash_screen.dart';
@@ -193,6 +194,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/municipality/finance/remittances',
         builder: (context, state) => const TreasuryRemittanceScreen(),
+      ),
+      GoRoute(
+        path: '/municipality/finance/remittances/:id',
+        builder: (context, state) {
+          final id = int.parse(state.pathParameters['id']!);
+          return TreasuryRemittanceDetailScreen(remittanceId: id);
+        },
       ),
       GoRoute(
         path: '/municipality/enrollment/new',

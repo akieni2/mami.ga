@@ -33,7 +33,19 @@ class FinanceHomeAccess {
   bool get showCashSupervision =>
       isDaf || isDafAdjoint || isControleur || isCaissierCentral;
 
-  bool get showRemittances => isDaf || isDafAdjoint || isReceveur;
+  bool get showRemittances => isDaf || isDafAdjoint || isReceveur || isControleur;
+
+  bool get canPrepareRemittances => isDaf || isDafAdjoint || isReceveur;
+
+  bool get canControlRemittances => isControleur;
+
+  bool get canValidateRemittanceDaf => isDaf;
+
+  bool get canValidateRemittanceReceveur => isReceveur;
+
+  bool get canDepositRemittance => isReceveur;
+
+  bool get canConfirmRemittance => isReceveur;
 
   bool get showFutureModules => isDaf || isDafAdjoint;
 
@@ -59,6 +71,7 @@ abstract final class FinanceHomeRoutes {
   static const missions = '/municipality/finance/missions';
   static const cashSupervision = '/municipality/finance/cash-supervision';
   static const remittances = '/municipality/finance/remittances';
+  static String remittanceDetail(int id) => '/municipality/finance/remittances/$id';
 
   static const String? accounting = null;
   static const String? budget = null;

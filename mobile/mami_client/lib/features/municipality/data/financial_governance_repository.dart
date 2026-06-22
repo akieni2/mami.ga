@@ -313,6 +313,93 @@ class FinancialGovernanceRepository {
     final envelope = parseApiData(response.data);
     return (envelope['data'] as List<dynamic>).cast<Map<String, dynamic>>();
   }
+
+  Future<List<Map<String, dynamic>>> fetchPendingRemittances() async {
+    final response = await _dio.get('/municipality/finance/remittances/pending');
+    final envelope = parseApiData(response.data);
+    return (envelope['data'] as List<dynamic>).cast<Map<String, dynamic>>();
+  }
+
+  Future<Map<String, dynamic>> fetchRemittance(int id) async {
+    final response = await _dio.get('/municipality/finance/remittances/$id');
+    final envelope = parseApiData(response.data);
+    return envelope['data'] as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> generateRemittanceFromPeriod({
+    required String periodStart,
+    required String periodEnd,
+    String? notes,
+  }) async {
+    final response = await _dio.post('/municipality/finance/remittances/generate-from-period', data: {
+      'period_start': periodStart,
+      'period_end': periodEnd,
+      if (notes != null) 'notes': notes,
+    });
+    final envelope = parseApiData(response.data);
+    return envelope['data'] as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> controlRemittance(int id, {String? comments}) async {
+    final response = await _dio.post('/municipality/finance/remittances/$id/submit-control', data: {
+      if (comments != null) 'comments': comments,
+    });
+    final envelope = parseApiData(response.data);
+    return envelope['data'] as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> validateRemittanceDaf(int id, {String? comments}) async {
+    final response = await _dio.post('/municipality/finance/remittances/$id/validate-daf', data: {
+      if (comments != null) 'comments': comments,
+    });
+    final envelope = parseApiData(response.data);
+    return envelope['data'] as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> validateRemittanceReceveur(int id, {String? comments}) async {
+    final response = await _dio.post('/municipality/finance/remittances/$id/validate-receveur', data: {
+      if (comments != null) 'comments': comments,
+    });
+    final envelope = parseApiData(response.data);
+    return envelope['data'] as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> recordRemittanceDeposit(
+    int id, {
+    required String slipNumber,
+    required String bankName,
+    required String depositReference,
+    required String depositedAt,
+    String? comments,
+  }) async {
+    final response = await _dio.post('/municipality/finance/remittances/$id/record-deposit', data: {
+      'slip_number': slipNumber,
+      'bank_name': bankName,
+      'deposit_reference': depositReference,
+      'deposited_at': depositedAt,
+      if (comments != null) 'comments': comments,
+    });
+    final envelope = parseApiData(response.data);
+    return envelope['data'] as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> confirmRemittance(int id, {required String treasuryReceiptRef, String? comments}) async {
+    final response = await _dio.post('/municipality/finance/remittances/$id/confirm', data: {
+      'treasury_receipt_ref': treasuryReceiptRef,
+      if (comments != null) 'comments': comments,
+    });
+    final envelope = parseApiData(response.data);
+    return envelope['data'] as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> rejectRemittance(int id, {required String reason, String? comments}) async {
+    final response = await _dio.post('/municipality/finance/remittances/$id/reject', data: {
+      'reason': reason,
+      if (comments != null) 'comments': comments,
+    });
+    final envelope = parseApiData(response.data);
+    return envelope['data'] as Map<String, dynamic>;
+  }
 }
 
 final financialGovernanceRepositoryProvider = Provider<FinancialGovernanceRepository>(

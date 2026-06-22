@@ -45,7 +45,8 @@ void main() {
       expect(access.showValidation, isTrue);
       expect(access.showMissions, isFalse);
       expect(access.showCashSupervision, isTrue);
-      expect(access.showRemittances, isFalse);
+      expect(access.showRemittances, isTrue);
+      expect(access.canControlRemittances, isTrue);
       expect(access.showFutureModules, isFalse);
       expect(access.canAdminCloseCashSessions, isTrue);
     });

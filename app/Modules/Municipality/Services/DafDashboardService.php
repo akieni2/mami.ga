@@ -68,12 +68,30 @@ class DafDashboardService
             'draft_count' => MunicipalTreasuryRemittance::query()
                 ->where('status', TreasuryRemittanceStatus::Draft)
                 ->count(),
-            'pending_count' => MunicipalTreasuryRemittance::query()
-                ->where('status', TreasuryRemittanceStatus::Pending)
+            'controlled_count' => MunicipalTreasuryRemittance::query()
+                ->where('status', TreasuryRemittanceStatus::Controlled)
                 ->count(),
-            'remitted_total_xaf' => (string) MunicipalTreasuryRemittance::query()
-                ->where('status', TreasuryRemittanceStatus::Remitted)
+            'daf_validated_count' => MunicipalTreasuryRemittance::query()
+                ->where('status', TreasuryRemittanceStatus::DafValidated)
+                ->count(),
+            'receveur_validated_count' => MunicipalTreasuryRemittance::query()
+                ->where('status', TreasuryRemittanceStatus::ReceveurValidated)
+                ->count(),
+            'deposited_count' => MunicipalTreasuryRemittance::query()
+                ->where('status', TreasuryRemittanceStatus::Deposited)
+                ->count(),
+            'confirmed_total_xaf' => (string) MunicipalTreasuryRemittance::query()
+                ->where('status', TreasuryRemittanceStatus::Confirmed)
                 ->sum('amount_xaf'),
+            'pending_count' => MunicipalTreasuryRemittance::query()
+                ->whereIn('status', [
+                    TreasuryRemittanceStatus::Draft,
+                    TreasuryRemittanceStatus::Controlled,
+                    TreasuryRemittanceStatus::DafValidated,
+                    TreasuryRemittanceStatus::ReceveurValidated,
+                    TreasuryRemittanceStatus::Deposited,
+                ])
+                ->count(),
         ];
 
         $legacyStatusCounts = FinancialMission::query()

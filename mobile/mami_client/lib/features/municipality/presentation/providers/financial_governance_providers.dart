@@ -37,3 +37,11 @@ final openCashSessionsProvider = FutureProvider.autoDispose<List<OpenCashSession
 final treasuryRemittancesProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
   return ref.watch(financialGovernanceRepositoryProvider).fetchRemittances();
 });
+
+final pendingRemittancesProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
+  return ref.watch(financialGovernanceRepositoryProvider).fetchPendingRemittances();
+});
+
+final treasuryRemittanceDetailProvider = FutureProvider.autoDispose.family<Map<String, dynamic>, int>((ref, id) async {
+  return ref.watch(financialGovernanceRepositoryProvider).fetchRemittance(id);
+});

@@ -59,6 +59,18 @@ Route::middleware(['auth:sanctum', 'module:municipality'])->group(function (): v
         Route::get('/journal', [FinanceJournalController::class, 'index']);
         Route::get('/remittances', [TreasuryRemittanceController::class, 'index']);
         Route::post('/remittances', [TreasuryRemittanceController::class, 'store']);
+        Route::post('/remittances/generate-from-period', [TreasuryRemittanceController::class, 'generateFromPeriod']);
+        Route::get('/remittances/reconciliation-preview', [TreasuryRemittanceController::class, 'reconciliationPreview']);
+        Route::get('/remittances/pending', [TreasuryRemittanceController::class, 'pending']);
+        Route::get('/remittances/{remittance}', [TreasuryRemittanceController::class, 'show']);
+        Route::put('/remittances/{remittance}', [TreasuryRemittanceController::class, 'update']);
+        Route::post('/remittances/{remittance}/submit-control', [TreasuryRemittanceController::class, 'submitControl']);
+        Route::post('/remittances/{remittance}/validate-daf', [TreasuryRemittanceController::class, 'validateDaf']);
+        Route::post('/remittances/{remittance}/validate-receveur', [TreasuryRemittanceController::class, 'validateReceveur']);
+        Route::post('/remittances/{remittance}/record-deposit', [TreasuryRemittanceController::class, 'recordDeposit']);
+        Route::post('/remittances/{remittance}/confirm', [TreasuryRemittanceController::class, 'confirm']);
+        Route::post('/remittances/{remittance}/reject', [TreasuryRemittanceController::class, 'reject']);
+        Route::get('/remittances/{remittance}/history', [TreasuryRemittanceController::class, 'history']);
 
         Route::middleware('finance.approvals')->group(function (): void {
             Route::get('/approvals/pending', [FinanceApprovalController::class, 'pending']);
