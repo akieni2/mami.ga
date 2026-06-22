@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/account_menu_button.dart';
 import '../providers/economic_operator_providers.dart';
 
 class MunicipalityAgentHomeScreen extends ConsumerWidget {
@@ -17,6 +18,7 @@ class MunicipalityAgentHomeScreen extends ConsumerWidget {
         title: const Text('Mairie — Agent terrain'),
         backgroundColor: AppTheme.primary,
         foregroundColor: Colors.white,
+        actions: const [AccountMenuButton()],
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),

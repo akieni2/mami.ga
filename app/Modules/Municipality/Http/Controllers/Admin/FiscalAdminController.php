@@ -140,13 +140,26 @@ class FiscalAdminController extends Controller
     {
         $assignments = $this->assignmentService->paginate($request->only(['operator_id', 'tax_type_id', 'is_active']), 30);
         $taxTypes = MunicipalTaxType::query()->where('is_active', true)->orderBy('code')->get();
-        $operators = EconomicOperator::query()->where('is_active', true)->orderBy('public_id')->limit(200)->get();
+
+        $operatorSearch = trim((string) $request->query('operator_search', ''));
+        $operatorsQuery = EconomicOperator::query()
+            ->where('is_active', true)
+            ->orderBy('commercial_name');
+
+        if ($operatorSearch !== '') {
+            $operatorsQuery->where(function ($query) use ($operatorSearch): void {
+                $query->where('commercial_name', 'like', '%'.$operatorSearch.'%')
+                    ->orWhere('public_id', 'like', '%'.$operatorSearch.'%');
+            });
+        }
+
+        $operators = $operatorsQuery->limit(500)->get(['id', 'public_id', 'commercial_name']);
 
         return view('admin.municipality.fiscal.assignments', [
             'assignments' => $assignments,
             'taxTypes' => $taxTypes,
             'operators' => $operators,
-            'filters' => $request->only(['operator_id', 'tax_type_id', 'is_active']),
+            'filters' => $request->only(['operator_id', 'tax_type_id', 'is_active', 'operator_search']),
         ]);
     }
 
@@ -160,9 +173,14 @@ class FiscalAdminController extends Controller
 
         $operator = EconomicOperator::query()->findOrFail($data['operator_id']);
         $taxType = MunicipalTaxType::query()->findOrFail($data['tax_type_id']);
-        $this->assignmentService->assign($request->user(), $operator, $taxType, $data);
+        $result = $this->assignmentService->assign($request->user(), $operator, $taxType, $data);
 
-        return back()->with('success', 'Taxe affectée à l\'opérateur.');
+        $message = 'Taxe affectée à l\'opérateur.';
+        if ($result['obligation_created']) {
+            $message .= ' Créance fiscale de la période en cours générée.';
+        }
+
+        return back()->with('success', $message);
     }
 
     public function toggleAssignment(Request $request, int $assignment): RedirectResponse

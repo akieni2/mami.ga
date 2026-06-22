@@ -20,6 +20,7 @@ class FiscalAssignmentTest extends MunicipalityTestCase
         $user = $this->fiscalManager();
         Sanctum::actingAs($user);
         $taxType = $this->createTaxType($user);
+        $this->createTaxRate($user, $taxType);
         $operator = $this->createOperator($user);
 
         $response = $this->postJson('/api/municipality/fiscal/assignments', [
@@ -36,7 +37,25 @@ class FiscalAssignmentTest extends MunicipalityTestCase
             'tax_type_id' => $taxType->id,
             'is_active' => true,
         ]);
+        $this->assertDatabaseHas('fiscal_obligations', [
+            'operator_id' => $operator->id,
+            'tax_type_id' => $taxType->id,
+        ]);
         $this->assertDatabaseHas('audit_logs', ['action' => 'tax_assignment.created']);
+    }
+
+    public function test_assignment_requires_active_tax_rate(): void
+    {
+        $user = $this->fiscalManager();
+        Sanctum::actingAs($user);
+        $taxType = $this->createTaxType($user);
+        $operator = $this->createOperator($user);
+
+        $this->postJson('/api/municipality/fiscal/assignments', [
+            'operator_id' => $operator->id,
+            'tax_type_id' => $taxType->id,
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['tax_type_id']);
     }
 
     public function test_operator_can_have_multiple_active_taxes(): void
@@ -45,6 +64,8 @@ class FiscalAssignmentTest extends MunicipalityTestCase
         Sanctum::actingAs($user);
         $taxA = $this->createTaxType($user, 'TAX-A', 'Taxe A');
         $taxB = $this->createTaxType($user, 'TAX-B', 'Taxe B');
+        $this->createTaxRate($user, $taxA);
+        $this->createTaxRate($user, $taxB);
         $operator = $this->createOperator($user);
 
         $this->postJson('/api/municipality/fiscal/assignments', [
@@ -65,6 +86,7 @@ class FiscalAssignmentTest extends MunicipalityTestCase
         $user = $this->fiscalManager();
         Sanctum::actingAs($user);
         $taxType = $this->createTaxType($user);
+        $this->createTaxRate($user, $taxType);
         $operator = $this->createOperator($user);
         $this->assignTax($user, $operator, $taxType);
 
@@ -82,6 +104,7 @@ class FiscalAssignmentTest extends MunicipalityTestCase
         $user = $this->fiscalManager();
         Sanctum::actingAs($user);
         $taxType = $this->createTaxType($user);
+        $this->createTaxRate($user, $taxType);
         $operator = $this->createOperator($user);
         $assignment = $this->assignTax($user, $operator, $taxType);
 
@@ -95,6 +118,7 @@ class FiscalAssignmentTest extends MunicipalityTestCase
         $user = $this->fiscalManager();
         Sanctum::actingAs($user);
         $taxType = $this->createTaxType($user);
+        $this->createTaxRate($user, $taxType);
         $operator = $this->createOperator($user);
         $assignment = $this->assignTax($user, $operator, $taxType);
         $assignment->update(['is_active' => false]);

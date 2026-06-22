@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/account_menu_button.dart';
 
 class RecoveryHubScreen extends StatelessWidget {
   const RecoveryHubScreen({super.key});
@@ -13,6 +14,7 @@ class RecoveryHubScreen extends StatelessWidget {
         title: const Text('Recouvrement'),
         backgroundColor: AppTheme.primary,
         foregroundColor: Colors.white,
+        actions: const [AccountMenuButton()],
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),

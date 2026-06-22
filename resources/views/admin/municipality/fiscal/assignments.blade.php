@@ -14,6 +14,20 @@
     @endif
 
     <div class="mb-6 rounded-xl border border-slate-200 bg-white p-4">
+        <form method="GET" action="{{ route('admin.municipality.fiscal.assignments') }}" class="mb-4 flex flex-wrap gap-2">
+            <input
+                type="search"
+                name="operator_search"
+                value="{{ $filters['operator_search'] ?? '' }}"
+                placeholder="Rechercher un commerce (nom ou OWE-COM-…)"
+                class="min-w-[16rem] flex-1 rounded-lg border-slate-200 text-sm"
+            >
+            <button type="submit" class="rounded-lg border border-slate-300 px-4 py-2 text-sm">Rechercher</button>
+        </form>
+        <p class="mb-3 text-xs text-slate-500">
+            Ordre alphabétique — {{ $operators->count() }} commerce(s) actif(s) affiché(s).
+            Chaque taxe doit avoir un <strong>barème actif</strong> avant affectation.
+        </p>
         <form method="POST" action="{{ route('admin.municipality.fiscal.assignments.store') }}" class="grid gap-3 md:grid-cols-3">
             @csrf
             <div>

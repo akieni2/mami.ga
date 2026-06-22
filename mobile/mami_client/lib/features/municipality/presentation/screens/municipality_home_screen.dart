@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/account_menu_button.dart';
 
 class MunicipalityHomeScreen extends ConsumerWidget {
   const MunicipalityHomeScreen({super.key});
@@ -18,6 +19,7 @@ class MunicipalityHomeScreen extends ConsumerWidget {
         title: const Text('Mairie d\'Owendo'),
         backgroundColor: AppTheme.primary,
         foregroundColor: Colors.white,
+        actions: const [AccountMenuButton()],
       ),
       body: Padding(
         padding: const EdgeInsets.all(20),

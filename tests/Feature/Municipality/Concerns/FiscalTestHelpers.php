@@ -71,7 +71,7 @@ trait FiscalTestHelpers
 
     protected function assignTax(User $user, EconomicOperator $operator, MunicipalTaxType $taxType): OperatorTaxAssignment
     {
-        return app(FiscalAssignmentService::class)->assign($user, $operator, $taxType);
+        return app(FiscalAssignmentService::class)->assign($user, $operator, $taxType)['assignment'];
     }
 
     protected function generateObligations(User $user): void

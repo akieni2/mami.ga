@@ -14,6 +14,8 @@ class FiscalAssignmentService
 {
     public function __construct(
         private readonly FiscalAuditService $audit,
+        private readonly TaxRateService $taxRateService,
+        private readonly FiscalObligationGeneratorService $obligationGenerator,
     ) {}
 
     /**
@@ -42,17 +44,14 @@ class FiscalAssignmentService
 
     /**
      * @param  array<string, mixed>  $data
+     * @return array{assignment: OperatorTaxAssignment, obligation_created: bool}
      */
-    public function assign(User $actor, EconomicOperator $operator, MunicipalTaxType $taxType, array $data = []): OperatorTaxAssignment
+    public function assign(User $actor, EconomicOperator $operator, MunicipalTaxType $taxType, array $data = []): array
     {
-        return DB::transaction(function () use ($actor, $operator, $taxType, $data): OperatorTaxAssignment {
+        return DB::transaction(function () use ($actor, $operator, $taxType, $data): array {
             $this->assertNoActiveDuplicate($operator->id, $taxType->id);
-
-            if (! $taxType->is_active) {
-                throw ValidationException::withMessages([
-                    'tax_type_id' => ['Cette taxe est inactive.'],
-                ]);
-            }
+            $this->assertOperatorEligible($operator);
+            $this->assertTaxTypeAssignable($taxType);
 
             $assignment = OperatorTaxAssignment::query()->create([
                 'operator_id' => $operator->id,
@@ -70,7 +69,13 @@ class FiscalAssignmentService
                 'tax_code' => $taxType->code,
             ]);
 
-            return $assignment->fresh(['operator', 'taxType', 'assignedBy']);
+            $assignment = $assignment->fresh(['operator', 'taxType', 'assignedBy']);
+            $obligationResult = $this->obligationGenerator->generateForAssignment($assignment, now(), $actor);
+
+            return [
+                'assignment' => $assignment,
+                'obligation_created' => $obligationResult['created'] > 0,
+            ];
         });
     }
 
@@ -92,6 +97,9 @@ class FiscalAssignmentService
 
         if ($active) {
             $this->assertNoActiveDuplicate($assignment->operator_id, $assignment->tax_type_id, $assignment->id);
+            $assignment->loadMissing(['operator', 'taxType']);
+            $this->assertOperatorEligible($assignment->operator);
+            $this->assertTaxTypeAssignable($assignment->taxType);
         }
 
         $assignment->update(['is_active' => $active]);
@@ -101,7 +109,39 @@ class FiscalAssignmentService
             'tax_type_id' => $assignment->tax_type_id,
         ]);
 
-        return $assignment->fresh(['operator', 'taxType', 'assignedBy']);
+        $assignment = $assignment->fresh(['operator', 'taxType', 'assignedBy']);
+
+        if ($active) {
+            $this->obligationGenerator->generateForAssignment($assignment, now(), $actor);
+        }
+
+        return $assignment;
+    }
+
+    private function assertOperatorEligible(EconomicOperator $operator): void
+    {
+        if (! $operator->is_active || $operator->trashed()) {
+            throw ValidationException::withMessages([
+                'operator_id' => ['Ce commerce est inactif ou archivé — affectation impossible.'],
+            ]);
+        }
+    }
+
+    private function assertTaxTypeAssignable(MunicipalTaxType $taxType): void
+    {
+        if (! $taxType->is_active) {
+            throw ValidationException::withMessages([
+                'tax_type_id' => ['Cette taxe est inactive.'],
+            ]);
+        }
+
+        if ($this->taxRateService->resolveActiveRate($taxType) === null) {
+            throw ValidationException::withMessages([
+                'tax_type_id' => [
+                    'Cette taxe n\'a pas de barème actif. Créez un taux fiscal avec une date de validité ≤ aujourd\'hui avant l\'affectation.',
+                ],
+            ]);
+        }
     }
 
     private function assertNoActiveDuplicate(int $operatorId, int $taxTypeId, ?int $exceptId = null): void

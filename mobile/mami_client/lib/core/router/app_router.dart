@@ -95,6 +95,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/register',
         builder: (context, state) => const RegisterScreen(),
       ),
+      GoRoute(
+        path: '/account',
+        builder: (context, state) => const ProfileScreen(),
+      ),
       ShellRoute(
         builder: (context, state, child) => MainShell(child: child),
         routes: [

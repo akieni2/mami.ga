@@ -45,7 +45,7 @@ class FiscalAssignmentController extends Controller
 
         $assignment = $this->assignmentService->assign($request->user(), $operator, $taxType, $data);
 
-        return (new OperatorTaxAssignmentResource($assignment))
+        return (new OperatorTaxAssignmentResource($assignment['assignment']))
             ->response()
             ->setStatusCode(201);
     }

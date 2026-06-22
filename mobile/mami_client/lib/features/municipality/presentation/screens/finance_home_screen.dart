@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/account_menu_button.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../domain/finance_home_access.dart';
 
@@ -27,6 +28,7 @@ class FinanceHomeScreen extends ConsumerWidget {
         title: const Text('Gouvernance financière'),
         backgroundColor: AppTheme.primary,
         foregroundColor: Colors.white,
+        actions: const [AccountMenuButton()],
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),
