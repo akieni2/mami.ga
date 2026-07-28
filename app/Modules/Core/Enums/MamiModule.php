@@ -9,6 +9,7 @@ enum MamiModule: string
     case Transport = 'transport';
     case Commerce = 'commerce';
     case Municipality = 'municipality';
+    case JbLudo = 'jb_ludo';
 
     public function label(): string
     {
@@ -18,6 +19,7 @@ enum MamiModule: string
             self::Transport => 'Transport',
             self::Commerce => 'Commerce',
             self::Municipality => 'Mairie',
+            self::JbLudo => 'JB Ludo',
         };
     }
 }

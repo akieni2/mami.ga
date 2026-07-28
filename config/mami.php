@@ -14,6 +14,22 @@ return [
         'transport' => (bool) env('MAMI_MODULE_TRANSPORT', false),
         'commerce' => (bool) env('MAMI_MODULE_COMMERCE', false),
         'municipality' => (bool) env('MAMI_MODULE_MUNICIPALITY', false),
+        'jb_ludo' => (bool) env('MAMI_MODULE_JBLUDO', false),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | JB Ludo — jeu de dames en ligne
+    |--------------------------------------------------------------------------
+    */
+    'jb_ludo' => [
+        'reconnect_grace_seconds' => (int) env('MAMI_JBLUDO_RECONNECT_GRACE', 90),
+        'default_clock_seconds' => (int) env('MAMI_JBLUDO_CLOCK_SECONDS', 600),
+        'points_win' => 10,
+        'points_draw' => 3,
+        'points_loss' => 0,
+        'points_resign' => -5,
+        'repeated_resign_threshold' => (int) env('MAMI_JBLUDO_RESIGN_THRESHOLD', 5),
     ],
 
     /*

@@ -4,6 +4,7 @@ namespace App\Modules\Core;
 
 use App\Modules\Carpool\CarpoolModuleServiceProvider;
 use App\Modules\Commerce\CommerceModuleServiceProvider;
+use App\Modules\JbLudo\JbLudoModuleServiceProvider;
 use App\Modules\Municipality\MunicipalityModuleServiceProvider;
 use App\Modules\Taxi\TaxiModuleServiceProvider;
 use App\Modules\Transport\TransportModuleServiceProvider;
@@ -19,6 +20,7 @@ class CoreModuleServiceProvider extends ServiceProvider
         $this->app->register(TransportModuleServiceProvider::class);
         $this->app->register(CommerceModuleServiceProvider::class);
         $this->app->register(MunicipalityModuleServiceProvider::class);
+        $this->app->register(JbLudoModuleServiceProvider::class);
     }
 
     public function boot(): void
@@ -38,6 +40,8 @@ class CoreModuleServiceProvider extends ServiceProvider
             'fiscal_obligation' => \App\Modules\Municipality\Models\FiscalObligation::class,
             'municipal_payment' => \App\Modules\Municipality\Models\MunicipalPayment::class,
             'cash_session' => \App\Modules\Municipality\Models\CashSession::class,
+            'jb_player_profile' => \App\Modules\JbLudo\Models\PlayerProfile::class,
+            'jb_match' => \App\Modules\JbLudo\Models\GameMatch::class,
         ]);
     }
 }

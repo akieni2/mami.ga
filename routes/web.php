@@ -82,6 +82,15 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         Route::get('/mayor', [\App\Modules\Municipality\Http\Controllers\Admin\MayorReceiptAdminController::class, 'dashboard'])->name('mayor.dashboard');
     });
 
+    Route::prefix('jb-ludo')->name('jb-ludo.')->middleware('module:jb_ludo')->group(function (): void {
+        Route::get('/', [\App\Modules\JbLudo\Http\Controllers\Admin\JbLudoAdminController::class, 'dashboard'])->name('dashboard');
+        Route::get('/players', [\App\Modules\JbLudo\Http\Controllers\Admin\JbLudoAdminController::class, 'players'])->name('players');
+        Route::post('/players/{player}/toggle', [\App\Modules\JbLudo\Http\Controllers\Admin\JbLudoAdminController::class, 'toggleSuspend'])->name('players.toggle');
+        Route::get('/matches', [\App\Modules\JbLudo\Http\Controllers\Admin\JbLudoAdminController::class, 'matches'])->name('matches');
+        Route::get('/matches/{match}', [\App\Modules\JbLudo\Http\Controllers\Admin\JbLudoAdminController::class, 'showMatch'])->name('matches.show');
+        Route::get('/leaderboard', [\App\Modules\JbLudo\Http\Controllers\Admin\JbLudoAdminController::class, 'leaderboard'])->name('leaderboard');
+    });
+
     Route::prefix('live')->name('live.')->group(function (): void {
         Route::get('/dashboard', [LiveDataController::class, 'dashboard'])->name('dashboard');
         Route::get('/drivers', [LiveDataController::class, 'drivers'])->name('drivers');

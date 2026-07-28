@@ -39,6 +39,7 @@ class MamiFeatures
             MamiModule::Transport->value => self::moduleEnabled(MamiModule::Transport->value),
             MamiModule::Commerce->value => self::moduleEnabled(MamiModule::Commerce->value),
             MamiModule::Municipality->value => self::moduleEnabled(MamiModule::Municipality->value),
+            MamiModule::JbLudo->value => self::moduleEnabled(MamiModule::JbLudo->value),
         ];
     }
 

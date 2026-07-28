@@ -57,6 +57,27 @@ Broadcast::channel('ride-{rideId}', function ($user, int $rideId) {
     return false;
 });
 
+Broadcast::channel('jb-match-{matchId}', function ($user, int $matchId) {
+    $match = \App\Modules\JbLudo\Models\GameMatch::query()->find($matchId);
+    if ($match === null) {
+        return false;
+    }
+
+    $profile = \App\Modules\JbLudo\Models\PlayerProfile::query()
+        ->where('user_id', $user->id)
+        ->first();
+
+    if ($profile === null) {
+        return $user->isAdmin() ? ['id' => $user->id, 'role' => 'admin'] : false;
+    }
+
+    if (in_array($profile->id, [(int) $match->white_player_id, (int) $match->black_player_id], true)) {
+        return ['id' => $user->id, 'role' => 'player', 'player_id' => $profile->id];
+    }
+
+    return $user->isAdmin() ? ['id' => $user->id, 'role' => 'admin'] : false;
+});
+
 /*
 |--------------------------------------------------------------------------
 | Canaux legacy (compatibilité admin / Phase 2)

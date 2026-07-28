@@ -14,6 +14,7 @@
         ['route' => 'admin.municipality.collection.dashboard', 'label' => 'Recouvrement terrain', 'match' => 'admin.municipality.collection.*', 'admin_only' => true],
         ['route' => 'admin.municipality.mayor.dashboard', 'label' => 'Quittances maire', 'match' => 'admin.municipality.mayor.*', 'admin_only' => true],
         ['route' => 'admin.municipality.operators.index', 'label' => 'Opérateurs économiques', 'match' => 'admin.municipality.operators.*', 'operators_admin' => true],
+        ['route' => 'admin.jb-ludo.dashboard', 'label' => 'JB Ludo', 'match' => 'admin.jb-ludo.*', 'admin_only' => true, 'module' => 'jb_ludo'],
     ];
 @endphp
 
@@ -37,6 +38,9 @@
                 @continue
             @endif
             @if (($item['operators_admin'] ?? false) && ! auth()->user()?->canAccessEconomicOperatorAdmin())
+                @continue
+            @endif
+            @if (! empty($item['module']) && ! \App\Support\MamiFeatures::moduleEnabled($item['module']))
                 @continue
             @endif
             <a href="{{ route($item['route']) }}"
