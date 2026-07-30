@@ -3,6 +3,7 @@
         'dashboard' => ['JB Ludo', route('admin.jb-ludo.dashboard')],
         'players' => ['Joueurs', route('admin.jb-ludo.players')],
         'matches' => ['Parties', route('admin.jb-ludo.matches')],
+        'championships' => ['Championnats', route('admin.jb-ludo.championships.index')],
         'leaderboard' => ['Classement', route('admin.jb-ludo.leaderboard')],
     ];
 @endphp

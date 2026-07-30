@@ -8,6 +8,7 @@
         ['route' => 'admin.clients.index', 'label' => 'Clients', 'match' => 'admin.clients.*', 'admin_only' => true],
         ['route' => 'admin.map.index', 'label' => 'Carte opérationnelle', 'match' => 'admin.map.*', 'admin_only' => true],
         ['route' => 'admin.reports.index', 'label' => 'Rapports', 'match' => 'admin.reports.*', 'admin_only' => true],
+        ['route' => 'admin.document-shares.index', 'label' => 'Dossiers QR', 'match' => 'admin.document-shares.*', 'admin_only' => true],
         ['route' => 'admin.municipality.reports.index', 'label' => 'Signalements Owendo', 'match' => 'admin.municipality.reports.*', 'admin_only' => true],
         ['route' => 'admin.municipality.map.index', 'label' => 'Carte municipale', 'match' => 'admin.municipality.map.*', 'admin_only' => true],
         ['route' => 'admin.municipality.fiscal.tax-types', 'label' => 'Fiscalité Owendo', 'match' => 'admin.municipality.fiscal.*', 'admin_only' => true],
@@ -15,6 +16,7 @@
         ['route' => 'admin.municipality.mayor.dashboard', 'label' => 'Quittances maire', 'match' => 'admin.municipality.mayor.*', 'admin_only' => true],
         ['route' => 'admin.municipality.operators.index', 'label' => 'Opérateurs économiques', 'match' => 'admin.municipality.operators.*', 'operators_admin' => true],
         ['route' => 'admin.jb-ludo.dashboard', 'label' => 'JB Ludo', 'match' => 'admin.jb-ludo.*', 'admin_only' => true, 'module' => 'jb_ludo'],
+        ['route' => 'admin.jb-ludo.championships.index', 'label' => 'Championnats JB Ludo', 'match' => 'admin.jb-ludo.championships.*', 'admin_only' => true, 'module' => 'jb_ludo'],
     ];
 @endphp
 

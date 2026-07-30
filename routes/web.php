@@ -4,11 +4,13 @@ use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DriverApplicationController;
 use App\Http\Controllers\Admin\DriverController;
+use App\Http\Controllers\Admin\DocumentShareController;
 use App\Http\Controllers\Admin\LiveDataController;
 use App\Http\Controllers\Admin\LiveMapController;
 use App\Http\Controllers\Admin\ReportsController;
 use App\Http\Controllers\Admin\RideController;
 use App\Http\Controllers\Admin\UserAdminController;
+use App\Http\Controllers\PublicDocumentShareController;
 use Illuminate\Support\Facades\Route;
 
 require __DIR__.'/auth.php';
@@ -17,6 +19,11 @@ Route::get('/public/receipts/verify/{token}', [
     \App\Modules\Municipality\Http\Controllers\PublicReceiptVerificationController::class,
     'show',
 ])->name('public.receipts.verify');
+
+Route::get('/share/{documentShare}', [PublicDocumentShareController::class, 'show'])
+    ->name('document-shares.public.show');
+Route::get('/share/{documentShare}/files/{file}/download', [PublicDocumentShareController::class, 'download'])
+    ->name('document-shares.public.download');
 
 Route::get('/', function () {
     if (! auth()->check()) {
@@ -53,6 +60,13 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::delete('/users/{user}/roles/{roleSlug}', [UserAdminController::class, 'detachRole'])->name('users.roles.detach');
     Route::get('/map', [LiveMapController::class, 'index'])->name('map.index');
     Route::get('/reports', [ReportsController::class, 'index'])->name('reports.index');
+    Route::get('/document-shares', [DocumentShareController::class, 'index'])->name('document-shares.index');
+    Route::get('/document-shares/create', [DocumentShareController::class, 'create'])->name('document-shares.create');
+    Route::post('/document-shares', [DocumentShareController::class, 'store'])->name('document-shares.store');
+    Route::get('/document-shares/{documentShare}', [DocumentShareController::class, 'show'])->name('document-shares.show');
+    Route::get('/document-shares/{documentShare}/qr.png', [DocumentShareController::class, 'qr'])->name('document-shares.qr');
+    Route::post('/document-shares/{documentShare}/toggle', [DocumentShareController::class, 'toggle'])->name('document-shares.toggle');
+    Route::delete('/document-shares/{documentShare}', [DocumentShareController::class, 'destroy'])->name('document-shares.destroy');
 
     Route::prefix('municipality')->name('municipality.')->middleware('module:municipality')->group(function (): void {
         Route::get('/reports', [\App\Modules\Municipality\Http\Controllers\Admin\MunicipalityReportAdminController::class, 'index'])->name('reports.index');
@@ -88,6 +102,13 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         Route::post('/players/{player}/toggle', [\App\Modules\JbLudo\Http\Controllers\Admin\JbLudoAdminController::class, 'toggleSuspend'])->name('players.toggle');
         Route::get('/matches', [\App\Modules\JbLudo\Http\Controllers\Admin\JbLudoAdminController::class, 'matches'])->name('matches');
         Route::get('/matches/{match}', [\App\Modules\JbLudo\Http\Controllers\Admin\JbLudoAdminController::class, 'showMatch'])->name('matches.show');
+        Route::get('/championships', [\App\Modules\JbLudo\Http\Controllers\Admin\JbLudoChampionshipAdminController::class, 'index'])->name('championships.index');
+        Route::get('/championships/create', [\App\Modules\JbLudo\Http\Controllers\Admin\JbLudoChampionshipAdminController::class, 'create'])->name('championships.create');
+        Route::post('/championships', [\App\Modules\JbLudo\Http\Controllers\Admin\JbLudoChampionshipAdminController::class, 'store'])->name('championships.store');
+        Route::get('/championships/{championship}', [\App\Modules\JbLudo\Http\Controllers\Admin\JbLudoChampionshipAdminController::class, 'show'])->name('championships.show');
+        Route::post('/championships/{championship}/add-eligible', [\App\Modules\JbLudo\Http\Controllers\Admin\JbLudoChampionshipAdminController::class, 'addEligiblePlayers'])->name('championships.add-eligible');
+        Route::post('/championships/{championship}/generate', [\App\Modules\JbLudo\Http\Controllers\Admin\JbLudoChampionshipAdminController::class, 'generate'])->name('championships.generate');
+        Route::post('/championships/{championship}/next-round', [\App\Modules\JbLudo\Http\Controllers\Admin\JbLudoChampionshipAdminController::class, 'nextRound'])->name('championships.next-round');
         Route::get('/leaderboard', [\App\Modules\JbLudo\Http\Controllers\Admin\JbLudoAdminController::class, 'leaderboard'])->name('leaderboard');
     });
 

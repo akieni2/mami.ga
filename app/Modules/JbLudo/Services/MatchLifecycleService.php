@@ -215,9 +215,33 @@ class MatchLifecycleService
 
         $match = $match->fresh(['whitePlayer', 'blackPlayer', 'winner']);
         $this->rating->applyMatchResult($match);
+        $this->attemptAutoAdvanceChampionship($match);
         event(new JbMatchUpdated($match, 'MatchEnded'));
 
         return $match->fresh(['whitePlayer', 'blackPlayer', 'winner']);
+    }
+
+    private function attemptAutoAdvanceChampionship(GameMatch $match): void
+    {
+        if ($match->championship_id === null || $match->championship_round === null) {
+            return;
+        }
+
+        $unfinished = GameMatch::query()
+            ->where('championship_id', $match->championship_id)
+            ->where('championship_round', $match->championship_round)
+            ->where('status', '!=', MatchStatus::Finished)
+            ->exists();
+
+        if ($unfinished) {
+            return;
+        }
+
+        try {
+            app(ChampionshipService::class)->generateNextRound($match->championship);
+        } catch (\Throwable) {
+            // Le bouton admin permet de relancer si une situation metier doit etre tranchee.
+        }
     }
 
     private function assertPlayable(GameMatch $match, PlayerProfile $player, bool $allowGrace = false): void

@@ -17,6 +17,9 @@ class GameMatch extends Model
     protected $fillable = [
         'reference',
         'mode',
+        'championship_id',
+        'championship_round',
+        'championship_match_number',
         'status',
         'white_player_id',
         'black_player_id',
@@ -71,6 +74,11 @@ class GameMatch extends Model
         return $this->hasMany(GameMove::class, 'match_id')->orderBy('server_seq');
     }
 
+
+    public function championship(): BelongsTo
+    {
+        return $this->belongsTo(Championship::class, 'championship_id');
+    }
     public function playerColor(PlayerProfile $player): ?PieceColor
     {
         if ((int) $this->white_player_id === (int) $player->id) {

@@ -2,11 +2,13 @@
 
 namespace App\Modules\JbLudo\Enums;
 
-enum GameMode: string
+enum ChampionshipParticipantStatus: string
 {
-    case Friendly = 'friendly';
-    case Quick = 'quick';
-    case Championship = 'championship';
+    case Registered = 'registered';
+    case Bye = 'bye';
+    case Active = 'active';
+    case Eliminated = 'eliminated';
+    case Champion = 'champion';
 
     /**
      * @return list<string>

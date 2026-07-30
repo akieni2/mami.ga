@@ -86,3 +86,32 @@ php artisan test tests/Feature/JbLudo/JbLudoApiTest.php   # MySQL requis
 ## Hors V1 (prochaines itérations)
 
 Tournois, clubs, Elo, chat, classements régionaux, paiements mobiles.
+
+---
+
+## Championnats admin
+
+L'admin peut creer un championnat depuis `https://admin.mami.ga/admin/jb-ludo/championships`.
+
+Fonctions V1 :
+
+- definir un nombre maximum de participants, par exemple 1000 ;
+- ajouter automatiquement les joueurs JB Ludo actifs et non suspendus ;
+- choisir une repartition par classement ou par tirage aleatoire ;
+- generer le premier tour en elimination directe ;
+- creer automatiquement les parties de championnat ;
+- faire avancer automatiquement les vainqueurs quand toutes les parties d'un tour sont terminees ;
+- garder un bouton admin de secours pour generer le tour suivant si une verification manuelle est necessaire.
+
+Exemple pour 1000 participants :
+
+- grille calculee : 1024 places ;
+- qualifications automatiques : 24 joueurs ;
+- parties creees au premier tour : 488 ;
+- tours necessaires jusqu'a la finale : 10.
+
+Les joueurs voient ensuite leurs parties de championnat dans leur historique de parties.
+
+### Progression automatique
+
+A la fin de la derniere partie d'un tour, le backend recupere les vainqueurs, elimine les perdants, cree le tour suivant, puis repete ce cycle jusqu'a ce qu'il ne reste qu'un champion. Les matchs nuls doivent etre rejoues ou tranches avant d'avancer.
