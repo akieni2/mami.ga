@@ -4,6 +4,8 @@ namespace App\Modules\JbLudo\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Modules\JbLudo\Enums\ChampionshipStatus;
+use App\Modules\JbLudo\Enums\CompetitionScope;
+use App\Modules\JbLudo\Enums\GameType;
 use App\Modules\JbLudo\Models\Championship;
 use App\Modules\JbLudo\Services\ChampionshipService;
 use Illuminate\Http\RedirectResponse;
@@ -31,18 +33,36 @@ class JbLudoChampionshipAdminController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
+            'game_type' => ['required', 'in:damier'],
+            'scope' => ['required', 'in:'.implode(',', CompetitionScope::values())],
+            'country' => ['nullable', 'string', 'max:80'],
+            'city' => ['nullable', 'string', 'max:80'],
+            'neighborhood' => ['nullable', 'string', 'max:120'],
             'name' => ['required', 'string', 'max:160'],
             'description' => ['nullable', 'string', 'max:2000'],
             'max_participants' => ['required', 'integer', 'min:2', 'max:5000'],
+            'prize_title' => ['nullable', 'string', 'max:160'],
+            'prize_amount' => ['nullable', 'integer', 'min:0'],
+            'prize_currency' => ['nullable', 'string', 'max:10'],
+            'prize_description' => ['nullable', 'string', 'max:2000'],
             'registration_closes_at' => ['nullable', 'date'],
             'starts_at' => ['nullable', 'date'],
         ]);
 
         $championship = Championship::query()->create([
             'created_by' => $request->user()?->id,
+            'game_type' => GameType::from($data['game_type']),
+            'scope' => CompetitionScope::from($data['scope']),
+            'country' => $data['country'] ?: 'Gabon',
+            'city' => $data['city'] ?? null,
+            'neighborhood' => $data['neighborhood'] ?? null,
             'name' => $data['name'],
             'description' => $data['description'] ?? null,
             'max_participants' => $data['max_participants'],
+            'prize_title' => $data['prize_title'] ?? null,
+            'prize_amount' => $data['prize_amount'] ?? null,
+            'prize_currency' => $data['prize_currency'] ?? 'XAF',
+            'prize_description' => $data['prize_description'] ?? null,
             'registration_closes_at' => $data['registration_closes_at'] ?? null,
             'starts_at' => $data['starts_at'] ?? null,
             'status' => ChampionshipStatus::Draft,

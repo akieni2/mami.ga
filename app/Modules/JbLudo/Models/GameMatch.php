@@ -3,6 +3,7 @@
 namespace App\Modules\JbLudo\Models;
 
 use App\Modules\JbLudo\Enums\GameMode;
+use App\Modules\JbLudo\Enums\GameType;
 use App\Modules\JbLudo\Enums\MatchResult;
 use App\Modules\JbLudo\Enums\MatchStatus;
 use App\Modules\JbLudo\Enums\PieceColor;
@@ -16,6 +17,7 @@ class GameMatch extends Model
 
     protected $fillable = [
         'reference',
+        'game_type',
         'mode',
         'championship_id',
         'championship_round',
@@ -23,6 +25,7 @@ class GameMatch extends Model
         'status',
         'white_player_id',
         'black_player_id',
+        'ludo_player_ids',
         'turn_color',
         'board_state',
         'clock_seconds',
@@ -43,8 +46,10 @@ class GameMatch extends Model
     {
         return [
             'mode' => GameMode::class,
+            'game_type' => GameType::class,
             'status' => MatchStatus::class,
             'turn_color' => PieceColor::class,
+            'ludo_player_ids' => 'array',
             'result' => MatchResult::class,
             'board_state' => 'array',
             'turn_started_at' => 'datetime',
@@ -87,6 +92,19 @@ class GameMatch extends Model
 
         if ((int) $this->black_player_id === (int) $player->id) {
             return PieceColor::Black;
+        }
+
+        return null;
+    }
+
+    public function ludoColor(PlayerProfile $player): ?string
+    {
+        $players = $this->ludo_player_ids ?? [];
+
+        foreach ($players as $color => $playerId) {
+            if ((int) $playerId === (int) $player->id) {
+                return (string) $color;
+            }
         }
 
         return null;

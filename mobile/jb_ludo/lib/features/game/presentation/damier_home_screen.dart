@@ -5,14 +5,14 @@ import 'package:go_router/go_router.dart';
 import '../../auth/presentation/auth_provider.dart';
 import '../data/jb_ludo_repository.dart';
 
-class HomeScreen extends ConsumerStatefulWidget {
-  const HomeScreen({super.key});
+class DamierHomeScreen extends ConsumerStatefulWidget {
+  const DamierHomeScreen({super.key});
 
   @override
-  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<DamierHomeScreen> createState() => _DamierHomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _DamierHomeScreenState extends ConsumerState<DamierHomeScreen> {
   Map<String, dynamic>? _profile;
   bool _loading = true;
 
@@ -58,6 +58,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
+  Future<void> _solo() async {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(const SnackBar(content: Text('Preparation de l\'entrainement Damier...')));
+    try {
+      final match = await ref.read(jbLudoRepositoryProvider).soloMatch(gameType: 'damier');
+      if (!mounted) return;
+      context.push('/match/${match['id']}');
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('$e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -66,7 +78,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('JB Ludo'),
+        title: const Text('Damier'),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -83,9 +95,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           Text('Bonjour, ${_profile?['pseudo'] ?? ''}', style: Theme.of(context).textTheme.titleLarge),
           Text('${_profile?['points'] ?? 0} points · ${_profile?['city'] ?? ''}'),
           const SizedBox(height: 24),
+          _tile(Icons.psychology_outlined, 'Jouer seul', 'Entrainement contre IA gratuite', _solo),
           _tile(Icons.flash_on, 'Partie rapide', 'Adversaire de niveau proche', _quick),
           _tile(Icons.people_outline, 'Partie amicale', 'Inviter un joueur', () => context.push('/invite')),
-          _tile(Icons.emoji_events_outlined, 'Classement', 'Classement général', () => context.push('/leaderboard')),
+          _tile(Icons.emoji_events_outlined, 'Classement', 'Classement Damier', () => context.push('/leaderboard')),
           _tile(Icons.history, 'Historique', 'Vos parties', () => context.push('/history')),
         ],
       ),

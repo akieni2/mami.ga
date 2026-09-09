@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/jb_ludo_repository.dart';
 import 'checkers_board.dart';
+import 'ludo_board.dart';
 
 class MatchScreen extends ConsumerStatefulWidget {
   const MatchScreen({required this.matchId, super.key});
@@ -102,6 +103,35 @@ class _MatchScreenState extends ConsumerState<MatchScreen> with WidgetsBindingOb
     }
   }
 
+  Future<void> _rollLudoDice() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      final updated = await ref.read(jbLudoRepositoryProvider).playLudoAction(widget.matchId, {'action': 'roll'});
+      if (mounted) setState(() => _match = updated);
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _moveLudoPiece(int piece) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      final updated = await ref.read(jbLudoRepositoryProvider).playLudoAction(widget.matchId, {
+        'action': 'move',
+        'piece': piece,
+      });
+      if (mounted) setState(() => _match = updated);
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   Future<void> _resign() async {
     final ok = await showDialog<bool>(
       context: context,
@@ -126,7 +156,7 @@ class _MatchScreenState extends ConsumerState<MatchScreen> with WidgetsBindingOb
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final board = (_match!['board_state'] as List?) ?? [];
+    final gameType = _match!['game_type']?.toString() ?? 'damier';
     final status = _match!['status']?.toString() ?? '';
     final turn = _match!['turn_color']?.toString() ?? '';
 
@@ -149,13 +179,27 @@ class _MatchScreenState extends ConsumerState<MatchScreen> with WidgetsBindingOb
               style: const TextStyle(color: Colors.orange),
             ),
           const SizedBox(height: 12),
-          CheckersBoard(
-            board: board,
-            selected: _selected,
-            onTapSquare: _onTap,
-          ),
+          if (gameType == 'ludo')
+            LudoBoard(
+              board: Map<String, dynamic>.from((_match!['board_state'] as Map?) ?? {}),
+              onPieceTap: _moveLudoPiece,
+            )
+          else
+            CheckersBoard(
+              board: (_match!['board_state'] as List?) ?? [],
+              selected: _selected,
+              onTapSquare: _onTap,
+            ),
           const SizedBox(height: 12),
-          if (status != 'finished') ...[
+          if (status != 'finished' && gameType == 'ludo') ...[
+            FilledButton.icon(
+              onPressed: _busy ? null : _rollLudoDice,
+              icon: const Icon(Icons.casino_outlined),
+              label: const Text('Lancer le de'),
+            ),
+            const SizedBox(height: 8),
+            const Text('Lancez le de, puis touchez un pion. Le serveur verifie la couleur du joueur et le tour.'),
+          ] else if (status != 'finished') ...[
             Text('Chemin : ${_path.map((p) => '${p['r']},${p['c']}').join(' → ')}'),
             Row(
               children: [

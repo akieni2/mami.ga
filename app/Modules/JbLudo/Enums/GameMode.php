@@ -6,6 +6,7 @@ enum GameMode: string
 {
     case Friendly = 'friendly';
     case Quick = 'quick';
+    case Solo = 'solo';
     case Championship = 'championship';
 
     /**

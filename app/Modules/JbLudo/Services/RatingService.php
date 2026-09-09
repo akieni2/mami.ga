@@ -5,12 +5,19 @@ namespace App\Modules\JbLudo\Services;
 use App\Modules\JbLudo\Models\GameMatch;
 use App\Modules\JbLudo\Models\PlayerProfile;
 use App\Modules\JbLudo\Models\RatingEvent;
+use App\Modules\JbLudo\Enums\GameType;
 use Illuminate\Support\Facades\DB;
 
 class RatingService
 {
     public function applyMatchResult(GameMatch $match): void
     {
+        if ($match->game_type === GameType::Ludo) {
+            $this->applyLudoMatchResult($match);
+
+            return;
+        }
+
         if ($match->whitePlayer === null || $match->blackPlayer === null) {
             return;
         }
@@ -52,6 +59,40 @@ class RatingService
 
             $white->increment('games_played');
             $black->increment('games_played');
+        });
+    }
+
+    private function applyLudoMatchResult(GameMatch $match): void
+    {
+        $players = $match->ludo_player_ids ?? [];
+        if ($players === []) {
+            return;
+        }
+
+        DB::transaction(function () use ($match, $players): void {
+            $cfg = config('mami.jb_ludo');
+            $winnerId = $match->winner_id;
+
+            foreach ($players as $playerId) {
+                $player = PlayerProfile::query()->lockForUpdate()->find($playerId);
+                if ($player === null) {
+                    continue;
+                }
+
+                if ((int) $winnerId === (int) $player->id) {
+                    $this->credit($player, $match, 'win', (int) $cfg['points_win']);
+                    $player->increment('games_won');
+                } else {
+                    $this->credit($player, $match, $match->result_reason === 'resign' ? 'resign' : 'loss',
+                        $match->result_reason === 'resign' ? (int) $cfg['points_resign'] : (int) $cfg['points_loss']);
+                    $player->increment('games_lost');
+                    if ($match->result_reason === 'resign') {
+                        $player->increment('resign_count');
+                    }
+                }
+
+                $player->increment('games_played');
+            }
         });
     }
 

@@ -12,7 +12,7 @@ class JbLudoApp extends ConsumerWidget {
     final router = ref.watch(routerProvider);
 
     return MaterialApp.router(
-      title: 'JB Ludo',
+      title: 'JB Games',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       routerConfig: router,

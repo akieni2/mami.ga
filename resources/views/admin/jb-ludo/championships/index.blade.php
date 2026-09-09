@@ -19,6 +19,8 @@
             <thead class="bg-slate-50 text-left text-xs uppercase text-slate-500">
                 <tr>
                     <th class="px-5 py-3">Championnat</th>
+                    <th class="px-5 py-3">Jeu</th>
+                    <th class="px-5 py-3">Niveau</th>
                     <th class="px-5 py-3">Statut</th>
                     <th class="px-5 py-3">Participants</th>
                     <th class="px-5 py-3">Parties</th>
@@ -30,6 +32,8 @@
                 @forelse ($championships as $championship)
                     <tr>
                         <td class="px-5 py-3 font-medium text-slate-900">{{ $championship->name }}</td>
+                        <td class="px-5 py-3">{{ ucfirst($championship->game_type->value) }}</td>
+                        <td class="px-5 py-3">{{ $championship->scope->value }} {{ $championship->city ? '· '.$championship->city : '' }}</td>
                         <td class="px-5 py-3">{{ $championship->status->value }}</td>
                         <td class="px-5 py-3">{{ $championship->participants_count }} / {{ $championship->max_participants }}</td>
                         <td class="px-5 py-3">{{ $championship->matches_count }}</td>
@@ -39,7 +43,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" class="px-5 py-10 text-center text-slate-500">Aucun championnat.</td></tr>
+                    <tr><td colspan="8" class="px-5 py-10 text-center text-slate-500">Aucun championnat.</td></tr>
                 @endforelse
             </tbody>
         </table>

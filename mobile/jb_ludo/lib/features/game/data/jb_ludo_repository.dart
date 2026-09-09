@@ -17,14 +17,36 @@ class JbLudoRepository {
     return Map<String, dynamic>.from(data as Map);
   }
 
-  Future<Map<String, dynamic>> saveProfile(Map<String, dynamic> payload) async {
-    final response = await _dio.post('/jb-ludo/profile', data: payload);
+  Future<Map<String, dynamic>> saveProfile(
+    Map<String, dynamic> payload, {
+    String? photoPath,
+  }) async {
+    final data = photoPath == null
+        ? payload
+        : FormData.fromMap({
+            ...payload,
+            'photo': await MultipartFile.fromFile(photoPath),
+          });
+
+    final response = await _dio.post('/jb-ludo/profile', data: data);
     final envelope = parseApiData(response.data);
     return Map<String, dynamic>.from(envelope['data'] as Map);
   }
 
-  Future<Map<String, dynamic>> quickMatch() async {
-    final response = await _dio.post('/jb-ludo/matches/quick');
+  Future<Map<String, dynamic>> quickMatch({String gameType = 'damier'}) async {
+    final response = await _dio.post('/jb-ludo/matches/quick', data: {'game_type': gameType});
+    final envelope = parseApiData(response.data);
+    return Map<String, dynamic>.from(envelope['data'] as Map);
+  }
+
+  Future<Map<String, dynamic>> soloMatch({
+    required String gameType,
+    String difficulty = 'medium',
+  }) async {
+    final response = await _dio.post('/jb-ludo/matches/solo', data: {
+      'game_type': gameType,
+      'difficulty': difficulty,
+    });
     final envelope = parseApiData(response.data);
     return Map<String, dynamic>.from(envelope['data'] as Map);
   }
@@ -55,6 +77,12 @@ class JbLudoRepository {
 
   Future<Map<String, dynamic>> playMove(int matchId, List<Map<String, int>> path) async {
     final response = await _dio.post('/jb-ludo/matches/$matchId/moves', data: {'path': path});
+    final envelope = parseApiData(response.data);
+    return Map<String, dynamic>.from(envelope['data'] as Map);
+  }
+
+  Future<Map<String, dynamic>> playLudoAction(int matchId, Map<String, dynamic> action) async {
+    final response = await _dio.post('/jb-ludo/matches/$matchId/moves', data: {'path': [action]});
     final envelope = parseApiData(response.data);
     return Map<String, dynamic>.from(envelope['data'] as Map);
   }

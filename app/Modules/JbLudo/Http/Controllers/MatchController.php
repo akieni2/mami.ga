@@ -4,6 +4,7 @@ namespace App\Modules\JbLudo\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\JbLudo\Http\Resources\GameMatchResource;
+use App\Modules\JbLudo\Enums\GameType;
 use App\Modules\JbLudo\Models\FriendInvite;
 use App\Modules\JbLudo\Models\GameMatch;
 use App\Modules\JbLudo\Models\PlayerProfile;
@@ -59,12 +60,32 @@ class MatchController extends Controller
     public function quick(Request $request): JsonResponse
     {
         $player = $this->profiles->forUser($request->user());
-        $result = $this->matchmaking->enqueueQuick($player);
+        $data = $request->validate([
+            'game_type' => ['nullable', 'in:damier,ludo'],
+        ]);
+        $result = $this->matchmaking->enqueueQuick($player, GameType::from($data['game_type'] ?? 'damier'));
 
         return ApiResponse::success([
             'queued' => $result['queued'],
             'match' => $result['match'] ? new GameMatchResource($result['match']) : null,
         ], $result['queued'] ? 'En file d\'attente' : 'Adversaire trouvé');
+    }
+
+    public function solo(Request $request): JsonResponse
+    {
+        $player = $this->profiles->forUser($request->user());
+        $data = $request->validate([
+            'game_type' => ['required', 'in:damier,ludo'],
+            'difficulty' => ['nullable', 'in:beginner,medium,hard'],
+        ]);
+
+        $match = $this->lifecycle->createSoloMatch(
+            $player,
+            GameType::from($data['game_type']),
+            $data['difficulty'] ?? 'medium',
+        );
+
+        return ApiResponse::success(new GameMatchResource($match), 'Partie entrainement creee', 201);
     }
 
     public function leaveQueue(Request $request): JsonResponse
@@ -78,7 +99,11 @@ class MatchController extends Controller
     public function show(Request $request, GameMatch $match): JsonResponse
     {
         $player = $this->profiles->forUser($request->user());
-        if ($match->playerColor($player) === null && ! $request->user()->isAdmin()) {
+        $isParticipant = $match->game_type === GameType::Ludo
+            ? $match->ludoColor($player) !== null
+            : $match->playerColor($player) !== null;
+
+        if (! $isParticipant && ! $request->user()->isAdmin()) {
             abort(403);
         }
 
@@ -93,9 +118,11 @@ class MatchController extends Controller
     {
         $player = $this->profiles->forUser($request->user());
         $data = $request->validate([
-            'path' => ['required', 'array', 'min:2'],
-            'path.*.r' => ['required', 'integer', 'min:0', 'max:9'],
-            'path.*.c' => ['required', 'integer', 'min:0', 'max:9'],
+            'path' => ['required', 'array', 'min:1'],
+            'path.*.r' => ['nullable', 'integer', 'min:0', 'max:9'],
+            'path.*.c' => ['nullable', 'integer', 'min:0', 'max:9'],
+            'path.*.action' => ['nullable', 'string', 'in:roll,move'],
+            'path.*.piece' => ['nullable', 'integer', 'min:0', 'max:3'],
         ]);
 
         $updated = $this->lifecycle->playMove($match, $player, $data['path']);
@@ -135,7 +162,11 @@ class MatchController extends Controller
             ->with(['whitePlayer', 'blackPlayer', 'winner'])
             ->where(function ($q) use ($player): void {
                 $q->where('white_player_id', $player->id)
-                    ->orWhere('black_player_id', $player->id);
+                    ->orWhere('black_player_id', $player->id)
+                    ->orWhereJsonContains('ludo_player_ids->red', $player->id)
+                    ->orWhereJsonContains('ludo_player_ids->blue', $player->id)
+                    ->orWhereJsonContains('ludo_player_ids->green', $player->id)
+                    ->orWhereJsonContains('ludo_player_ids->yellow', $player->id);
             })
             ->orderByDesc('id')
             ->limit(50)

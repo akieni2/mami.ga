@@ -16,6 +16,7 @@ class GameMatchResource extends JsonResource
         return [
             'id' => $this->id,
             'reference' => $this->reference,
+            'game_type' => $this->game_type->value,
             'mode' => $this->mode->value,
             'status' => $this->status->value,
             'turn_color' => $this->turn_color->value,
@@ -23,6 +24,7 @@ class GameMatchResource extends JsonResource
             'clock_seconds' => $this->clock_seconds,
             'white_time_left' => $this->white_time_left,
             'black_time_left' => $this->black_time_left,
+            'ludo_player_ids' => $this->ludo_player_ids,
             'grace_until' => $this->grace_until?->toIso8601String(),
             'move_count' => $this->move_count,
             'result' => $this->result?->value,
@@ -35,7 +37,7 @@ class GameMatchResource extends JsonResource
             'moves' => $this->whenLoaded('moves', fn () => $this->moves->map(fn ($m) => [
                 'server_seq' => $m->server_seq,
                 'player_id' => $m->player_id,
-                'color' => $m->color->value,
+                'color' => $m->color,
                 'path' => $m->path,
                 'captures' => $m->captures,
                 'became_king' => $m->became_king,

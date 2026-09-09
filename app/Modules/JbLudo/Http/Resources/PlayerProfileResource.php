@@ -4,6 +4,7 @@ namespace App\Modules\JbLudo\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
 
 /** @mixin \App\Modules\JbLudo\Models\PlayerProfile */
 class PlayerProfileResource extends JsonResource
@@ -16,9 +17,13 @@ class PlayerProfileResource extends JsonResource
         return [
             'id' => $this->id,
             'user_id' => $this->user_id,
+            'first_name' => $this->first_name,
+            'last_name' => $this->last_name,
             'pseudo' => $this->pseudo,
             'photo_path' => $this->photo_path,
+            'photo_url' => $this->photo_path ? Storage::disk('public')->url($this->photo_path) : null,
             'city' => $this->city,
+            'neighborhood' => $this->neighborhood,
             'country' => $this->country,
             'phone' => $this->phone,
             'level' => $this->level->value,

@@ -4,6 +4,8 @@ namespace App\Modules\JbLudo\Models;
 
 use App\Models\User;
 use App\Modules\JbLudo\Enums\ChampionshipStatus;
+use App\Modules\JbLudo\Enums\CompetitionScope;
+use App\Modules\JbLudo\Enums\GameType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -14,10 +16,19 @@ class Championship extends Model
 
     protected $fillable = [
         'created_by',
+        'game_type',
+        'scope',
+        'country',
+        'city',
+        'neighborhood',
         'name',
         'description',
         'status',
         'max_participants',
+        'prize_title',
+        'prize_amount',
+        'prize_currency',
+        'prize_description',
         'participants_count',
         'rounds_count',
         'current_round',
@@ -31,6 +42,9 @@ class Championship extends Model
     {
         return [
             'status' => ChampionshipStatus::class,
+            'game_type' => GameType::class,
+            'scope' => CompetitionScope::class,
+            'prize_amount' => 'integer',
             'registration_closes_at' => 'datetime',
             'starts_at' => 'datetime',
             'bracket_generated_at' => 'datetime',

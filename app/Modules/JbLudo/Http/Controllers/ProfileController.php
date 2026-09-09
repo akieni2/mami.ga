@@ -31,14 +31,24 @@ class ProfileController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
+            'first_name' => ['required', 'string', 'min:2', 'max:80'],
+            'last_name' => ['required', 'string', 'min:2', 'max:80'],
             'pseudo' => ['required', 'string', 'min:2', 'max:40'],
             'phone' => ['required', 'string', 'min:8', 'max:30'],
             'city' => ['nullable', 'string', 'max:80'],
+            'neighborhood' => ['nullable', 'string', 'max:120'],
             'country' => ['nullable', 'string', 'max:80'],
             'level' => ['nullable', 'in:'.implode(',', PlayerLevel::values())],
             'club' => ['nullable', 'string', 'max:120'],
-            'photo_path' => ['nullable', 'string', 'max:255'],
+            'photo' => ['nullable', 'image', 'max:4096'],
         ]);
+
+        if ($request->hasFile('photo')) {
+            $data['photo_path'] = $request->file('photo')->store(
+                'jb-ludo/profiles/'.$request->user()->id,
+                'public',
+            );
+        }
 
         $profile = $this->profiles->upsert($request->user(), $data);
 
@@ -62,6 +72,10 @@ class ProfileController extends Controller
             ->where('is_suspended', false)
             ->when($q !== '', fn ($query) => $query->where(function ($inner) use ($q): void {
                 $inner->where('pseudo', 'like', '%'.$q.'%')
+                    ->orWhere('first_name', 'like', '%'.$q.'%')
+                    ->orWhere('last_name', 'like', '%'.$q.'%')
+                    ->orWhere('city', 'like', '%'.$q.'%')
+                    ->orWhere('neighborhood', 'like', '%'.$q.'%')
                     ->orWhere('phone', 'like', '%'.$q.'%');
             }))
             ->orderBy('pseudo')

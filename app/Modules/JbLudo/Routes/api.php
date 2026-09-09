@@ -15,6 +15,7 @@ Route::middleware(['auth:sanctum', 'module:jb_ludo'])->group(function (): void {
     Route::post('/matches/invites/{invite}/accept', [MatchController::class, 'acceptInvite']);
     Route::post('/matches/invites/{invite}/decline', [MatchController::class, 'declineInvite']);
     Route::post('/matches/quick', [MatchController::class, 'quick']);
+    Route::post('/matches/solo', [MatchController::class, 'solo']);
     Route::post('/matches/queue/leave', [MatchController::class, 'leaveQueue']);
     Route::get('/matches/history', [MatchController::class, 'history']);
     Route::get('/matches/{match}', [MatchController::class, 'show']);

@@ -14,9 +14,12 @@ class PlayerProfile extends Model
 
     protected $fillable = [
         'user_id',
+        'first_name',
+        'last_name',
         'pseudo',
         'photo_path',
         'city',
+        'neighborhood',
         'country',
         'phone',
         'level',

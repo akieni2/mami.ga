@@ -29,19 +29,27 @@ class PlayerProfileService
         }
 
         return DB::transaction(function () use ($user, $data, $phone): PlayerProfile {
+            $payload = [
+                'first_name' => $data['first_name'],
+                'last_name' => $data['last_name'],
+                'pseudo' => $data['pseudo'],
+                'city' => $data['city'] ?? null,
+                'neighborhood' => $data['neighborhood'] ?? null,
+                'country' => $data['country'] ?? 'Gabon',
+                'phone' => $phone,
+                'level' => PlayerLevel::from($data['level'] ?? PlayerLevel::Intermediate->value),
+                'club' => $data['club'] ?? null,
+                'is_online' => true,
+                'last_seen_at' => now(),
+            ];
+
+            if (! empty($data['photo_path'])) {
+                $payload['photo_path'] = $data['photo_path'];
+            }
+
             $profile = PlayerProfile::query()->updateOrCreate(
                 ['user_id' => $user->id],
-                [
-                    'pseudo' => $data['pseudo'],
-                    'photo_path' => $data['photo_path'] ?? null,
-                    'city' => $data['city'] ?? null,
-                    'country' => $data['country'] ?? 'Gabon',
-                    'phone' => $phone,
-                    'level' => PlayerLevel::from($data['level'] ?? PlayerLevel::Intermediate->value),
-                    'club' => $data['club'] ?? null,
-                    'is_online' => true,
-                    'last_seen_at' => now(),
-                ],
+                $payload,
             );
 
             return $profile->fresh();

@@ -9,6 +9,22 @@
 
     <div class="mb-5 grid gap-4 xl:grid-cols-4">
         <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div class="text-sm text-slate-500">Jeu</div>
+            <div class="mt-1 text-xl font-semibold">{{ ucfirst($championship->game_type->value) }}</div>
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div class="text-sm text-slate-500">Niveau</div>
+            <div class="mt-1 text-xl font-semibold">{{ $championship->scope->value }}</div>
+            <div class="mt-1 text-sm text-slate-500">{{ collect([$championship->country, $championship->city, $championship->neighborhood])->filter()->implode(' · ') }}</div>
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div class="text-sm text-slate-500">Prix</div>
+            <div class="mt-1 text-xl font-semibold">{{ $championship->prize_title ?? '—' }}</div>
+            @if($championship->prize_amount)
+                <div class="mt-1 text-sm text-slate-500">{{ number_format($championship->prize_amount, 0, ',', ' ') }} {{ $championship->prize_currency }}</div>
+            @endif
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             <div class="text-sm text-slate-500">Statut</div>
             <div class="mt-1 text-xl font-semibold">{{ $championship->status->value }}</div>
         </div>

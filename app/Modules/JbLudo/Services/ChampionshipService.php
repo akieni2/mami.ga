@@ -5,6 +5,7 @@ namespace App\Modules\JbLudo\Services;
 use App\Modules\JbLudo\Enums\ChampionshipParticipantStatus;
 use App\Modules\JbLudo\Enums\ChampionshipStatus;
 use App\Modules\JbLudo\Enums\GameMode;
+use App\Modules\JbLudo\Enums\GameType;
 use App\Modules\JbLudo\Enums\MatchStatus;
 use App\Modules\JbLudo\Enums\PieceColor;
 use App\Modules\JbLudo\Models\Championship;
@@ -47,6 +48,15 @@ class ChampionshipService
             $players = PlayerProfile::query()
                 ->where('is_suspended', false)
                 ->whereNotIn('id', $existingIds)
+                ->when($championship->country, fn ($query) => $query->where('country', $championship->country))
+                ->when(
+                    in_array($championship->scope->value, ['city', 'neighborhood'], true) && $championship->city,
+                    fn ($query) => $query->where('city', $championship->city),
+                )
+                ->when(
+                    $championship->scope->value === 'neighborhood' && $championship->neighborhood,
+                    fn ($query) => $query->where('neighborhood', $championship->neighborhood),
+                )
                 ->orderByDesc('points')
                 ->orderBy('id')
                 ->limit($remaining)
@@ -131,6 +141,7 @@ class ChampionshipService
 
                 GameMatch::query()->create([
                     'reference' => 'JBC-'.now()->format('Ymd').'-'.Str::upper(Str::random(6)),
+                    'game_type' => $championship->game_type ?? GameType::Damier,
                     'mode' => GameMode::Championship,
                     'championship_id' => $championship->id,
                     'championship_round' => 1,
@@ -299,6 +310,7 @@ class ChampionshipService
 
                 GameMatch::query()->create([
                     'reference' => 'JBC-'.now()->format('Ymd').'-'.Str::upper(Str::random(6)),
+                    'game_type' => $championship->game_type ?? GameType::Damier,
                     'mode' => GameMode::Championship,
                     'championship_id' => $championship->id,
                     'championship_round' => $nextRound,

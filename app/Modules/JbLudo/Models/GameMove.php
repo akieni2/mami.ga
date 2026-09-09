@@ -2,7 +2,6 @@
 
 namespace App\Modules\JbLudo\Models;
 
-use App\Modules\JbLudo\Enums\PieceColor;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -28,7 +27,6 @@ class GameMove extends Model
     protected function casts(): array
     {
         return [
-            'color' => PieceColor::class,
             'path' => 'array',
             'captures' => 'array',
             'became_king' => 'boolean',

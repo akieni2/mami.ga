@@ -11,6 +11,7 @@ class MatchmakingQueueEntry extends Model
 
     protected $fillable = [
         'player_id',
+        'game_type',
         'level',
         'points',
         'queued_at',

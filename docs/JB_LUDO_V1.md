@@ -1,13 +1,44 @@
-# JB Ludo V1 — Jeu de dames en ligne
+# JB Games V1 — Damier et Ludo
 
-**Intégration MAMI** · Module Laravel `JbLudo` + app Flutter `mobile/jb_ludo`
+**Intégration MAMI** · Module Laravel `JbLudo` + app Flutter unique `mobile/jb_ludo`
 
 | | |
 |---|---|
-| **Règles** | Dames internationales 10×10 (20 pions) — autorité serveur |
-| **Modes V1** | Partie amicale · Partie rapide |
+| **Jeux** | Damier disponible · Ludo MVP 4 joueurs |
+| **Règles Damier** | Dames internationales 10×10 (20 pions) — autorité serveur |
+| **Modes Damier V1** | Entrainement IA · Partie amicale · Partie rapide · Championnat |
+| **Modes Ludo V1** | Entrainement IA · Partie rapide 4 joueurs |
 | **Temps réel** | Reverb canal privé `jb-match-{id}` + polling Flutter 3 s |
 | **Argent** | Points virtuels uniquement |
+
+## Profils joueurs
+
+Chaque joueur peut creer son profil directement depuis l'APK avec:
+
+- prenom et nom ;
+- screen name / alias ;
+- telephone unique ;
+- pays ;
+- ville ;
+- quartier ;
+- niveau sportif.
+
+Ces informations servent a organiser les competitions par progression territoriale:
+
+1. championnat de quartier ;
+2. championnat de ville ;
+3. championnat national.
+
+## Equipes et organisation
+
+Le module prepare aussi l'organisation sportive:
+
+- equipes rattachees a un quartier (`jb_teams`) ;
+- membres d'equipe avec roles: joueur, capitaine, manager, coach, arbitre, commissaire ;
+- demandes de recrutement/transfert (`jb_transfer_requests`) ;
+- toute arrivee d'un joueur venant d'une autre zone doit passer par la commission d'organisation.
+
+La commission peut ensuite etre utilisee pour valider les transferts, programmer les championnats, designer les arbitres et definir les prix a gagner.
 
 ---
 
@@ -28,6 +59,12 @@ php artisan route:cache
 
 Admin : `https://admin.mami.ga/admin/jb-ludo`
 
+L'APK affiche d'abord un choix de jeu:
+
+- **Damier** : branche sur le moteur existant et les competitions actuelles.
+- **Ludo** : partie rapide 4 joueurs, de serveur, sortie sur 6, tours Rouge/Bleu/Vert/Jaune, captures hors cases protegees et progression des 4 pions par joueur.
+- **Entrainement IA** : disponible gratuitement, sans API externe payante, avec profils virtuels crees cote serveur.
+
 ---
 
 ## API (`/api/jb-ludo`)
@@ -39,6 +76,7 @@ Admin : `https://admin.mami.ga/admin/jb-ludo`
 | POST | `/matches/invite` | Invitation amicale |
 | POST | `/matches/invites/{id}/accept` | Accepter → démarre la partie |
 | POST | `/matches/quick` | Matchmaking rapide |
+| POST | `/matches/solo` | Partie d'entrainement contre IA gratuite |
 | GET | `/matches/{id}` | État plateau + horloge |
 | POST | `/matches/{id}/moves` | Coup (path `[{r,c},…]`) |
 | POST | `/matches/{id}/resign` | Abandon (−5 pts) |
@@ -68,7 +106,7 @@ flutter pub get
 flutter build apk --release --dart-define=API_BASE_URL=https://api.mami.ga/api
 ```
 
-Écrans : login, profil, accueil (rapide / amicale / classement / historique), plateau 10×10, validation de coup.
+Écrans : login, profil, choix du jeu, accueil Damier (rapide / amicale / classement / historique), plateau 10×10, validation de coup.
 
 Reconnexion : cycle de vie app → `disconnect` / `reconnect` ; grâce serveur configurable (`MAMI_JBLUDO_RECONNECT_GRACE`, défaut 90 s).
 
@@ -85,13 +123,33 @@ php artisan test tests/Feature/JbLudo/JbLudoApiTest.php   # MySQL requis
 
 ## Hors V1 (prochaines itérations)
 
-Tournois, clubs, Elo, chat, classements régionaux, paiements mobiles.
+Blocages Ludo complets, competitions Ludo, clubs, Elo, chat, classements regionaux, paiements mobiles.
 
 ---
 
 ## Championnats admin
 
 L'admin peut creer un championnat depuis `https://admin.mami.ga/admin/jb-ludo/championships`.
+
+Chaque championnat porte maintenant un `game_type`:
+
+- `damier` : actif avec repartition automatique et moteur existant.
+- `ludo` : reserve pour les competitions Ludo, a brancher apres finalisation du moteur Ludo complet.
+
+Chaque championnat porte aussi un niveau territorial:
+
+- `neighborhood` : quartier ;
+- `city` : ville ;
+- `national` : pays entier.
+
+L'ajout automatique des joueurs respecte ce perimetre: un championnat de quartier ne prend que les joueurs de ce quartier, un championnat de ville prend les joueurs de cette ville, et un championnat national prend les joueurs du pays.
+
+L'admin peut egalement renseigner les prix:
+
+- titre du prix ;
+- montant ;
+- devise ;
+- description.
 
 Fonctions V1 :
 
