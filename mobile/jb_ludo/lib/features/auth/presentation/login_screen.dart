@@ -25,7 +25,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _submit() async {
     setState(() => _loading = true);
-    await ref.read(authStateProvider.notifier).login(_email.text.trim(), _password.text);
+    await ref
+        .read(authStateProvider.notifier)
+        .login(_email.text.trim(), _password.text);
     if (!mounted) return;
     setState(() => _loading = false);
     final user = ref.read(authStateProvider).valueOrNull;
@@ -47,17 +49,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           padding: const EdgeInsets.all(24),
           children: [
             const SizedBox(height: 40),
-            Text('JB Ludo', style: Theme.of(context).textTheme.headlineLarge?.copyWith(fontWeight: FontWeight.bold)),
+            Text('JB Games',
+                style: Theme.of(context)
+                    .textTheme
+                    .headlineLarge
+                    ?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            const Text('Jeu de dames en ligne — 10×10'),
+            const Text('Ludo et damier en ligne'),
             const SizedBox(height: 32),
-            TextField(controller: _email, decoration: const InputDecoration(labelText: 'Email'), keyboardType: TextInputType.emailAddress),
+            TextField(
+                controller: _email,
+                decoration: const InputDecoration(labelText: 'Email'),
+                keyboardType: TextInputType.emailAddress),
             const SizedBox(height: 12),
-            TextField(controller: _password, decoration: const InputDecoration(labelText: 'Mot de passe'), obscureText: true),
+            TextField(
+                controller: _password,
+                decoration: const InputDecoration(labelText: 'Mot de passe'),
+                obscureText: true),
             const SizedBox(height: 24),
             FilledButton(
               onPressed: _loading ? null : _submit,
-              child: _loading ? const CircularProgressIndicator() : const Text('Connexion'),
+              child: _loading
+                  ? const CircularProgressIndicator()
+                  : const Text('Connexion'),
             ),
             TextButton(
               onPressed: () => context.push('/register'),

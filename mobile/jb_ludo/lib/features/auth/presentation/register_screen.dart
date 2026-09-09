@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/network/api_exception.dart';
 import 'auth_provider.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -39,7 +40,24 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     setState(() => _loading = false);
     if (ref.read(authStateProvider).valueOrNull != null) {
       context.go('/profile/setup');
+    } else {
+      final error = ref.read(authStateProvider).error;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_errorMessage(error))),
+      );
     }
+  }
+
+  String _errorMessage(Object? error) {
+    if (error is ApiException) return error.message;
+
+    final text = error?.toString();
+    if (text == null || text.isEmpty) return 'Création du compte impossible';
+
+    return text
+        .replaceFirst('Exception: ', '')
+        .replaceFirst('ApiException: ', '')
+        .replaceFirst('DioException [unknown]: null\nError: ', '');
   }
 
   @override
@@ -49,12 +67,27 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          TextField(controller: _name, decoration: const InputDecoration(labelText: 'Nom')),
-          TextField(controller: _email, decoration: const InputDecoration(labelText: 'Email')),
-          TextField(controller: _phone, decoration: const InputDecoration(labelText: 'Téléphone')),
-          TextField(controller: _password, decoration: const InputDecoration(labelText: 'Mot de passe'), obscureText: true),
+          TextField(
+              controller: _name,
+              decoration: const InputDecoration(labelText: 'Nom')),
+          TextField(
+              controller: _email,
+              decoration: const InputDecoration(labelText: 'Email')),
+          TextField(
+              controller: _phone,
+              decoration: const InputDecoration(labelText: 'Téléphone')),
+          TextField(
+            controller: _password,
+            decoration: const InputDecoration(
+              labelText: 'Mot de passe',
+              helperText: '6 caractères minimum',
+            ),
+            obscureText: true,
+          ),
           const SizedBox(height: 24),
-          FilledButton(onPressed: _loading ? null : _submit, child: const Text('Créer le compte')),
+          FilledButton(
+              onPressed: _loading ? null : _submit,
+              child: const Text('Créer le compte')),
         ],
       ),
     );
