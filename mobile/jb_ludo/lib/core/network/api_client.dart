@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/app_config.dart';
@@ -21,6 +22,8 @@ final dioProvider = Provider<Dio>((ref) {
     ),
   );
 
+  _attachIpAwareHttpAdapter(dio);
+
   dio.interceptors.add(
     InterceptorsWrapper(
       onRequest: (options, handler) async {
@@ -28,6 +31,7 @@ final dioProvider = Provider<Dio>((ref) {
         if (token != null && token.isNotEmpty) {
           options.headers['Authorization'] = 'Bearer $token';
         }
+        _applyVirtualHostIfNeeded(options);
         handler.next(options);
       },
       onError: (error, handler) async {
@@ -48,7 +52,34 @@ final dioProvider = Provider<Dio>((ref) {
   return dio;
 });
 
-/// Sonde publique : `/api/app/features` puis `/up` sur chaque hôte.
+void _attachIpAwareHttpAdapter(Dio dio) {
+  dio.httpClientAdapter = IOHttpClientAdapter(
+    createHttpClient: () {
+      final client = HttpClient();
+      // Connexion HTTPS via IP : le certificat est émis pour *.mami.ga, pas pour l'IP.
+      client.badCertificateCallback = (cert, host, port) {
+        if (host == AppConfig.apiDirectIp) {
+          final subject = cert.subject.toLowerCase();
+          return subject.contains('mami.ga');
+        }
+        return false;
+      };
+      return client;
+    },
+  );
+}
+
+void _applyVirtualHostIfNeeded(RequestOptions options) {
+  final uriHost = options.uri.host;
+  final base = options.baseUrl;
+  if (uriHost == AppConfig.apiDirectIp ||
+      AppConfig.isDirectIpBaseUrl(base) ||
+      options.extra['forceVirtualHost'] == true) {
+    options.headers['Host'] = AppConfig.apiVirtualHost;
+  }
+}
+
+/// Sonde publique : `/api/app/features` puis `/up` sur chaque hôte (+ IP).
 Future<String> probeApiConnectivity() async {
   final bases = <String>{
     AppConfig.apiBaseUrl,
@@ -66,16 +97,26 @@ Future<String> probeApiConnectivity() async {
       validateStatus: (status) => status != null && status < 500,
     ),
   );
+  _attachIpAwareHttpAdapter(client);
 
   final failures = <String>[];
 
   for (final base in bases) {
     try {
-      final features = await client.get<dynamic>(
+      final response = await client.get<dynamic>(
         _absoluteUrl(base, '/app/features'),
+        options: Options(
+          headers: {
+            if (AppConfig.isDirectIpBaseUrl(base))
+              'Host': AppConfig.apiVirtualHost,
+          },
+          extra: {
+            if (AppConfig.isDirectIpBaseUrl(base)) 'forceVirtualHost': true,
+          },
+        ),
       );
-      if (features.statusCode != null && features.statusCode! < 500) {
-        return 'OK via $base (HTTP ${features.statusCode})';
+      if (response.statusCode != null && response.statusCode! < 500) {
+        return 'OK via $base (HTTP ${response.statusCode})';
       }
     } on DioException catch (e) {
       failures.add('$base/app/features → ${_shortNetworkCause(e)}');
@@ -83,7 +124,18 @@ Future<String> probeApiConnectivity() async {
 
     try {
       final origin = AppConfig.originFrom(base);
-      final up = await client.get<dynamic>('$origin/up');
+      final up = await client.get<dynamic>(
+        '$origin/up',
+        options: Options(
+          headers: {
+            if (AppConfig.isDirectIpBaseUrl(base))
+              'Host': AppConfig.apiVirtualHost,
+          },
+          extra: {
+            if (AppConfig.isDirectIpBaseUrl(base)) 'forceVirtualHost': true,
+          },
+        ),
+      );
       if (up.statusCode != null && up.statusCode! < 500) {
         return 'OK via $origin/up (HTTP ${up.statusCode})';
       }
@@ -93,7 +145,7 @@ Future<String> probeApiConnectivity() async {
   }
 
   throw ApiException(
-    'Aucun hôte joignable.\n${failures.take(4).join('\n')}',
+    'Aucun hôte joignable.\n${failures.take(5).join('\n')}',
   );
 }
 
@@ -103,7 +155,6 @@ Future<_FallbackAttempt> _retryWithFallbackHosts(
   final failedBaseUrl = _normalizeBaseUrl(originalError.requestOptions.baseUrl);
   DioException? lastNetworkError = originalError;
 
-  // Dio dédié : évite les collisions baseUrl + URL absolue.
   final fallbackDio = Dio(
     BaseOptions(
       connectTimeout: const Duration(seconds: 20),
@@ -115,6 +166,7 @@ Future<_FallbackAttempt> _retryWithFallbackHosts(
       },
     ),
   );
+  _attachIpAwareHttpAdapter(fallbackDio);
 
   for (final baseUrl in AppConfig.apiFallbackBaseUrls) {
     if (_normalizeBaseUrl(baseUrl) == failedBaseUrl) continue;
@@ -125,6 +177,10 @@ Future<_FallbackAttempt> _retryWithFallbackHosts(
             final normalizedKey = key.toLowerCase();
             return normalizedKey == 'host' || normalizedKey == 'content-length';
           });
+
+    if (AppConfig.isDirectIpBaseUrl(baseUrl)) {
+      headers['Host'] = AppConfig.apiVirtualHost;
+    }
 
     try {
       final response = await fallbackDio.request<dynamic>(
@@ -143,6 +199,7 @@ Future<_FallbackAttempt> _retryWithFallbackHosts(
           extra: {
             ...originalError.requestOptions.extra,
             'skipNetworkFallback': true,
+            if (AppConfig.isDirectIpBaseUrl(baseUrl)) 'forceVirtualHost': true,
           },
         ),
         cancelToken: originalError.requestOptions.cancelToken,
@@ -176,7 +233,7 @@ void _rejectWithApiException(
   var message = error.message ?? 'Erreur réseau';
   if (error.response == null) {
     message =
-        'Impossible de joindre ${error.requestOptions.uri}.\n${_shortNetworkCause(error)}';
+        'Impossible de joindre ${error.requestOptions.uri}.\n${_shortNetworkCause(error)}\nAstuce : installez JB Games 1.0.6+ (contournement DNS) ou désactivez le DNS privé.';
   }
   if (data is Map && data['message'] is String) {
     message = data['message'] as String;
@@ -206,7 +263,7 @@ String _shortNetworkCause(DioException error) {
     final os = underlying.osError;
     if (underlying.message.contains('Failed host lookup') ||
         (os?.message.toLowerCase().contains('name or service') ?? false)) {
-      return 'DNS : domaine introuvable (Failed host lookup). Essayez Wi‑Fi ou autre DNS.';
+      return 'DNS : domaine introuvable (Failed host lookup).';
     }
     if (os?.errorCode == 111 ||
         underlying.message.toLowerCase().contains('connection refused')) {
@@ -219,7 +276,7 @@ String _shortNetworkCause(DioException error) {
     return 'Socket : ${underlying.message}';
   }
   if (underlying is HandshakeException || underlying is TlsException) {
-    return 'TLS/certificat refusé par Android. Ouvrez https://api.mami.ga dans Chrome sur le téléphone pour comparer.';
+    return 'TLS/certificat refusé par Android.';
   }
   if (underlying is CertificateException) {
     return 'Certificat SSL non reconnu sur cet appareil.';

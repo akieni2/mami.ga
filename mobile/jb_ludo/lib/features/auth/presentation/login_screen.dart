@@ -101,7 +101,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             const Text('Ludo et damier en ligne'),
             const SizedBox(height: 6),
             Text(
-              AppConfig.apiBaseUrl,
+              'v${AppConfig.appVersion} · ${AppConfig.apiBaseUrl}',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 32),

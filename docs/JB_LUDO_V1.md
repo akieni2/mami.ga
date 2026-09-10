@@ -111,13 +111,13 @@ Publication VPS :
 
 ```bash
 # depuis le PC (après build)
-scp jb-games-1.0.5.apk root@63.142.241.105:/var/www/mami.ga/public/apk/
-ssh root@63.142.241.105 'ln -sfn jb-games-1.0.5.apk /var/www/mami.ga/public/apk/jb-games-latest.apk'
+scp jb-games-1.0.6.apk root@63.142.241.105:/var/www/mami.ga/public/apk/
+ssh root@63.142.241.105 'ln -sfn jb-games-1.0.6.apk /var/www/mami.ga/public/apk/jb-games-latest.apk'
 ```
 
-Téléchargement : `https://admin.mami.ga/apk/jb-games-1.0.5.apk`
+Téléchargement : `https://admin.mami.ga/apk/jb-games-1.0.6.apk`
 
-Sur l’écran login, l’URL affichée doit être `https://api.mami.ga/api`. Bouton **Tester la connexion API** pour diagnostiquer DNS/TLS.
+L’APK 1.0.6+ utilise l’**IP VPS** (`63.142.241.105`) pour contourner les DNS mobiles qui bloquent `api.mami.ga` / `admin.mami.ga`. Sur l’écran login : `v1.0.6 · https://63.142.241.105/api`.
 
 Écrans : login, profil, choix du jeu, accueil Damier (rapide / amicale / classement / historique), plateau 10×10, validation de coup.
 
