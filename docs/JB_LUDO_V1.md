@@ -104,7 +104,20 @@ L'APK affiche d'abord un choix de jeu:
 cd mobile/jb_ludo
 flutter pub get
 flutter build apk --release --dart-define=API_BASE_URL=https://api.mami.ga/api
+cp build/app/outputs/flutter-apk/app-release.apk jb-games-1.0.5.apk
 ```
+
+Publication VPS :
+
+```bash
+# depuis le PC (après build)
+scp jb-games-1.0.5.apk root@63.142.241.105:/var/www/mami.ga/public/apk/
+ssh root@63.142.241.105 'ln -sfn jb-games-1.0.5.apk /var/www/mami.ga/public/apk/jb-games-latest.apk'
+```
+
+Téléchargement : `https://admin.mami.ga/apk/jb-games-1.0.5.apk`
+
+Sur l’écran login, l’URL affichée doit être `https://api.mami.ga/api`. Bouton **Tester la connexion API** pour diagnostiquer DNS/TLS.
 
 Écrans : login, profil, choix du jeu, accueil Damier (rapide / amicale / classement / historique), plateau 10×10, validation de coup.
 

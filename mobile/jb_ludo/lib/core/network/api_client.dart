@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -31,7 +33,7 @@ final dioProvider = Provider<Dio>((ref) {
       onError: (error, handler) async {
         if (error.response == null &&
             error.requestOptions.extra['skipNetworkFallback'] != true) {
-          final fallbackAttempt = await _retryWithFallbackHosts(dio, error);
+          final fallbackAttempt = await _retryWithFallbackHosts(error);
           if (fallbackAttempt.response != null) {
             handler.resolve(fallbackAttempt.response!);
             return;
@@ -46,12 +48,73 @@ final dioProvider = Provider<Dio>((ref) {
   return dio;
 });
 
+/// Sonde publique : `/api/app/features` puis `/up` sur chaque hôte.
+Future<String> probeApiConnectivity() async {
+  final bases = <String>{
+    AppConfig.apiBaseUrl,
+    ...AppConfig.apiFallbackBaseUrls,
+  };
+
+  final client = Dio(
+    BaseOptions(
+      connectTimeout: const Duration(seconds: 12),
+      receiveTimeout: const Duration(seconds: 12),
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'JB-Games/1.0 Android',
+      },
+      validateStatus: (status) => status != null && status < 500,
+    ),
+  );
+
+  final failures = <String>[];
+
+  for (final base in bases) {
+    try {
+      final features = await client.get<dynamic>(
+        _absoluteUrl(base, '/app/features'),
+      );
+      if (features.statusCode != null && features.statusCode! < 500) {
+        return 'OK via $base (HTTP ${features.statusCode})';
+      }
+    } on DioException catch (e) {
+      failures.add('$base/app/features → ${_shortNetworkCause(e)}');
+    }
+
+    try {
+      final origin = AppConfig.originFrom(base);
+      final up = await client.get<dynamic>('$origin/up');
+      if (up.statusCode != null && up.statusCode! < 500) {
+        return 'OK via $origin/up (HTTP ${up.statusCode})';
+      }
+    } on DioException catch (e) {
+      failures.add('${AppConfig.originFrom(base)}/up → ${_shortNetworkCause(e)}');
+    }
+  }
+
+  throw ApiException(
+    'Aucun hôte joignable.\n${failures.take(4).join('\n')}',
+  );
+}
+
 Future<_FallbackAttempt> _retryWithFallbackHosts(
-  Dio dio,
   DioException originalError,
 ) async {
   final failedBaseUrl = _normalizeBaseUrl(originalError.requestOptions.baseUrl);
   DioException? lastNetworkError = originalError;
+
+  // Dio dédié : évite les collisions baseUrl + URL absolue.
+  final fallbackDio = Dio(
+    BaseOptions(
+      connectTimeout: const Duration(seconds: 20),
+      receiveTimeout: const Duration(seconds: 20),
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'User-Agent': 'JB-Games/1.0 Android',
+      },
+    ),
+  );
 
   for (final baseUrl in AppConfig.apiFallbackBaseUrls) {
     if (_normalizeBaseUrl(baseUrl) == failedBaseUrl) continue;
@@ -64,7 +127,7 @@ Future<_FallbackAttempt> _retryWithFallbackHosts(
           });
 
     try {
-      final response = await dio.request<dynamic>(
+      final response = await fallbackDio.request<dynamic>(
         _absoluteUrl(baseUrl, originalError.requestOptions.path),
         data: originalError.requestOptions.data,
         queryParameters: originalError.requestOptions.queryParameters,
@@ -113,7 +176,7 @@ void _rejectWithApiException(
   var message = error.message ?? 'Erreur réseau';
   if (error.response == null) {
     message =
-        'Impossible de joindre ${error.requestOptions.uri}. Vérifiez Internet, DNS, VPN/DNS privé ou réseau mobile.';
+        'Impossible de joindre ${error.requestOptions.uri}.\n${_shortNetworkCause(error)}';
   }
   if (data is Map && data['message'] is String) {
     message = data['message'] as String;
@@ -135,6 +198,40 @@ void _rejectWithApiException(
       error: ApiException(message, statusCode: error.response?.statusCode),
     ),
   );
+}
+
+String _shortNetworkCause(DioException error) {
+  final underlying = error.error;
+  if (underlying is SocketException) {
+    final os = underlying.osError;
+    if (underlying.message.contains('Failed host lookup') ||
+        (os?.message.toLowerCase().contains('name or service') ?? false)) {
+      return 'DNS : domaine introuvable (Failed host lookup). Essayez Wi‑Fi ou autre DNS.';
+    }
+    if (os?.errorCode == 111 ||
+        underlying.message.toLowerCase().contains('connection refused')) {
+      return 'Connexion refusée par le serveur.';
+    }
+    if (os?.errorCode == 110 ||
+        underlying.message.toLowerCase().contains('timed out')) {
+      return 'Délai dépassé (réseau lent ou filtré).';
+    }
+    return 'Socket : ${underlying.message}';
+  }
+  if (underlying is HandshakeException || underlying is TlsException) {
+    return 'TLS/certificat refusé par Android. Ouvrez https://api.mami.ga dans Chrome sur le téléphone pour comparer.';
+  }
+  if (underlying is CertificateException) {
+    return 'Certificat SSL non reconnu sur cet appareil.';
+  }
+  return switch (error.type) {
+    DioExceptionType.connectionTimeout => 'Timeout connexion',
+    DioExceptionType.sendTimeout => 'Timeout envoi',
+    DioExceptionType.receiveTimeout => 'Timeout réception',
+    DioExceptionType.connectionError =>
+      'Erreur connexion (${underlying ?? error.message})',
+    _ => underlying?.toString() ?? error.message ?? error.type.name,
+  };
 }
 
 String _absoluteUrl(String baseUrl, String path) {

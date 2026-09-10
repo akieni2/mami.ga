@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/config/app_config.dart';
+import '../../../core/network/api_client.dart';
 import '../../../core/network/api_exception.dart';
 import '../../auth/presentation/auth_provider.dart';
 
@@ -18,6 +19,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   bool _loading = false;
+  bool _probing = false;
 
   @override
   void dispose() {
@@ -41,6 +43,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(_errorMessage(err))),
       );
+    }
+  }
+
+  Future<void> _probe() async {
+    setState(() => _probing = true);
+    try {
+      final result = await probeApiConnectivity();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_errorMessage(e))),
+      );
+    } finally {
+      if (mounted) setState(() => _probing = false);
     }
   }
 
@@ -100,6 +120,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: _loading
                   ? const CircularProgressIndicator()
                   : const Text('Connexion'),
+            ),
+            TextButton(
+              onPressed: (_loading || _probing) ? null : _probe,
+              child: Text(_probing ? 'Test en cours…' : 'Tester la connexion API'),
             ),
             TextButton(
               onPressed: () => context.push('/register'),
