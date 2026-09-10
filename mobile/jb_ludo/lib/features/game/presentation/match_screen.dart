@@ -1,8 +1,10 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/network/api_exception.dart';
 import '../data/jb_ludo_repository.dart';
 import 'checkers_board.dart';
 import 'ludo_board.dart';
@@ -16,7 +18,8 @@ class MatchScreen extends ConsumerStatefulWidget {
   ConsumerState<MatchScreen> createState() => _MatchScreenState();
 }
 
-class _MatchScreenState extends ConsumerState<MatchScreen> with WidgetsBindingObserver {
+class _MatchScreenState extends ConsumerState<MatchScreen>
+    with WidgetsBindingObserver {
   Map<String, dynamic>? _match;
   List<int>? _selected;
   final List<Map<String, int>> _path = [];
@@ -28,7 +31,8 @@ class _MatchScreenState extends ConsumerState<MatchScreen> with WidgetsBindingOb
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _refresh();
-    _poll = Timer.periodic(const Duration(seconds: 3), (_) => _refresh(silent: true));
+    _poll = Timer.periodic(
+        const Duration(seconds: 3), (_) => _refresh(silent: true));
   }
 
   @override
@@ -50,11 +54,13 @@ class _MatchScreenState extends ConsumerState<MatchScreen> with WidgetsBindingOb
 
   Future<void> _refresh({bool silent = false}) async {
     try {
-      final match = await ref.read(jbLudoRepositoryProvider).fetchMatch(widget.matchId);
+      final match =
+          await ref.read(jbLudoRepositoryProvider).fetchMatch(widget.matchId);
       if (mounted) setState(() => _match = match);
     } catch (_) {
       if (!silent && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Impossible de charger la partie')));
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Impossible de charger la partie')));
       }
     }
   }
@@ -82,7 +88,9 @@ class _MatchScreenState extends ConsumerState<MatchScreen> with WidgetsBindingOb
     if (_path.length < 2) return;
     setState(() => _busy = true);
     try {
-      final updated = await ref.read(jbLudoRepositoryProvider).playMove(widget.matchId, List.from(_path));
+      final updated = await ref
+          .read(jbLudoRepositoryProvider)
+          .playMove(widget.matchId, List.from(_path));
       if (mounted) {
         setState(() {
           _match = updated;
@@ -92,7 +100,7 @@ class _MatchScreenState extends ConsumerState<MatchScreen> with WidgetsBindingOb
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+        _showError(e);
         setState(() {
           _selected = null;
           _path.clear();
@@ -107,10 +115,12 @@ class _MatchScreenState extends ConsumerState<MatchScreen> with WidgetsBindingOb
     if (_busy) return;
     setState(() => _busy = true);
     try {
-      final updated = await ref.read(jbLudoRepositoryProvider).playLudoAction(widget.matchId, {'action': 'roll'});
+      final updated = await ref
+          .read(jbLudoRepositoryProvider)
+          .playLudoAction(widget.matchId, {'action': 'roll'});
       if (mounted) setState(() => _match = updated);
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+      if (mounted) _showError(e);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -120,16 +130,64 @@ class _MatchScreenState extends ConsumerState<MatchScreen> with WidgetsBindingOb
     if (_busy) return;
     setState(() => _busy = true);
     try {
-      final updated = await ref.read(jbLudoRepositoryProvider).playLudoAction(widget.matchId, {
+      final updated = await ref
+          .read(jbLudoRepositoryProvider)
+          .playLudoAction(widget.matchId, {
         'action': 'move',
         'piece': piece,
       });
       if (mounted) setState(() => _match = updated);
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+      if (mounted) _showError(e);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  void _showError(Object error) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(_errorMessage(error))),
+    );
+  }
+
+  String _errorMessage(Object error) {
+    if (error is DioException && error.error is ApiException) {
+      return (error.error as ApiException).message;
+    }
+
+    if (error is ApiException) return error.message;
+
+    return error
+        .toString()
+        .replaceFirst('Exception: ', '')
+        .replaceFirst('ApiException: ', '')
+        .replaceFirst('DioException [bad response]: null\nError: ', '')
+        .replaceFirst('DioException [unknown]: null\nError: ', '');
+  }
+
+  List<int> _legalLudoPieces(Map<String, dynamic> board, String? myColor) {
+    if (myColor == null ||
+        board['turn'] != myColor ||
+        board['must_roll'] == true ||
+        board['dice'] == null) {
+      return [];
+    }
+
+    final dice = (board['dice'] as num?)?.toInt() ?? 0;
+    final players = Map<String, dynamic>.from((board['players'] as Map?) ?? {});
+    final mine = Map<String, dynamic>.from((players[myColor] as Map?) ?? {});
+    final pieces = List<dynamic>.from((mine['pieces'] as List?) ?? const []);
+    final legal = <int>[];
+
+    for (var i = 0; i < pieces.length && i < 4; i++) {
+      final position = (pieces[i] as num?)?.toInt() ?? -1;
+      if (position < 0 && dice != 6) continue;
+      if (position >= 57) continue;
+      if (position >= 0 && position + dice > 57) continue;
+      legal.add(i);
+    }
+
+    return legal;
   }
 
   Future<void> _resign() async {
@@ -139,13 +197,18 @@ class _MatchScreenState extends ConsumerState<MatchScreen> with WidgetsBindingOb
         title: const Text('Abandonner ?'),
         content: const Text('Vous perdrez la partie (−5 points).'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Abandonner')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Annuler')),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Abandonner')),
         ],
       ),
     );
     if (ok == true) {
-      final updated = await ref.read(jbLudoRepositoryProvider).resign(widget.matchId);
+      final updated =
+          await ref.read(jbLudoRepositoryProvider).resign(widget.matchId);
       if (mounted) setState(() => _match = updated);
     }
   }
@@ -158,21 +221,34 @@ class _MatchScreenState extends ConsumerState<MatchScreen> with WidgetsBindingOb
 
     final gameType = _match!['game_type']?.toString() ?? 'damier';
     final status = _match!['status']?.toString() ?? '';
-    final turn = _match!['turn_color']?.toString() ?? '';
+    final board =
+        Map<String, dynamic>.from((_match!['board_state'] as Map?) ?? {});
+    final ludoTurn = board['turn']?.toString();
+    final turn = gameType == 'ludo'
+        ? (ludoTurn ?? '')
+        : (_match!['turn_color']?.toString() ?? '');
+    final myColor = _match!['my_color']?.toString();
+    final legalLudoPieces =
+        gameType == 'ludo' ? _legalLudoPieces(board, myColor) : <int>[];
+    final mustRoll = board['must_roll'] != false;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(_match!['reference']?.toString() ?? 'Partie'),
         actions: [
           if (status != 'finished')
-            TextButton(onPressed: _resign, child: const Text('Abandon', style: TextStyle(color: Colors.white))),
+            TextButton(
+                onPressed: _resign,
+                child: const Text('Abandon',
+                    style: TextStyle(color: Colors.white))),
         ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           Text('Statut : $status · Tour : $turn'),
-          Text('Temps B/N : ${_match!['white_time_left']}s / ${_match!['black_time_left']}s'),
+          Text(
+              'Temps B/N : ${_match!['white_time_left']}s / ${_match!['black_time_left']}s'),
           if (status == 'grace')
             Text(
               'Reconnexion jusqu\'à ${_match!['grace_until']}',
@@ -181,7 +257,9 @@ class _MatchScreenState extends ConsumerState<MatchScreen> with WidgetsBindingOb
           const SizedBox(height: 12),
           if (gameType == 'ludo')
             LudoBoard(
-              board: Map<String, dynamic>.from((_match!['board_state'] as Map?) ?? {}),
+              board: board,
+              myColor: myColor,
+              legalPieces: legalLudoPieces,
               onPieceTap: _moveLudoPiece,
             )
           else
@@ -193,14 +271,20 @@ class _MatchScreenState extends ConsumerState<MatchScreen> with WidgetsBindingOb
           const SizedBox(height: 12),
           if (status != 'finished' && gameType == 'ludo') ...[
             FilledButton.icon(
-              onPressed: _busy ? null : _rollLudoDice,
+              onPressed:
+                  _busy || myColor != turn || !mustRoll ? null : _rollLudoDice,
               icon: const Icon(Icons.casino_outlined),
               label: const Text('Lancer le de'),
             ),
             const SizedBox(height: 8),
-            const Text('Lancez le de, puis touchez un pion. Le serveur verifie la couleur du joueur et le tour.'),
+            Text(
+              legalLudoPieces.isEmpty && !mustRoll && myColor == turn
+                  ? 'Aucun de vos pions ne peut jouer ce de. Le tour passera automatiquement si nécessaire.'
+                  : 'Votre couleur : ${myColor ?? '-'} · Lancez le de, puis touchez seulement un pion actif.',
+            ),
           ] else if (status != 'finished') ...[
-            Text('Chemin : ${_path.map((p) => '${p['r']},${p['c']}').join(' → ')}'),
+            Text(
+                'Chemin : ${_path.map((p) => '${p['r']},${p['c']}').join(' → ')}'),
             Row(
               children: [
                 Expanded(

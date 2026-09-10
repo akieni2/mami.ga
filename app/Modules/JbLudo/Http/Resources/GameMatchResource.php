@@ -4,6 +4,8 @@ namespace App\Modules\JbLudo\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Modules\JbLudo\Enums\GameType;
+use App\Modules\JbLudo\Models\PlayerProfile;
 
 /** @mixin \App\Modules\JbLudo\Models\GameMatch */
 class GameMatchResource extends JsonResource
@@ -13,11 +15,20 @@ class GameMatchResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $profile = $request->user() === null
+            ? null
+            : PlayerProfile::query()->where('user_id', $request->user()->id)->first();
+
         return [
             'id' => $this->id,
             'reference' => $this->reference,
             'game_type' => $this->game_type->value,
             'mode' => $this->mode->value,
+            'my_color' => $profile === null ? null : (
+                $this->game_type === GameType::Ludo
+                    ? $this->ludoColor($profile)
+                    : $this->playerColor($profile)?->value
+            ),
             'status' => $this->status->value,
             'turn_color' => $this->turn_color->value,
             'board_state' => $this->board_state,
