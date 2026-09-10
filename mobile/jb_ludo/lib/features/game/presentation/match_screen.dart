@@ -246,43 +246,56 @@ class _MatchScreenState extends ConsumerState<MatchScreen>
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text('Statut : $status · Tour : $turn'),
           Text(
-              'Temps B/N : ${_match!['white_time_left']}s / ${_match!['black_time_left']}s'),
+            gameType == 'ludo'
+                ? 'Statut : $status'
+                : 'Statut : $status · Tour : $turn',
+          ),
+          if (gameType != 'ludo')
+            Text(
+                'Temps B/N : ${_match!['white_time_left']}s / ${_match!['black_time_left']}s'),
           if (status == 'grace')
             Text(
               'Reconnexion jusqu\'à ${_match!['grace_until']}',
               style: const TextStyle(color: Colors.orange),
             ),
           const SizedBox(height: 12),
-          if (gameType == 'ludo')
+          if (gameType == 'ludo') ...[
             LudoBoard(
               board: board,
               myColor: myColor,
               legalPieces: legalLudoPieces,
               onPieceTap: _moveLudoPiece,
-            )
-          else
+            ),
+            const SizedBox(height: 12),
+            LudoSidePanel(
+              board: board,
+              myColor: myColor,
+              canRoll: status != 'finished' &&
+                  myColor != null &&
+                  myColor == turn &&
+                  mustRoll,
+              onRoll: _rollLudoDice,
+              busy: _busy,
+            ),
+            if (status != 'finished') ...[
+              const SizedBox(height: 8),
+              Text(
+                legalLudoPieces.isEmpty && !mustRoll && myColor == turn
+                    ? 'Aucun de vos pions ne peut jouer ce dé.'
+                    : myColor == turn
+                        ? 'Lancez le dé (il faut un 6 pour sortir un pion), puis touchez un pion surligné.'
+                        : 'Les coups de l\'IA apparaissent dans l\'horloge ci-dessus.',
+              ),
+            ],
+          ] else
             CheckersBoard(
               board: (_match!['board_state'] as List?) ?? [],
               selected: _selected,
               onTapSquare: _onTap,
             ),
           const SizedBox(height: 12),
-          if (status != 'finished' && gameType == 'ludo') ...[
-            FilledButton.icon(
-              onPressed:
-                  _busy || myColor != turn || !mustRoll ? null : _rollLudoDice,
-              icon: const Icon(Icons.casino_outlined),
-              label: const Text('Lancer le de'),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              legalLudoPieces.isEmpty && !mustRoll && myColor == turn
-                  ? 'Aucun de vos pions ne peut jouer ce de. Le tour passera automatiquement si nécessaire.'
-                  : 'Votre couleur : ${myColor ?? '-'} · Lancez le de, puis touchez seulement un pion actif.',
-            ),
-          ] else if (status != 'finished') ...[
+          if (status != 'finished' && gameType != 'ludo') ...[
             Text(
                 'Chemin : ${_path.map((p) => '${p['r']},${p['c']}').join(' → ')}'),
             Row(
@@ -305,7 +318,7 @@ class _MatchScreenState extends ConsumerState<MatchScreen>
                 ),
               ],
             ),
-          ] else
+          ] else if (status == 'finished')
             Text(
               'Résultat : ${_match!['result'] ?? '—'} (${_match!['result_reason'] ?? ''})',
               style: Theme.of(context).textTheme.titleMedium,

@@ -37,6 +37,7 @@ class LudoEngineService
             'dice' => null,
             'must_roll' => true,
             'winner' => null,
+            'log' => [],
         ];
     }
 
@@ -56,12 +57,14 @@ class LudoEngineService
         $dice = random_int(1, 6);
         $board['dice'] = $dice;
         $board['must_roll'] = false;
+        $this->pushLog($board, $color, 'roll', $dice);
 
         if ($this->legalPieces($board, $color) === []) {
             $board['must_roll'] = true;
             $board['dice'] = null;
             $board['skip_turn'] = true;
             $board['turn'] = $this->nextColor($color);
+            $this->pushLog($board, $color, 'skip', $dice);
         }
 
         return $board;
@@ -95,12 +98,15 @@ class LudoEngineService
         }
 
         $current = (int) $pieces[$pieceIndex];
+        $from = $current;
         $pieces[$pieceIndex] = $current < 0 ? 0 : $current + $dice;
+        $to = (int) $pieces[$pieceIndex];
         $board['players'][$color]['pieces'] = $pieces;
         $board = $this->captureOpponents($board, $color, $pieceIndex);
         $board['dice'] = null;
         $board['must_roll'] = true;
         unset($board['skip_turn']);
+        $this->pushLog($board, $color, 'move', $dice, $pieceIndex, $from, $to);
 
         $winner = $this->finished($pieces) ? $color : null;
         $board['winner'] = $winner;
@@ -113,6 +119,31 @@ class LudoEngineService
             'result' => $winner !== null ? $winner.'_win' : null,
             'extra_turn' => $dice === 6 && $winner === null,
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $board
+     */
+    private function pushLog(
+        array &$board,
+        string $color,
+        string $type,
+        ?int $dice = null,
+        ?int $piece = null,
+        ?int $from = null,
+        ?int $to = null,
+    ): void {
+        $log = is_array($board['log'] ?? null) ? $board['log'] : [];
+        $log[] = [
+            'color' => $color,
+            'type' => $type,
+            'dice' => $dice,
+            'piece' => $piece,
+            'from' => $from,
+            'to' => $to,
+            't' => time(),
+        ];
+        $board['log'] = array_values(array_slice($log, -24));
     }
 
     /**
