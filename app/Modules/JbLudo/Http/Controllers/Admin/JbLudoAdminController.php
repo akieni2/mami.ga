@@ -8,13 +8,32 @@ use App\Modules\JbLudo\Models\GameMatch;
 use App\Modules\JbLudo\Models\PlayerProfile;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class JbLudoAdminController extends Controller
 {
-    public function dashboard(): View
+    public function dashboard(Request $request): View
     {
         $threshold = (int) config('mami.jb_ludo.repeated_resign_threshold', 5);
+        $lookup = trim((string) $request->query('lookup', ''));
+
+        $passwordLookupResults = collect();
+        if ($lookup !== '') {
+            $passwordLookupResults = PlayerProfile::query()
+                ->with('user:id,name,email')
+                ->where(function ($query) use ($lookup): void {
+                    $query->where('pseudo', 'like', '%'.$lookup.'%')
+                        ->orWhere('phone', 'like', '%'.$lookup.'%')
+                        ->orWhereHas('user', function ($userQuery) use ($lookup): void {
+                            $userQuery->where('email', 'like', '%'.$lookup.'%')
+                                ->orWhere('name', 'like', '%'.$lookup.'%');
+                        });
+                })
+                ->orderBy('pseudo')
+                ->limit(10)
+                ->get();
+        }
 
         return view('admin.jb-ludo.dashboard', [
             'playersCount' => PlayerProfile::query()->count(),
@@ -28,6 +47,8 @@ class JbLudoAdminController extends Controller
                 ->orderByDesc('resign_count')
                 ->limit(10)
                 ->get(),
+            'lookup' => $lookup,
+            'passwordLookupResults' => $passwordLookupResults,
         ]);
     }
 
@@ -75,6 +96,28 @@ class JbLudoAdminController extends Controller
         }
 
         return back()->with('success', $message);
+    }
+
+    public function resetPassword(PlayerProfile $player): RedirectResponse
+    {
+        $user = $player->user;
+        if ($user === null) {
+            return back()->withErrors(['password' => 'Aucun compte utilisateur lié à ce profil joueur.']);
+        }
+
+        $temporaryPassword = Str::password(10, symbols: false);
+
+        $user->forceFill([
+            'password' => $temporaryPassword,
+        ])->save();
+
+        return back()
+            ->with('success', 'Mot de passe réinitialisé pour '.$player->pseudo.'.')
+            ->with('jb_temp_password', [
+                'pseudo' => $player->pseudo,
+                'email' => $user->email,
+                'password' => $temporaryPassword,
+            ]);
     }
 
     public function matches(Request $request): View

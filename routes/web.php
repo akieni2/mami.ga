@@ -100,6 +100,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         Route::get('/', [\App\Modules\JbLudo\Http\Controllers\Admin\JbLudoAdminController::class, 'dashboard'])->name('dashboard');
         Route::get('/players', [\App\Modules\JbLudo\Http\Controllers\Admin\JbLudoAdminController::class, 'players'])->name('players');
         Route::post('/players/{player}/toggle', [\App\Modules\JbLudo\Http\Controllers\Admin\JbLudoAdminController::class, 'toggleSuspend'])->name('players.toggle');
+        Route::post('/players/{player}/reset-password', [\App\Modules\JbLudo\Http\Controllers\Admin\JbLudoAdminController::class, 'resetPassword'])->name('players.reset-password');
         Route::get('/matches', [\App\Modules\JbLudo\Http\Controllers\Admin\JbLudoAdminController::class, 'matches'])->name('matches');
         Route::get('/matches/{match}', [\App\Modules\JbLudo\Http\Controllers\Admin\JbLudoAdminController::class, 'showMatch'])->name('matches.show');
         Route::get('/championships', [\App\Modules\JbLudo\Http\Controllers\Admin\JbLudoChampionshipAdminController::class, 'index'])->name('championships.index');
