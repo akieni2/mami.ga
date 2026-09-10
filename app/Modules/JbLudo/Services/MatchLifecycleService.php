@@ -510,8 +510,9 @@ class MatchLifecycleService
     }
 
     /**
-     * Joue exactement un siège IA (y compris relances sur 6), puis s'arrête
-     * pour laisser le client afficher le tour suivant.
+     * Avance l'IA d'une étape visible :
+     * 1) lancer le dé (le client affiche le résultat)
+     * 2) jouer le pion (appel suivant)
      */
     private function playOneSoloLudoSeat(GameMatch $match): void
     {
@@ -522,60 +523,117 @@ class MatchLifecycleService
 
         $board = $match->board_state ?? [];
         $humanColors = $this->soloHumanColors($match);
-        $seatColor = (string) ($board['turn'] ?? 'red');
-        if (in_array($seatColor, $humanColors, true)) {
+        $turn = (string) ($board['turn'] ?? 'red');
+        if (in_array($turn, $humanColors, true)) {
             return;
         }
 
         $difficulty = (string) (($board['_ai']['difficulty'] ?? 'medium'));
+        $mustRoll = (($board['must_roll'] ?? true) === true) || ! isset($board['dice']);
 
-        for ($guard = 0; $guard < 8; $guard++) {
-            $match = GameMatch::query()->lockForUpdate()->findOrFail($match->id);
-            if ($match->status !== MatchStatus::InProgress) {
-                return;
-            }
-
-            $board = $match->board_state ?? [];
-            $turn = (string) ($board['turn'] ?? 'red');
-            if ($turn !== $seatColor) {
-                return;
-            }
-
+        if ($mustRoll) {
             $board = $this->ludo->rollDice($board, $turn);
-            $piece = $this->ludoAi->choosePiece($board, $turn, $difficulty);
+            $rolledFor = $turn;
+            $diceValue = isset($board['dice']) ? (int) $board['dice'] : null;
+            $stillSameTurn = ((string) ($board['turn'] ?? '')) === $rolledFor;
+            $pendingPiece = null;
 
-            if ($piece === null) {
-                $seq = $match->move_count + 1;
-                $match->update(['board_state' => $board, 'move_count' => $seq, 'turn_started_at' => now()]);
-                $this->recordLudoAiMove($match, $seq, $turn, [['action' => 'roll']]);
-
-                return;
+            if ($stillSameTurn && $diceValue !== null) {
+                $pendingPiece = $this->ludoAi->choosePiece($board, $rolledFor, $difficulty);
             }
 
-            $diceBefore = (int) ($board['dice'] ?? 0);
-            $result = $this->ludo->applyMove($board, $turn, $piece);
+            $board['_ai'] = array_merge(is_array($board['_ai'] ?? null) ? $board['_ai'] : [], [
+                'phase' => $stillSameTurn && $diceValue !== null ? 'show_dice' : 'skipped',
+                'reveal' => [
+                    'color' => $rolledFor,
+                    'dice' => $diceValue ?? $this->lastLoggedDice($board, $rolledFor),
+                    'skipped' => ! ($stillSameTurn && $diceValue !== null),
+                    'pending_piece' => $pendingPiece,
+                ],
+                'pending_piece' => $pendingPiece,
+            ]);
+
             $seq = $match->move_count + 1;
             $match->update([
-                'board_state' => $result['board'],
+                'board_state' => $board,
                 'move_count' => $seq,
                 'turn_started_at' => now(),
             ]);
-            $this->recordLudoAiMove($match, $seq, $turn, [
-                ['action' => 'roll'],
-                ['action' => 'move', 'piece' => $piece, 'dice' => $diceBefore],
-            ]);
+            $this->recordLudoAiMove($match, $seq, $rolledFor, [['action' => 'roll', 'dice' => $board['_ai']['reveal']['dice']]]);
 
-            if ($result['result'] !== null) {
-                $this->finish($match->fresh(['whitePlayer', 'blackPlayer']), MatchResult::from($result['result']), 'normal');
+            return;
+        }
 
-                return;
-            }
+        $pendingRaw = $board['_ai']['pending_piece'] ?? null;
+        $piece = is_numeric($pendingRaw)
+            ? (int) $pendingRaw
+            : $this->ludoAi->choosePiece($board, $turn, $difficulty);
 
-            // Relance uniquement si le même siège garde le tour (dé 6).
-            if (! ($result['extra_turn'] ?? false)) {
-                return;
+        if ($piece === null) {
+            // Sécurité : aucun coup possible malgré un dé (état incohérent) → passer.
+            $board['must_roll'] = true;
+            $board['dice'] = null;
+            $board['turn'] = $this->nextLudoColor($turn);
+            $board['_ai']['phase'] = 'skipped';
+            $seq = $match->move_count + 1;
+            $match->update(['board_state' => $board, 'move_count' => $seq, 'turn_started_at' => now()]);
+            $this->recordLudoAiMove($match, $seq, $turn, [['action' => 'skip']]);
+
+            return;
+        }
+
+        $diceBefore = (int) ($board['dice'] ?? 0);
+        $result = $this->ludo->applyMove($board, $turn, $piece);
+        $boardAfter = $result['board'];
+        $boardAfter['_ai'] = array_merge(is_array($boardAfter['_ai'] ?? null) ? $boardAfter['_ai'] : [], [
+            'phase' => ($result['extra_turn'] ?? false) ? 'extra_turn' : 'moved',
+            'reveal' => [
+                'color' => $turn,
+                'dice' => $diceBefore,
+                'skipped' => false,
+                'pending_piece' => null,
+                'moved_piece' => $piece,
+            ],
+            'pending_piece' => null,
+        ]);
+
+        $seq = $match->move_count + 1;
+        $match->update([
+            'board_state' => $boardAfter,
+            'move_count' => $seq,
+            'turn_started_at' => now(),
+        ]);
+        $this->recordLudoAiMove($match, $seq, $turn, [
+            ['action' => 'move', 'piece' => $piece, 'dice' => $diceBefore],
+        ]);
+
+        if ($result['result'] !== null) {
+            $this->finish($match->fresh(['whitePlayer', 'blackPlayer']), MatchResult::from($result['result']), 'normal');
+        }
+    }
+
+    private function nextLudoColor(string $color): string
+    {
+        $colors = ['red', 'blue', 'green', 'yellow'];
+        $index = array_search($color, $colors, true);
+
+        return $colors[((int) $index + 1) % count($colors)];
+    }
+
+    /**
+     * @param  array<string, mixed>  $board
+     */
+    private function lastLoggedDice(array $board, string $color): ?int
+    {
+        $log = is_array($board['log'] ?? null) ? $board['log'] : [];
+        for ($i = count($log) - 1; $i >= 0; $i--) {
+            $entry = $log[$i];
+            if (($entry['color'] ?? null) === $color && isset($entry['dice'])) {
+                return (int) $entry['dice'];
             }
         }
+
+        return null;
     }
 
     /**

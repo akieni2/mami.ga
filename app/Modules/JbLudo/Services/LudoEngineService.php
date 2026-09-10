@@ -223,7 +223,7 @@ class LudoEngineService
         }
 
         $global = $this->globalTrackPosition($color, $position);
-        if (in_array($global, self::SAFE_GLOBAL_SQUARES, true)) {
+        if ($this->isSafeSquare($global)) {
             return $board;
         }
 
@@ -252,8 +252,13 @@ class LudoEngineService
         return $board;
     }
 
-    private function globalTrackPosition(string $color, int $relativePosition): int
+    public function globalTrackPosition(string $color, int $relativePosition): int
     {
         return (self::START_OFFSETS[$color] + $relativePosition) % self::TRACK_LENGTH;
+    }
+
+    public function isSafeSquare(int $global): bool
+    {
+        return in_array($global, self::SAFE_GLOBAL_SQUARES, true);
     }
 }

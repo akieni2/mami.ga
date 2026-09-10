@@ -100,6 +100,15 @@ class LudoBoard extends StatelessWidget {
   Widget build(BuildContext context) {
     final turn = board['turn']?.toString() ?? 'red';
     final players = Map<String, dynamic>.from((board['players'] as Map?) ?? {});
+    final ai = Map<String, dynamic>.from((board['_ai'] as Map?) ?? {});
+    final reveal = Map<String, dynamic>.from((ai['reveal'] as Map?) ?? {});
+    final pendingRaw = reveal['pending_piece'] ?? ai['pending_piece'];
+    final pendingPiece =
+        pendingRaw is num ? pendingRaw.toInt() : int.tryParse('$pendingRaw');
+    final pendingColor = reveal['color']?.toString() ?? turn;
+    final showAiPending = !myColors.contains(turn) &&
+        board['must_roll'] == false &&
+        pendingPiece != null;
 
     return AspectRatio(
       aspectRatio: 1,
@@ -124,6 +133,9 @@ class LudoBoard extends StatelessWidget {
                     color: color,
                     players: players,
                     cell: cell,
+                    highlightPiece: showAiPending && color == pendingColor
+                        ? pendingPiece
+                        : null,
                   ),
               ],
             ),
@@ -137,6 +149,7 @@ class LudoBoard extends StatelessWidget {
     required String color,
     required Map<String, dynamic> players,
     required double cell,
+    int? highlightPiece,
   }) {
     final data = Map<String, dynamic>.from((players[color] as Map?) ?? {});
     final pieces = List<dynamic>.from((data['pieces'] as List?) ?? const []);
@@ -151,6 +164,8 @@ class LudoBoard extends StatelessWidget {
       if (cellPos == null) continue;
 
       final canMove = isActiveHuman && legalPieces.contains(i);
+      final isAiPending = highlightPiece == i;
+      final emphasize = canMove || isAiPending;
       final left = cellPos[1] * cell + cell * 0.12;
       final top = cellPos[0] * cell + cell * 0.12;
       final diameter = cell * 0.76;
@@ -169,13 +184,15 @@ class LudoBoard extends StatelessWidget {
                 color: paint,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: canMove ? Colors.white : Colors.black54,
-                  width: canMove ? 3 : 1.5,
+                  color: emphasize
+                      ? (isAiPending ? Colors.amberAccent : Colors.white)
+                      : Colors.black54,
+                  width: emphasize ? 3.5 : 1.5,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: canMove ? 0.35 : 0.18),
-                    blurRadius: canMove ? 6 : 3,
+                    color: Colors.black.withValues(alpha: emphasize ? 0.4 : 0.18),
+                    blurRadius: emphasize ? 8 : 3,
                     offset: const Offset(0, 2),
                   ),
                 ],
@@ -375,6 +392,12 @@ class LudoSidePanel extends StatelessWidget {
 
     final isMyTurn = myColors.contains(turn);
     final waitingAi = myColors.isNotEmpty && !isMyTurn;
+    final ai = Map<String, dynamic>.from((board['_ai'] as Map?) ?? {});
+    final reveal = Map<String, dynamic>.from((ai['reveal'] as Map?) ?? {});
+    final pendingPiece = reveal['pending_piece'] ?? ai['pending_piece'];
+    final revealDice = reveal['dice'];
+    final displayDice = dice ?? revealDice;
+    final aiColor = reveal['color']?.toString() ?? turn;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -388,61 +411,109 @@ class LudoSidePanel extends StatelessWidget {
           ),
           child: Text(
             waitingAi
-                ? 'Tour de l\'IA : ${_labels[turn] ?? turn}'
+                ? (dice != null && !mustRoll
+                    ? 'IA ${_labels[aiColor] ?? aiColor} : dé $dice'
+                    : 'Tour de l\'IA : ${_labels[turn] ?? turn}')
                 : isMyTurn
                     ? 'À vous de jouer (${_labels[turn] ?? turn})'
                     : 'Tour : ${_labels[turn] ?? turn}',
             style: const TextStyle(fontWeight: FontWeight.w700),
           ),
         ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Container(
-              width: 72,
-              height: 72,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: AppTheme.primary,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.2),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
+        if (waitingAi) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+            decoration: BoxDecoration(
+              color: (_colorMap[aiColor] ?? Colors.grey).withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                  color: _colorMap[aiColor] ?? Colors.grey, width: 2),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 84,
+                  height: 84,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: _colorMap[aiColor] ?? AppTheme.primary,
+                    borderRadius: BorderRadius.circular(18),
                   ),
-                ],
-              ),
-              child: Text(
-                '${dice ?? '—'}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 34,
-                  fontWeight: FontWeight.bold,
+                  child: Text(
+                    '${displayDice ?? '…'}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 40,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    reveal['skipped'] == true
+                        ? 'L\'IA ${_labels[aiColor] ?? aiColor} a fait ${displayDice ?? '-'} et passe.'
+                        : pendingPiece is num
+                            ? 'L\'IA ${_labels[aiColor] ?? aiColor} a fait ${displayDice ?? '-'}.\nPion ${pendingPiece.toInt() + 1} se prépare à avancer.'
+                            : 'L\'IA ${_labels[aiColor] ?? aiColor} lance le dé…',
+                    style: const TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+        const SizedBox(height: 12),
+        if (!waitingAi)
+          Row(
+            children: [
+              Container(
+                width: 72,
+                height: 72,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AppTheme.primary,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.2),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  '${dice ?? '—'}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 34,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    mustRoll ? 'Dé à lancer' : 'Dé lancé — touchez un pion',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  FilledButton.icon(
-                    onPressed: canRoll && !busy ? onRoll : null,
-                    icon: const Icon(Icons.casino_outlined),
-                    label: const Text('Lancer le dé'),
-                  ),
-                ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      mustRoll ? 'Dé à lancer' : 'Dé lancé — touchez un pion',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    FilledButton.icon(
+                      onPressed: canRoll && !busy ? onRoll : null,
+                      icon: const Icon(Icons.casino_outlined),
+                      label: const Text('Lancer le dé'),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
+            ],
+          ),
+        if (!waitingAi) const SizedBox(height: 16),
         Text(
           'Horloge des coups',
           style: Theme.of(context).textTheme.titleSmall?.copyWith(

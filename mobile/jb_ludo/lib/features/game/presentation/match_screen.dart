@@ -95,9 +95,21 @@ class _MatchScreenState extends ConsumerState<MatchScreen>
     if (match['game_type']?.toString() != 'ludo') return;
     if (_isHumanTurn(match)) return;
     if (_advancingAi || _busy) return;
+    // Ne pas réarmer le délai si un avancement IA est déjà planifié
+    // (le polling 3s annulait sinon le délai d'affichage du dé).
+    if (_aiAdvanceTimer?.isActive ?? false) return;
 
-    _aiAdvanceTimer?.cancel();
-    _aiAdvanceTimer = Timer(const Duration(milliseconds: 900), _advanceAiOnce);
+    final board =
+        Map<String, dynamic>.from((match['board_state'] as Map?) ?? {});
+    final ai = Map<String, dynamic>.from((board['_ai'] as Map?) ?? {});
+    final phase = ai['phase']?.toString();
+    final hasDiceToShow = board['dice'] != null && board['must_roll'] == false;
+
+    // Laisser le temps de lire le dé IA avant le déplacement.
+    final delayMs = (phase == 'show_dice' || hasDiceToShow) ? 1800 : 850;
+
+    _aiAdvanceTimer =
+        Timer(Duration(milliseconds: delayMs), _advanceAiOnce);
   }
 
   Future<void> _advanceAiOnce() async {
@@ -112,11 +124,15 @@ class _MatchScreenState extends ConsumerState<MatchScreen>
           await ref.read(jbLudoRepositoryProvider).advanceAi(widget.matchId);
       if (!mounted) return;
       setState(() => _match = updated);
-      _scheduleAiAdvanceIfNeeded(updated);
     } catch (_) {
       // Le polling reprendra si besoin.
     } finally {
-      if (mounted) setState(() => _advancingAi = false);
+      if (mounted) {
+        setState(() => _advancingAi = false);
+        if (_match != null) {
+          _scheduleAiAdvanceIfNeeded(_match!);
+        }
+      }
     }
   }
 
@@ -252,6 +268,44 @@ class _MatchScreenState extends ConsumerState<MatchScreen>
     return legal;
   }
 
+  String _aiStatusText(
+    Map<String, dynamic> board,
+    List<String> myColors,
+    String turn,
+    bool isMyLudoTurn,
+    List<int> legalLudoPieces,
+    bool mustRoll,
+  ) {
+    const labels = {
+      'red': 'Rouge',
+      'blue': 'Bleu',
+      'green': 'Vert',
+      'yellow': 'Jaune',
+    };
+    if (isMyLudoTurn) {
+      if (legalLudoPieces.isEmpty && !mustRoll) {
+        return 'Aucun de vos pions ne peut jouer ce dé.';
+      }
+      return 'À vous (${labels[turn] ?? turn}). Lancez le dé, puis touchez un pion surligné.';
+    }
+
+    final ai = Map<String, dynamic>.from((board['_ai'] as Map?) ?? {});
+    final reveal = Map<String, dynamic>.from((ai['reveal'] as Map?) ?? {});
+    final dice = board['dice'] ?? reveal['dice'];
+    final color = reveal['color']?.toString() ?? turn;
+    final pending = reveal['pending_piece'] ?? ai['pending_piece'];
+    final skipped = reveal['skipped'] == true;
+
+    if (skipped) {
+      return 'IA ${labels[color] ?? color} : dé $dice — aucun pion jouable, tour passé.';
+    }
+    if (dice != null && board['must_roll'] == false) {
+      final pion = pending is num ? ' — pion ${pending.toInt() + 1} va jouer' : '';
+      return 'IA ${labels[color] ?? color} a lancé $dice$pion.';
+    }
+    return 'Tour IA (${labels[turn] ?? turn}) — un siège à la fois.';
+  }
+
   Future<void> _resign() async {
     final ok = await showDialog<bool>(
       context: context,
@@ -283,8 +337,12 @@ class _MatchScreenState extends ConsumerState<MatchScreen>
 
     final gameType = _match!['game_type']?.toString() ?? 'damier';
     final status = _match!['status']?.toString() ?? '';
-    final board =
-        Map<String, dynamic>.from((_match!['board_state'] as Map?) ?? {});
+    final rawBoard = _match!['board_state'];
+    // Ludo = objet {players, turn, …} ; Damier = grille 10×10 (liste).
+    final board = rawBoard is Map
+        ? Map<String, dynamic>.from(rawBoard)
+        : <String, dynamic>{};
+    final checkersGrid = _asCheckersGrid(rawBoard);
     final ludoTurn = board['turn']?.toString();
     final myColors = _myColorsOf(_match!);
     final turn = gameType == 'ludo'
@@ -344,19 +402,17 @@ class _MatchScreenState extends ConsumerState<MatchScreen>
               const SizedBox(height: 8),
               Text(
                 _advancingAi
-                    ? 'L\'IA joue…'
-                    : legalLudoPieces.isEmpty && !mustRoll && isMyLudoTurn
-                        ? 'Aucun de vos pions ne peut jouer ce dé.'
-                        : isMyLudoTurn
-                            ? 'À vous (${turn == 'red' ? 'Rouge' : turn == 'green' ? 'Vert' : turn}). Lancez le dé, puis touchez un pion surligné.'
-                            : 'Prochain siège IA — les tours s\'enchaînent un par un.',
+                    ? 'L\'IA réfléchit…'
+                    : _aiStatusText(board, myColors, turn, isMyLudoTurn,
+                        legalLudoPieces, mustRoll),
               ),
             ],
           ] else
             CheckersBoard(
-              board: (_match!['board_state'] as List?) ?? [],
+              board: checkersGrid,
               selected: _selected,
               onTapSquare: _onTap,
+              myColor: myColor ?? 'white',
             ),
           const SizedBox(height: 12),
           if (status != 'finished' && gameType != 'ludo') ...[
@@ -390,5 +446,14 @@ class _MatchScreenState extends ConsumerState<MatchScreen>
         ],
       ),
     );
+  }
+
+  /// Grille damier 10×10 depuis `board_state` (liste) ou objet encapsulé.
+  List<dynamic> _asCheckersGrid(dynamic raw) {
+    if (raw is List) return List<dynamic>.from(raw);
+    if (raw is Map && raw['grid'] is List) {
+      return List<dynamic>.from(raw['grid'] as List);
+    }
+    return const [];
   }
 }
