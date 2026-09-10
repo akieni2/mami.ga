@@ -19,9 +19,19 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'string', 'email'],
+            'email' => ['required', 'string', 'max:255'],
             'password' => ['required', 'string'],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $login = Str::lower(trim((string) $this->input('email', '')));
+
+        // Raccourci demandé : identifiant « admin » → compte admin@mami.ga
+        if ($login === 'admin') {
+            $this->merge(['email' => 'admin@mami.ga']);
+        }
     }
 
     public function authenticate(): void
