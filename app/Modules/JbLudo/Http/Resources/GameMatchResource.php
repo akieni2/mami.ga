@@ -29,6 +29,9 @@ class GameMatchResource extends JsonResource
                     ? $this->ludoColor($profile)
                     : $this->playerColor($profile)?->value
             ),
+            'my_colors' => $profile === null || $this->game_type !== GameType::Ludo
+                ? []
+                : $this->ludoColors($profile),
             'status' => $this->status->value,
             'turn_color' => $this->turn_color->value,
             'board_state' => $this->board_state,

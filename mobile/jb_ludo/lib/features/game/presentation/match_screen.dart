@@ -24,7 +24,9 @@ class _MatchScreenState extends ConsumerState<MatchScreen>
   List<int>? _selected;
   final List<Map<String, int>> _path = [];
   Timer? _poll;
+  Timer? _aiAdvanceTimer;
   bool _busy = false;
+  bool _advancingAi = false;
 
   @override
   void initState() {
@@ -39,6 +41,7 @@ class _MatchScreenState extends ConsumerState<MatchScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _poll?.cancel();
+    _aiAdvanceTimer?.cancel();
     super.dispose();
   }
 
@@ -56,12 +59,64 @@ class _MatchScreenState extends ConsumerState<MatchScreen>
     try {
       final match =
           await ref.read(jbLudoRepositoryProvider).fetchMatch(widget.matchId);
-      if (mounted) setState(() => _match = match);
+      if (mounted) {
+        setState(() => _match = match);
+        _scheduleAiAdvanceIfNeeded(match);
+      }
     } catch (_) {
       if (!silent && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Impossible de charger la partie')));
       }
+    }
+  }
+
+  List<String> _myColorsOf(Map<String, dynamic> match) {
+    final raw = match['my_colors'];
+    if (raw is List && raw.isNotEmpty) {
+      return raw.map((e) => e.toString()).toList();
+    }
+    final single = match['my_color']?.toString();
+    return single == null || single.isEmpty ? <String>[] : [single];
+  }
+
+  bool _isHumanTurn(Map<String, dynamic> match) {
+    if (match['mode']?.toString() != 'solo') return true;
+    if (match['game_type']?.toString() != 'ludo') return true;
+    final board =
+        Map<String, dynamic>.from((match['board_state'] as Map?) ?? {});
+    final turn = board['turn']?.toString() ?? '';
+    return _myColorsOf(match).contains(turn);
+  }
+
+  void _scheduleAiAdvanceIfNeeded(Map<String, dynamic> match) {
+    if (match['status']?.toString() == 'finished') return;
+    if (match['mode']?.toString() != 'solo') return;
+    if (match['game_type']?.toString() != 'ludo') return;
+    if (_isHumanTurn(match)) return;
+    if (_advancingAi || _busy) return;
+
+    _aiAdvanceTimer?.cancel();
+    _aiAdvanceTimer = Timer(const Duration(milliseconds: 900), _advanceAiOnce);
+  }
+
+  Future<void> _advanceAiOnce() async {
+    if (!mounted || _advancingAi || _busy) return;
+    final current = _match;
+    if (current == null || _isHumanTurn(current)) return;
+    if (current['status']?.toString() == 'finished') return;
+
+    setState(() => _advancingAi = true);
+    try {
+      final updated =
+          await ref.read(jbLudoRepositoryProvider).advanceAi(widget.matchId);
+      if (!mounted) return;
+      setState(() => _match = updated);
+      _scheduleAiAdvanceIfNeeded(updated);
+    } catch (_) {
+      // Le polling reprendra si besoin.
+    } finally {
+      if (mounted) setState(() => _advancingAi = false);
     }
   }
 
@@ -118,7 +173,10 @@ class _MatchScreenState extends ConsumerState<MatchScreen>
       final updated = await ref
           .read(jbLudoRepositoryProvider)
           .playLudoAction(widget.matchId, {'action': 'roll'});
-      if (mounted) setState(() => _match = updated);
+      if (mounted) {
+        setState(() => _match = updated);
+        _scheduleAiAdvanceIfNeeded(updated);
+      }
     } catch (e) {
       if (mounted) _showError(e);
     } finally {
@@ -136,7 +194,10 @@ class _MatchScreenState extends ConsumerState<MatchScreen>
         'action': 'move',
         'piece': piece,
       });
-      if (mounted) setState(() => _match = updated);
+      if (mounted) {
+        setState(() => _match = updated);
+        _scheduleAiAdvanceIfNeeded(updated);
+      }
     } catch (e) {
       if (mounted) _showError(e);
     } finally {
@@ -165,9 +226,10 @@ class _MatchScreenState extends ConsumerState<MatchScreen>
         .replaceFirst('DioException [unknown]: null\nError: ', '');
   }
 
-  List<int> _legalLudoPieces(Map<String, dynamic> board, String? myColor) {
-    if (myColor == null ||
-        board['turn'] != myColor ||
+  List<int> _legalLudoPieces(Map<String, dynamic> board, List<String> myColors) {
+    final turn = board['turn']?.toString();
+    if (turn == null ||
+        !myColors.contains(turn) ||
         board['must_roll'] == true ||
         board['dice'] == null) {
       return [];
@@ -175,7 +237,7 @@ class _MatchScreenState extends ConsumerState<MatchScreen>
 
     final dice = (board['dice'] as num?)?.toInt() ?? 0;
     final players = Map<String, dynamic>.from((board['players'] as Map?) ?? {});
-    final mine = Map<String, dynamic>.from((players[myColor] as Map?) ?? {});
+    final mine = Map<String, dynamic>.from((players[turn] as Map?) ?? {});
     final pieces = List<dynamic>.from((mine['pieces'] as List?) ?? const []);
     final legal = <int>[];
 
@@ -224,13 +286,15 @@ class _MatchScreenState extends ConsumerState<MatchScreen>
     final board =
         Map<String, dynamic>.from((_match!['board_state'] as Map?) ?? {});
     final ludoTurn = board['turn']?.toString();
+    final myColors = _myColorsOf(_match!);
     final turn = gameType == 'ludo'
         ? (ludoTurn ?? '')
         : (_match!['turn_color']?.toString() ?? '');
-    final myColor = _match!['my_color']?.toString();
+    final myColor = myColors.isEmpty ? _match!['my_color']?.toString() : turn;
     final legalLudoPieces =
-        gameType == 'ludo' ? _legalLudoPieces(board, myColor) : <int>[];
+        gameType == 'ludo' ? _legalLudoPieces(board, myColors) : <int>[];
     final mustRoll = board['must_roll'] != false;
+    final isMyLudoTurn = gameType == 'ludo' && myColors.contains(turn);
 
     return Scaffold(
       appBar: AppBar(
@@ -263,29 +327,29 @@ class _MatchScreenState extends ConsumerState<MatchScreen>
           if (gameType == 'ludo') ...[
             LudoBoard(
               board: board,
-              myColor: myColor,
+              myColors: myColors,
+              activeColor: turn,
               legalPieces: legalLudoPieces,
               onPieceTap: _moveLudoPiece,
             ),
             const SizedBox(height: 12),
             LudoSidePanel(
               board: board,
-              myColor: myColor,
-              canRoll: status != 'finished' &&
-                  myColor != null &&
-                  myColor == turn &&
-                  mustRoll,
+              myColors: myColors,
+              canRoll: status != 'finished' && isMyLudoTurn && mustRoll,
               onRoll: _rollLudoDice,
-              busy: _busy,
+              busy: _busy || _advancingAi,
             ),
             if (status != 'finished') ...[
               const SizedBox(height: 8),
               Text(
-                legalLudoPieces.isEmpty && !mustRoll && myColor == turn
-                    ? 'Aucun de vos pions ne peut jouer ce dé.'
-                    : myColor == turn
-                        ? 'Lancez le dé (il faut un 6 pour sortir un pion), puis touchez un pion surligné.'
-                        : 'Les coups de l\'IA apparaissent dans l\'horloge ci-dessus.',
+                _advancingAi
+                    ? 'L\'IA joue…'
+                    : legalLudoPieces.isEmpty && !mustRoll && isMyLudoTurn
+                        ? 'Aucun de vos pions ne peut jouer ce dé.'
+                        : isMyLudoTurn
+                            ? 'À vous (${turn == 'red' ? 'Rouge' : turn == 'green' ? 'Vert' : turn}). Lancez le dé, puis touchez un pion surligné.'
+                            : 'Prochain siège IA — les tours s\'enchaînent un par un.',
               ),
             ],
           ] else

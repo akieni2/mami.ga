@@ -42,11 +42,19 @@ class JbLudoRepository {
   Future<Map<String, dynamic>> soloMatch({
     required String gameType,
     String difficulty = 'medium',
+    int humanColors = 1,
   }) async {
     final response = await _dio.post('/jb-ludo/matches/solo', data: {
       'game_type': gameType,
       'difficulty': difficulty,
+      'human_colors': humanColors,
     });
+    final envelope = parseApiData(response.data);
+    return Map<String, dynamic>.from(envelope['data'] as Map);
+  }
+
+  Future<Map<String, dynamic>> advanceAi(int matchId) async {
+    final response = await _dio.post('/jb-ludo/matches/$matchId/advance-ai');
     final envelope = parseApiData(response.data);
     return Map<String, dynamic>.from(envelope['data'] as Map);
   }

@@ -7,13 +7,15 @@ class LudoBoard extends StatelessWidget {
   const LudoBoard({
     required this.board,
     required this.onPieceTap,
-    required this.myColor,
+    required this.myColors,
+    required this.activeColor,
     required this.legalPieces,
     super.key,
   });
 
   final Map<String, dynamic> board;
-  final String? myColor;
+  final List<String> myColors;
+  final String activeColor;
   final List<int> legalPieces;
   final void Function(int piece) onPieceTap;
 
@@ -139,7 +141,8 @@ class LudoBoard extends StatelessWidget {
     final data = Map<String, dynamic>.from((players[color] as Map?) ?? {});
     final pieces = List<dynamic>.from((data['pieces'] as List?) ?? const []);
     final paint = _colorMap[color]!;
-    final isMine = color == myColor;
+    final isActiveHuman =
+        myColors.contains(color) && color == activeColor;
     final widgets = <Widget>[];
 
     for (var i = 0; i < 4; i++) {
@@ -147,7 +150,7 @@ class LudoBoard extends StatelessWidget {
       final cellPos = _cellFor(color, position, i);
       if (cellPos == null) continue;
 
-      final canMove = isMine && legalPieces.contains(i);
+      final canMove = isActiveHuman && legalPieces.contains(i);
       final left = cellPos[1] * cell + cell * 0.12;
       final top = cellPos[0] * cell + cell * 0.12;
       final diameter = cell * 0.76;
@@ -343,7 +346,7 @@ class _LudoGridPainter extends CustomPainter {
 class LudoSidePanel extends StatelessWidget {
   const LudoSidePanel({
     required this.board,
-    required this.myColor,
+    required this.myColors,
     required this.canRoll,
     required this.onRoll,
     required this.busy,
@@ -351,7 +354,7 @@ class LudoSidePanel extends StatelessWidget {
   });
 
   final Map<String, dynamic> board;
-  final String? myColor;
+  final List<String> myColors;
   final bool canRoll;
   final VoidCallback? onRoll;
   final bool busy;
@@ -370,8 +373,8 @@ class LudoSidePanel extends StatelessWidget {
       ),
     ).reversed.take(12).toList();
 
-    final isMyTurn = myColor != null && turn == myColor;
-    final waitingAi = myColor != null && turn != myColor;
+    final isMyTurn = myColors.contains(turn);
+    final waitingAi = myColors.isNotEmpty && !isMyTurn;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -387,7 +390,7 @@ class LudoSidePanel extends StatelessWidget {
             waitingAi
                 ? 'Tour de l\'IA : ${_labels[turn] ?? turn}'
                 : isMyTurn
-                    ? 'À vous de jouer (${_labels[myColor] ?? myColor})'
+                    ? 'À vous de jouer (${_labels[turn] ?? turn})'
                     : 'Tour : ${_labels[turn] ?? turn}',
             style: const TextStyle(fontWeight: FontWeight.w700),
           ),

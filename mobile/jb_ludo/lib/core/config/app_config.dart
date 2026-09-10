@@ -12,7 +12,7 @@ class AppConfig {
   );
 
   /// Affiché sur l'écran login pour vérifier la bonne APK.
-  static const String appVersion = '1.0.7';
+  static const String appVersion = '1.0.8';
 
   /// Host HTTP virtuel nginx quand on passe par l'IP.
   static const String apiVirtualHost = 'api.mami.ga';

@@ -77,12 +77,14 @@ class MatchController extends Controller
         $data = $request->validate([
             'game_type' => ['required', 'in:damier,ludo'],
             'difficulty' => ['nullable', 'in:beginner,medium,hard'],
+            'human_colors' => ['nullable', 'integer', 'in:1,2'],
         ]);
 
         $match = $this->lifecycle->createSoloMatch(
             $player,
             GameType::from($data['game_type']),
             $data['difficulty'] ?? 'medium',
+            (int) ($data['human_colors'] ?? 1),
         );
 
         return ApiResponse::success(new GameMatchResource($match), 'Partie entrainement creee', 201);
@@ -128,6 +130,14 @@ class MatchController extends Controller
         $updated = $this->lifecycle->playMove($match, $player, $data['path']);
 
         return ApiResponse::success(new GameMatchResource($updated), 'Coup enregistré');
+    }
+
+    public function advanceAi(Request $request, GameMatch $match): JsonResponse
+    {
+        $player = $this->profiles->forUser($request->user());
+        $updated = $this->lifecycle->advanceSoloAi($match, $player);
+
+        return ApiResponse::success(new GameMatchResource($updated), 'Tour IA avance');
     }
 
     public function resign(Request $request, GameMatch $match): JsonResponse

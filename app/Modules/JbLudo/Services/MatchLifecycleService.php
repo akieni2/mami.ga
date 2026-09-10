@@ -91,21 +91,44 @@ class MatchLifecycleService
         return $match->fresh(['whitePlayer', 'blackPlayer']);
     }
 
-    public function createSoloMatch(PlayerProfile $player, GameType $gameType, string $difficulty = 'medium'): GameMatch
-    {
+    public function createSoloMatch(
+        PlayerProfile $player,
+        GameType $gameType,
+        string $difficulty = 'medium',
+        int $humanColorCount = 1,
+    ): GameMatch {
         if ($gameType === GameType::Damier) {
             $bot = $this->bots->profile('damier-'.$difficulty, 'IA Damier '.ucfirst($difficulty));
+
             return $this->createMatch($player, $bot, GameMode::Solo, GameType::Damier);
         }
+
+        $humanColorCount = in_array($humanColorCount, [1, 2], true) ? $humanColorCount : 1;
 
         $blue = $this->bots->profile('ludo-blue-'.$difficulty, 'IA Ludo Bleu');
         $green = $this->bots->profile('ludo-green-'.$difficulty, 'IA Ludo Vert');
         $yellow = $this->bots->profile('ludo-yellow-'.$difficulty, 'IA Ludo Jaune');
-        $match = $this->createLudoMatch([$player, $blue, $green, $yellow], GameMode::Solo);
+
+        // Ordre sièges : rouge, bleu, vert, jaune.
+        // 1 couleur : humain = rouge ; IA = bleu/vert/jaune
+        // 2 couleurs : humain = rouge + vert (opposés) ; IA = bleu + jaune
+        if ($humanColorCount === 2) {
+            $seats = [$player, $blue, $player, $yellow];
+            $humanColors = ['red', 'green'];
+            $botIds = [$blue->id, $yellow->id];
+        } else {
+            $seats = [$player, $blue, $green, $yellow];
+            $humanColors = ['red'];
+            $botIds = [$blue->id, $green->id, $yellow->id];
+        }
+
+        $match = $this->createLudoMatch($seats, GameMode::Solo);
         $board = $match->board_state ?? [];
         $board['_ai'] = [
             'difficulty' => $difficulty,
-            'bot_player_ids' => [$blue->id, $green->id, $yellow->id],
+            'bot_player_ids' => $botIds,
+            'human_colors' => $humanColors,
+            'human_color_count' => $humanColorCount,
         ];
         $match->update(['board_state' => $board]);
 
@@ -123,7 +146,9 @@ class MatchLifecycleService
             $this->assertPlayable($match, $player);
             $this->consumeClock($match);
 
-            $color = $match->game_type === GameType::Ludo ? $match->ludoColor($player) : $match->playerColor($player);
+            $color = $match->game_type === GameType::Ludo
+                ? $this->resolveLudoPlayableColor($match, $player)
+                : $match->playerColor($player);
             if ($color === null || ($match->game_type !== GameType::Ludo && $color !== $match->turn_color)) {
                 throw ValidationException::withMessages([
                     'turn' => ['Ce n\'est pas votre tour.'],
@@ -182,12 +207,72 @@ class MatchLifecycleService
 
             $match = $match->fresh(['whitePlayer', 'blackPlayer', 'winner']);
 
+            // Un seul siège IA après le coup humain : le client avance les suivants un par un.
             if ($match->mode === GameMode::Solo && $match->status === MatchStatus::InProgress) {
-                $this->playSoloAiTurns($match);
+                if ($match->game_type === GameType::Damier) {
+                    $this->playSoloCheckersTurn($match);
+                } else {
+                    $this->playOneSoloLudoSeat($match);
+                }
             }
 
             return $match->fresh(['whitePlayer', 'blackPlayer', 'winner', 'moves']);
         });
+    }
+
+    public function advanceSoloAi(GameMatch $match, PlayerProfile $player): GameMatch
+    {
+        return DB::transaction(function () use ($match, $player): GameMatch {
+            $match = GameMatch::query()->lockForUpdate()->findOrFail($match->id);
+            $this->assertPlayable($match, $player);
+
+            if ($match->mode !== GameMode::Solo || $match->status !== MatchStatus::InProgress) {
+                return $match->fresh(['whitePlayer', 'blackPlayer', 'winner', 'moves']);
+            }
+
+            if ($match->game_type === GameType::Damier) {
+                $this->playSoloCheckersTurn($match);
+            } else {
+                $humanColors = $this->soloHumanColors($match);
+                $turn = (string) (($match->board_state ?? [])['turn'] ?? 'red');
+                if (in_array($turn, $humanColors, true)) {
+                    return $match->fresh(['whitePlayer', 'blackPlayer', 'winner', 'moves']);
+                }
+                $this->playOneSoloLudoSeat($match);
+            }
+
+            return $match->fresh(['whitePlayer', 'blackPlayer', 'winner', 'moves']);
+        });
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function soloHumanColors(GameMatch $match): array
+    {
+        $configured = ($match->board_state ?? [])['_ai']['human_colors'] ?? null;
+        if (is_array($configured) && $configured !== []) {
+            return array_values(array_map('strval', $configured));
+        }
+
+        return ['red'];
+    }
+
+    private function resolveLudoPlayableColor(GameMatch $match, PlayerProfile $player): ?string
+    {
+        $humanColors = $match->ludoColors($player);
+        if ($humanColors === []) {
+            return null;
+        }
+
+        $turn = (string) (($match->board_state ?? [])['turn'] ?? 'red');
+        if (! in_array($turn, $humanColors, true)) {
+            throw ValidationException::withMessages([
+                'turn' => ['Ce n\'est pas votre tour (couleur '.$turn.').'],
+            ]);
+        }
+
+        return $turn;
     }
 
     public function resign(GameMatch $match, PlayerProfile $player): GameMatch
@@ -377,7 +462,7 @@ class MatchLifecycleService
             return;
         }
 
-        $this->playSoloLudoTurns($match);
+        $this->playOneSoloLudoSeat($match);
     }
 
     private function playSoloCheckersTurn(GameMatch $match): void
@@ -424,9 +509,27 @@ class MatchLifecycleService
         }
     }
 
-    private function playSoloLudoTurns(GameMatch $match): void
+    /**
+     * Joue exactement un siège IA (y compris relances sur 6), puis s'arrête
+     * pour laisser le client afficher le tour suivant.
+     */
+    private function playOneSoloLudoSeat(GameMatch $match): void
     {
-        for ($i = 0; $i < 24; $i++) {
+        $match = GameMatch::query()->lockForUpdate()->findOrFail($match->id);
+        if ($match->status !== MatchStatus::InProgress) {
+            return;
+        }
+
+        $board = $match->board_state ?? [];
+        $humanColors = $this->soloHumanColors($match);
+        $seatColor = (string) ($board['turn'] ?? 'red');
+        if (in_array($seatColor, $humanColors, true)) {
+            return;
+        }
+
+        $difficulty = (string) (($board['_ai']['difficulty'] ?? 'medium'));
+
+        for ($guard = 0; $guard < 8; $guard++) {
             $match = GameMatch::query()->lockForUpdate()->findOrFail($match->id);
             if ($match->status !== MatchStatus::InProgress) {
                 return;
@@ -434,11 +537,10 @@ class MatchLifecycleService
 
             $board = $match->board_state ?? [];
             $turn = (string) ($board['turn'] ?? 'red');
-            if ($turn === 'red') {
+            if ($turn !== $seatColor) {
                 return;
             }
 
-            $difficulty = (string) (($board['_ai']['difficulty'] ?? 'medium'));
             $board = $this->ludo->rollDice($board, $turn);
             $piece = $this->ludoAi->choosePiece($board, $turn, $difficulty);
 
@@ -446,9 +548,11 @@ class MatchLifecycleService
                 $seq = $match->move_count + 1;
                 $match->update(['board_state' => $board, 'move_count' => $seq, 'turn_started_at' => now()]);
                 $this->recordLudoAiMove($match, $seq, $turn, [['action' => 'roll']]);
-                continue;
+
+                return;
             }
 
+            $diceBefore = (int) ($board['dice'] ?? 0);
             $result = $this->ludo->applyMove($board, $turn, $piece);
             $seq = $match->move_count + 1;
             $match->update([
@@ -456,11 +560,19 @@ class MatchLifecycleService
                 'move_count' => $seq,
                 'turn_started_at' => now(),
             ]);
-            $this->recordLudoAiMove($match, $seq, $turn, [['action' => 'roll'], ['action' => 'move', 'piece' => $piece]]);
+            $this->recordLudoAiMove($match, $seq, $turn, [
+                ['action' => 'roll'],
+                ['action' => 'move', 'piece' => $piece, 'dice' => $diceBefore],
+            ]);
 
             if ($result['result'] !== null) {
                 $this->finish($match->fresh(['whitePlayer', 'blackPlayer']), MatchResult::from($result['result']), 'normal');
 
+                return;
+            }
+
+            // Relance uniquement si le même siège garde le tour (dé 6).
+            if (! ($result['extra_turn'] ?? false)) {
                 return;
             }
         }

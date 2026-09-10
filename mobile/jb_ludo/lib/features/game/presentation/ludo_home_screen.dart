@@ -13,16 +13,20 @@ class LudoHomeScreen extends ConsumerStatefulWidget {
 
 class _LudoHomeScreenState extends ConsumerState<LudoHomeScreen> {
   bool _busy = false;
+  int _humanColors = 1;
 
   Future<void> _quick() async {
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _busy = true);
-    messenger.showSnackBar(const SnackBar(content: Text('Recherche d\'adversaire Ludo...')));
+    messenger.showSnackBar(
+        const SnackBar(content: Text('Recherche d\'adversaire Ludo...')));
     try {
-      final result = await ref.read(jbLudoRepositoryProvider).quickMatch(gameType: 'ludo');
+      final result =
+          await ref.read(jbLudoRepositoryProvider).quickMatch(gameType: 'ludo');
       if (!mounted) return;
       if (result['queued'] == true) {
-        messenger.showSnackBar(const SnackBar(content: Text('En file d\'attente Ludo')));
+        messenger.showSnackBar(
+            const SnackBar(content: Text('En file d\'attente Ludo')));
         return;
       }
       final match = result['match'] as Map<String, dynamic>?;
@@ -39,9 +43,15 @@ class _LudoHomeScreenState extends ConsumerState<LudoHomeScreen> {
   Future<void> _solo() async {
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _busy = true);
-    messenger.showSnackBar(const SnackBar(content: Text('Preparation de l\'entrainement Ludo...')));
+    messenger.showSnackBar(SnackBar(
+        content: Text(_humanColors == 2
+            ? 'Entrainement : 2 couleurs (Rouge + Vert)...'
+            : 'Entrainement : 1 couleur (Rouge)...')));
     try {
-      final match = await ref.read(jbLudoRepositoryProvider).soloMatch(gameType: 'ludo');
+      final match = await ref.read(jbLudoRepositoryProvider).soloMatch(
+            gameType: 'ludo',
+            humanColors: _humanColors,
+          );
       if (!mounted) return;
       context.push('/match/${match['id']}');
     } catch (e) {
@@ -65,16 +75,47 @@ class _LudoHomeScreenState extends ConsumerState<LudoHomeScreen> {
               children: [
                 AspectRatio(
                   aspectRatio: 16 / 9,
-                  child: Image.asset('assets/games/ludo.png', fit: BoxFit.cover),
+                  child:
+                      Image.asset('assets/games/ludo.png', fit: BoxFit.cover),
                 ),
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Ludo 4 joueurs', style: Theme.of(context).textTheme.titleLarge),
+                      Text('Ludo 4 joueurs',
+                          style: Theme.of(context).textTheme.titleLarge),
                       const SizedBox(height: 6),
-                      const Text('Rouge, Bleu, Vert et Jaune avec de serveur et progression separee du Damier.'),
+                      const Text(
+                          'Choisissez combien de couleurs vous jouez. Les tours se jouent l\'un après l\'autre.'),
+                      const SizedBox(height: 16),
+                      Text('Mode entrainement',
+                          style: Theme.of(context).textTheme.titleSmall),
+                      const SizedBox(height: 8),
+                      SegmentedButton<int>(
+                        segments: const [
+                          ButtonSegment(
+                              value: 1,
+                              label: Text('1 couleur'),
+                              icon: Icon(Icons.person_outline)),
+                          ButtonSegment(
+                              value: 2,
+                              label: Text('2 couleurs'),
+                              icon: Icon(Icons.group_outlined)),
+                        ],
+                        selected: {_humanColors},
+                        onSelectionChanged: _busy
+                            ? null
+                            : (value) =>
+                                setState(() => _humanColors = value.first),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _humanColors == 2
+                            ? 'Vous jouez Rouge puis Vert, tour à tour. IA : Bleu et Jaune.'
+                            : 'Vous jouez Rouge. IA : Bleu, Vert et Jaune (un siège à la fois).',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
                       const SizedBox(height: 16),
                       FilledButton.icon(
                         onPressed: _busy ? null : _solo,

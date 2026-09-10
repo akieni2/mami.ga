@@ -99,15 +99,26 @@ class GameMatch extends Model
 
     public function ludoColor(PlayerProfile $player): ?string
     {
+        $colors = $this->ludoColors($player);
+
+        return $colors[0] ?? null;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function ludoColors(PlayerProfile $player): array
+    {
         $players = $this->ludo_player_ids ?? [];
+        $colors = [];
 
         foreach ($players as $color => $playerId) {
             if ((int) $playerId === (int) $player->id) {
-                return (string) $color;
+                $colors[] = (string) $color;
             }
         }
 
-        return null;
+        return $colors;
     }
 
     public function opponentOf(PlayerProfile $player): ?PlayerProfile

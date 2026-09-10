@@ -20,6 +20,7 @@ Route::middleware(['auth:sanctum', 'module:jb_ludo'])->group(function (): void {
     Route::get('/matches/history', [MatchController::class, 'history']);
     Route::get('/matches/{match}', [MatchController::class, 'show']);
     Route::post('/matches/{match}/moves', [MatchController::class, 'move']);
+    Route::post('/matches/{match}/advance-ai', [MatchController::class, 'advanceAi']);
     Route::post('/matches/{match}/resign', [MatchController::class, 'resign']);
     Route::post('/matches/{match}/disconnect', [MatchController::class, 'disconnect']);
     Route::post('/matches/{match}/reconnect', [MatchController::class, 'reconnect']);
