@@ -1,7 +1,10 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/config/app_config.dart';
+import '../../../core/network/api_exception.dart';
 import '../../auth/presentation/auth_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -36,9 +39,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } else {
       final err = ref.read(authStateProvider).error;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(err?.toString() ?? 'Connexion impossible')),
+        SnackBar(content: Text(_errorMessage(err))),
       );
     }
+  }
+
+  String _errorMessage(Object? error) {
+    if (error is DioException && error.error is ApiException) {
+      return (error.error as ApiException).message;
+    }
+
+    if (error is ApiException) return error.message;
+
+    final text = error?.toString();
+    if (text == null || text.isEmpty) return 'Connexion impossible';
+
+    return text
+        .replaceFirst('Exception: ', '')
+        .replaceFirst('ApiException: ', '')
+        .replaceFirst('DioException [bad response]: null\nError: ', '')
+        .replaceFirst('DioException [connection error]: ', '')
+        .replaceFirst('DioException [connection timeout]: ', '')
+        .replaceFirst('DioException [receive timeout]: ', '')
+        .replaceFirst('DioException [unknown]: null\nError: ', '');
   }
 
   @override
@@ -56,6 +79,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             const Text('Ludo et damier en ligne'),
+            const SizedBox(height: 6),
+            Text(
+              AppConfig.apiBaseUrl,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             const SizedBox(height: 32),
             TextField(
                 controller: _email,

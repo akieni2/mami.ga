@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -49,6 +50,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   String _errorMessage(Object? error) {
+    if (error is DioException && error.error is ApiException) {
+      return (error.error as ApiException).message;
+    }
+
     if (error is ApiException) return error.message;
 
     final text = error?.toString();
@@ -57,6 +62,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     return text
         .replaceFirst('Exception: ', '')
         .replaceFirst('ApiException: ', '')
+        .replaceFirst('DioException [bad response]: null\nError: ', '')
+        .replaceFirst('DioException [connection error]: ', '')
+        .replaceFirst('DioException [connection timeout]: ', '')
+        .replaceFirst('DioException [receive timeout]: ', '')
         .replaceFirst('DioException [unknown]: null\nError: ', '');
   }
 
