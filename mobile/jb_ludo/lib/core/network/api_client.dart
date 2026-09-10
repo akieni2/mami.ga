@@ -30,6 +30,10 @@ final dioProvider = Provider<Dio>((ref) {
       onError: (error, handler) {
         final data = error.response?.data;
         var message = error.message ?? 'Erreur réseau';
+        if (error.response == null) {
+          message =
+              'Impossible de joindre ${error.requestOptions.uri}. Vérifiez Internet, DNS ou réseau mobile.';
+        }
         if (data is Map && data['message'] is String) {
           message = data['message'] as String;
         }
@@ -47,7 +51,8 @@ final dioProvider = Provider<Dio>((ref) {
             requestOptions: error.requestOptions,
             response: error.response,
             type: error.type,
-            error: ApiException(message, statusCode: error.response?.statusCode),
+            error:
+                ApiException(message, statusCode: error.response?.statusCode),
           ),
         );
       },
