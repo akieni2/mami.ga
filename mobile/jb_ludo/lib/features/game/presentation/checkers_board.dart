@@ -7,6 +7,9 @@ class CheckersBoard extends StatelessWidget {
     required this.board,
     required this.selected,
     required this.onTapSquare,
+    required this.onDragMove,
+    required this.legalStarts,
+    required this.legalDestinations,
     this.myColor = 'white',
     super.key,
   });
@@ -14,6 +17,9 @@ class CheckersBoard extends StatelessWidget {
   final List<dynamic> board;
   final List<int>? selected; // [r,c]
   final void Function(int r, int c) onTapSquare;
+  final void Function(int fromR, int fromC, int toR, int toC) onDragMove;
+  final Set<String> legalStarts;
+  final Set<String> legalDestinations;
   final String myColor;
 
   /// Blancs (joueur) — ivoire bien visible sur case sombre.
@@ -51,8 +57,7 @@ class CheckersBoard extends StatelessWidget {
                 return GridView.builder(
                   physics: const NeverScrollableScrollPhysics(),
                   padding: EdgeInsets.zero,
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 10,
                   ),
                   itemCount: 100,
@@ -64,30 +69,67 @@ class CheckersBoard extends StatelessWidget {
                     final isSelected = selected != null &&
                         selected![0] == r &&
                         selected![1] == c;
+                    final squareKey = '$r:$c';
+                    final canStartMove = legalStarts.contains(squareKey);
+                    final canEndMove = legalDestinations.contains(squareKey);
                     final isWhite = cellData?['c'] == 'w';
                     final isKing = cellData?['k'] == true;
 
-                    return GestureDetector(
+                    final square = GestureDetector(
                       onTap: dark ? () => onTapSquare(r, c) : null,
-                      child: Container(
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 120),
                         decoration: BoxDecoration(
-                          color: isSelected
-                              ? AppTheme.accent.withValues(alpha: 0.75)
-                              : (dark
-                                  ? AppTheme.boardDark
-                                  : AppTheme.boardLight),
-                          border: Border.all(color: Colors.black12),
+                          color: _squareColor(
+                            dark: dark,
+                            isSelected: isSelected,
+                            canStartMove: canStartMove,
+                            canEndMove: canEndMove,
+                          ),
+                          border: Border.all(
+                            color:
+                                canEndMove ? AppTheme.accent : Colors.black12,
+                            width: canEndMove ? 2 : 1,
+                          ),
                         ),
-                        child: cellData == null
-                            ? null
-                            : Center(
-                                child: _PieceToken(
-                                  size: pieceSize,
-                                  isWhite: isWhite,
-                                  isKing: isKing,
-                                ),
-                              ),
+                        child: _pieceChild(
+                          cellData: cellData,
+                          canStartMove: canStartMove,
+                          pieceSize: pieceSize,
+                          isWhite: isWhite,
+                          isKing: isKing,
+                          r: r,
+                          c: c,
+                        ),
                       ),
+                    );
+
+                    if (!dark) return square;
+
+                    return DragTarget<List<int>>(
+                      onWillAcceptWithDetails: (_) => canEndMove,
+                      onAcceptWithDetails: (details) {
+                        final from = details.data;
+                        if (from.length < 2) return;
+                        onDragMove(from[0], from[1], r, c);
+                      },
+                      builder: (context, candidateData, rejectedData) {
+                        return DecoratedBox(
+                          decoration: BoxDecoration(
+                            boxShadow: candidateData.isEmpty
+                                ? null
+                                : [
+                                    BoxShadow(
+                                      color: AppTheme.accent
+                                          .withValues(alpha: 0.4),
+                                      blurRadius: 8,
+                                      spreadRadius: 1,
+                                    ),
+                                  ],
+                          ),
+                          child: square,
+                        );
+                      },
                     );
                   },
                 );
@@ -107,6 +149,56 @@ class CheckersBoard extends StatelessWidget {
       ],
     );
   }
+
+  Color _squareColor({
+    required bool dark,
+    required bool isSelected,
+    required bool canStartMove,
+    required bool canEndMove,
+  }) {
+    if (isSelected) return AppTheme.accent.withValues(alpha: 0.75);
+    if (canEndMove) return AppTheme.accent.withValues(alpha: 0.28);
+    if (canStartMove) return AppTheme.primary.withValues(alpha: 0.25);
+    return dark ? AppTheme.boardDark : AppTheme.boardLight;
+  }
+
+  Widget? _pieceChild({
+    required Map<String, dynamic>? cellData,
+    required bool canStartMove,
+    required double pieceSize,
+    required bool isWhite,
+    required bool isKing,
+    required int r,
+    required int c,
+  }) {
+    if (cellData == null) return null;
+
+    final token = _PieceToken(
+      size: pieceSize,
+      isWhite: isWhite,
+      isKing: isKing,
+      isPlayable: canStartMove,
+    );
+
+    if (!canStartMove) return Center(child: token);
+
+    return Center(
+      child: Draggable<List<int>>(
+        data: [r, c],
+        feedback: Material(
+          color: Colors.transparent,
+          child: _PieceToken(
+            size: pieceSize,
+            isWhite: isWhite,
+            isKing: isKing,
+            isPlayable: true,
+          ),
+        ),
+        childWhenDragging: Opacity(opacity: 0.25, child: token),
+        child: token,
+      ),
+    );
+  }
 }
 
 class _PieceToken extends StatelessWidget {
@@ -114,11 +206,13 @@ class _PieceToken extends StatelessWidget {
     required this.size,
     required this.isWhite,
     required this.isKing,
+    required this.isPlayable,
   });
 
   final double size;
   final bool isWhite;
   final bool isKing;
+  final bool isPlayable;
 
   @override
   Widget build(BuildContext context) {
@@ -130,8 +224,9 @@ class _PieceToken extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(
-          color: isKing ? AppTheme.accent : rim,
-          width: isKing ? 3.5 : 2,
+          color:
+              isPlayable ? AppTheme.primary : (isKing ? AppTheme.accent : rim),
+          width: isPlayable || isKing ? 3.5 : 2,
         ),
         boxShadow: [
           BoxShadow(

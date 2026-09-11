@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use App\Modules\JbLudo\Enums\GameType;
 use App\Modules\JbLudo\Models\PlayerProfile;
+use App\Modules\JbLudo\Services\CheckersEngineService;
 
 /** @mixin \App\Modules\JbLudo\Models\GameMatch */
 class GameMatchResource extends JsonResource
@@ -35,6 +36,7 @@ class GameMatchResource extends JsonResource
             'status' => $this->status->value,
             'turn_color' => $this->turn_color->value,
             'board_state' => $this->board_state,
+            'legal_moves' => $this->legalMovesFor($profile),
             'clock_seconds' => $this->clock_seconds,
             'white_time_left' => $this->white_time_left,
             'black_time_left' => $this->black_time_left,
@@ -58,5 +60,28 @@ class GameMatchResource extends JsonResource
                 'played_at' => $m->played_at?->toIso8601String(),
             ])->values()->all()),
         ];
+    }
+
+    /**
+     * @return list<array{path: list<array{r: int, c: int}>, captures: list<array{r: int, c: int}>}>
+     */
+    private function legalMovesFor(?PlayerProfile $profile): array
+    {
+        if ($profile === null || $this->game_type !== GameType::Damier) {
+            return [];
+        }
+
+        $color = $this->playerColor($profile);
+        if ($color === null || $color !== $this->turn_color) {
+            return [];
+        }
+
+        return collect(app(CheckersEngineService::class)->legalMoves($this->board_state ?? [], $color))
+            ->map(fn (array $move): array => [
+                'path' => $move['path'],
+                'captures' => $move['captures'],
+            ])
+            ->values()
+            ->all();
     }
 }

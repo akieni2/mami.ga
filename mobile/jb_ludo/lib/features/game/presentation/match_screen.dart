@@ -108,8 +108,7 @@ class _MatchScreenState extends ConsumerState<MatchScreen>
     // Laisser le temps de lire le dé IA avant le déplacement.
     final delayMs = (phase == 'show_dice' || hasDiceToShow) ? 1800 : 850;
 
-    _aiAdvanceTimer =
-        Timer(Duration(milliseconds: delayMs), _advanceAiOnce);
+    _aiAdvanceTimer = Timer(Duration(milliseconds: delayMs), _advanceAiOnce);
   }
 
   Future<void> _advanceAiOnce() async {
@@ -138,8 +137,16 @@ class _MatchScreenState extends ConsumerState<MatchScreen>
 
   Future<void> _onTap(int r, int c) async {
     if (_busy || _match == null || _match!['status'] == 'finished') return;
+    if (_match!['game_type']?.toString() == 'damier' && !_isMyCheckersTurn()) {
+      _showMessage('Ce n\'est pas votre tour.');
+      return;
+    }
 
     if (_selected == null) {
+      if (!_isLegalCheckersStart(r, c)) {
+        _showMessage('Touchez un de vos pions surlignés.');
+        return;
+      }
       setState(() {
         _selected = [r, c];
         _path
@@ -149,19 +156,63 @@ class _MatchScreenState extends ConsumerState<MatchScreen>
       return;
     }
 
+    if (_isLegalCheckersStart(r, c)) {
+      setState(() {
+        _selected = [r, c];
+        _path
+          ..clear()
+          ..add({'r': r, 'c': c});
+      });
+      return;
+    }
+
+    final from = _path.first;
+    final legalPath = _legalCheckersPathBetween(
+      from['r']!,
+      from['c']!,
+      r,
+      c,
+    );
+    if (legalPath != null) {
+      await _submitPath(legalPath);
+      return;
+    }
+
     setState(() {
       _path.add({'r': r, 'c': c});
       _selected = [r, c];
     });
   }
 
-  Future<void> _submitPath() async {
-    if (_path.length < 2) return;
+  Future<void> _onDragCheckersMove(
+    int fromR,
+    int fromC,
+    int toR,
+    int toC,
+  ) async {
+    if (_busy || _match == null || _match!['status'] == 'finished') return;
+    if (!_isMyCheckersTurn()) {
+      _showMessage('Ce n\'est pas votre tour.');
+      return;
+    }
+
+    final legalPath = _legalCheckersPathBetween(fromR, fromC, toR, toC);
+    if (legalPath == null) {
+      _showMessage('Coup non autorisé.');
+      return;
+    }
+
+    await _submitPath(legalPath);
+  }
+
+  Future<void> _submitPath([List<Map<String, int>>? forcedPath]) async {
+    final path = forcedPath ?? List<Map<String, int>>.from(_path);
+    if (path.length < 2) return;
     setState(() => _busy = true);
     try {
       final updated = await ref
           .read(jbLudoRepositoryProvider)
-          .playMove(widget.matchId, List.from(_path));
+          .playMove(widget.matchId, path);
       if (mounted) {
         setState(() {
           _match = updated;
@@ -180,6 +231,12 @@ class _MatchScreenState extends ConsumerState<MatchScreen>
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   Future<void> _rollLudoDice() async {
@@ -242,7 +299,8 @@ class _MatchScreenState extends ConsumerState<MatchScreen>
         .replaceFirst('DioException [unknown]: null\nError: ', '');
   }
 
-  List<int> _legalLudoPieces(Map<String, dynamic> board, List<String> myColors) {
+  List<int> _legalLudoPieces(
+      Map<String, dynamic> board, List<String> myColors) {
     final turn = board['turn']?.toString();
     if (turn == null ||
         !myColors.contains(turn) ||
@@ -266,6 +324,76 @@ class _MatchScreenState extends ConsumerState<MatchScreen>
     }
 
     return legal;
+  }
+
+  bool _isMyCheckersTurn() {
+    final match = _match;
+    if (match == null) return false;
+    if (match['game_type']?.toString() != 'damier') return false;
+    return match['my_color']?.toString() == match['turn_color']?.toString();
+  }
+
+  List<List<Map<String, int>>> _legalCheckersPaths() {
+    final rawMoves = _match?['legal_moves'];
+    if (rawMoves is! List) return const [];
+
+    final paths = <List<Map<String, int>>>[];
+    for (final rawMove in rawMoves) {
+      if (rawMove is! Map || rawMove['path'] is! List) continue;
+      final path = <Map<String, int>>[];
+      for (final rawSquare in rawMove['path'] as List) {
+        if (rawSquare is! Map) continue;
+        final r = (rawSquare['r'] as num?)?.toInt();
+        final c = (rawSquare['c'] as num?)?.toInt();
+        if (r == null || c == null) continue;
+        path.add({'r': r, 'c': c});
+      }
+      if (path.length >= 2) paths.add(path);
+    }
+
+    return paths;
+  }
+
+  Set<String> _legalCheckersStartKeys() {
+    return _legalCheckersPaths()
+        .map((path) => '${path.first['r']}:${path.first['c']}')
+        .toSet();
+  }
+
+  Set<String> _legalCheckersDestinationKeys() {
+    final selected = _selected;
+    final paths = _legalCheckersPaths();
+    if (selected == null) {
+      return paths.map((path) => '${path.last['r']}:${path.last['c']}').toSet();
+    }
+
+    return paths
+        .where((path) =>
+            path.first['r'] == selected[0] && path.first['c'] == selected[1])
+        .map((path) => '${path.last['r']}:${path.last['c']}')
+        .toSet();
+  }
+
+  bool _isLegalCheckersStart(int r, int c) {
+    return _legalCheckersStartKeys().contains('$r:$c');
+  }
+
+  List<Map<String, int>>? _legalCheckersPathBetween(
+    int fromR,
+    int fromC,
+    int toR,
+    int toC,
+  ) {
+    for (final path in _legalCheckersPaths()) {
+      if (path.first['r'] == fromR &&
+          path.first['c'] == fromC &&
+          path.last['r'] == toR &&
+          path.last['c'] == toC) {
+        return path;
+      }
+    }
+
+    return null;
   }
 
   String _aiStatusText(
@@ -300,7 +428,8 @@ class _MatchScreenState extends ConsumerState<MatchScreen>
       return 'IA ${labels[color] ?? color} : dé $dice — aucun pion jouable, tour passé.';
     }
     if (dice != null && board['must_roll'] == false) {
-      final pion = pending is num ? ' — pion ${pending.toInt() + 1} va jouer' : '';
+      final pion =
+          pending is num ? ' — pion ${pending.toInt() + 1} va jouer' : '';
       return 'IA ${labels[color] ?? color} a lancé $dice$pion.';
     }
     return 'Tour IA (${labels[turn] ?? turn}) — un siège à la fois.';
@@ -412,6 +541,9 @@ class _MatchScreenState extends ConsumerState<MatchScreen>
               board: checkersGrid,
               selected: _selected,
               onTapSquare: _onTap,
+              onDragMove: _onDragCheckersMove,
+              legalStarts: _legalCheckersStartKeys(),
+              legalDestinations: _legalCheckersDestinationKeys(),
               myColor: myColor ?? 'white',
             ),
           const SizedBox(height: 12),
@@ -432,7 +564,7 @@ class _MatchScreenState extends ConsumerState<MatchScreen>
                 const SizedBox(width: 8),
                 Expanded(
                   child: FilledButton(
-                    onPressed: _busy ? null : _submitPath,
+                    onPressed: _busy ? null : () => _submitPath(),
                     child: const Text('Valider le coup'),
                   ),
                 ),
